@@ -1,7 +1,9 @@
 @page "/"
-@using SBInspector.Services
-@using SBInspector.Models
-@inject ServiceBusService ServiceBusService
+@using SBInspector.Core.Interfaces
+@using SBInspector.Core.Domain
+@using SBInspector.Application.Services
+@inject IServiceBusService ServiceBusService
+@inject MessageFilterService FilterService
 @rendermode InteractiveServer
 
 <PageTitle>Service Bus Inspector</PageTitle>
@@ -76,15 +78,23 @@
                         <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Active Messages</th>
-                                    <th>Scheduled Messages</th>
-                                    <th>Dead Letter Messages</th>
+                                    <th @onclick="() => SortQueues(nameof(EntityInfo.Name))" style="cursor: pointer;">
+                                        Name @GetSortIcon(queueSortColumn, nameof(EntityInfo.Name), queueSortAscending)
+                                    </th>
+                                    <th @onclick="() => SortQueues(nameof(EntityInfo.ActiveMessageCount))" style="cursor: pointer;">
+                                        Active Messages @GetSortIcon(queueSortColumn, nameof(EntityInfo.ActiveMessageCount), queueSortAscending)
+                                    </th>
+                                    <th @onclick="() => SortQueues(nameof(EntityInfo.ScheduledMessageCount))" style="cursor: pointer;">
+                                        Scheduled Messages @GetSortIcon(queueSortColumn, nameof(EntityInfo.ScheduledMessageCount), queueSortAscending)
+                                    </th>
+                                    <th @onclick="() => SortQueues(nameof(EntityInfo.DeadLetterMessageCount))" style="cursor: pointer;">
+                                        Dead Letter Messages @GetSortIcon(queueSortColumn, nameof(EntityInfo.DeadLetterMessageCount), queueSortAscending)
+                                    </th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var queue in queues)
+                                @foreach (var queue in SortedQueues)
                                 {
                                     <tr>
                                         <td>@queue.Name</td>
@@ -169,25 +179,39 @@
                     {
                         <div class="mb-3">
                             <h5>Filter by Message Attributes</h5>
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <label for="filterAttributeName" class="form-label">Attribute Name</label>
-                                    <input type="text" class="form-control" id="filterAttributeName" @bind="filterAttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="filterAttributeValue" class="form-label">Attribute Value</label>
-                                    <input type="text" class="form-control" id="filterAttributeValue" @bind="filterAttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check mt-4">
-                                        <input class="form-check-input" type="checkbox" id="useRegexFilter" @bind="useRegexFilter" />
-                                        <label class="form-check-label" for="useRegexFilter">
-                                            Use Regex Expression
-                                        </label>
+                            @for (int i = 0; i < messageFilters.Count; i++)
+                            {
+                                var index = i;
+                                var filter = messageFilters[index];
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-4">
+                                        <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
+                                        <input type="text" class="form-control" id="filterAttributeName_@index" @bind="filter.AttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
                                     </div>
-                                    @if (!string.IsNullOrWhiteSpace(filterAttributeName) || !string.IsNullOrWhiteSpace(filterAttributeValue))
+                                    <div class="col-md-4">
+                                        <label for="filterAttributeValue_@index" class="form-label">Attribute Value</label>
+                                        <input type="text" class="form-control" id="filterAttributeValue_@index" @bind="filter.AttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" id="useRegexFilter_@index" @bind="filter.UseRegex" />
+                                            <label class="form-check-label" for="useRegexFilter_@index">
+                                                Use Regex Expression
+                                            </label>
+                                        </div>
+                                        @if (messageFilters.Count > 1)
+                                        {
+                                            <button class="btn btn-sm btn-danger mt-2" @onclick="() => RemoveFilter(index)">Remove</button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            <div class="row g-2 mb-2">
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-primary me-2" @onclick="AddFilter">Add Filter</button>
+                                    @if (messageFilters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
                                     {
-                                        <button class="btn btn-sm btn-secondary mt-2" @onclick="ClearFilters">Clear Filters</button>
+                                        <button class="btn btn-sm btn-secondary" @onclick="ClearFilters">Clear All Filters</button>
                                     }
                                 </div>
                             </div>
@@ -201,15 +225,23 @@
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Message ID</th>
-                                        <th>Subject</th>
-                                        <th>Enqueued Time</th>
-                                        <th>Delivery Count</th>
+                                        <th @onclick="() => SortMessages(nameof(MessageInfo.MessageId))" style="cursor: pointer;">
+                                            Message ID @GetSortIcon(messageSortColumn, nameof(MessageInfo.MessageId), messageSortAscending)
+                                        </th>
+                                        <th @onclick="() => SortMessages(nameof(MessageInfo.Subject))" style="cursor: pointer;">
+                                            Subject @GetSortIcon(messageSortColumn, nameof(MessageInfo.Subject), messageSortAscending)
+                                        </th>
+                                        <th @onclick="() => SortMessages(nameof(MessageInfo.EnqueuedTime))" style="cursor: pointer;">
+                                            Enqueued Time @GetSortIcon(messageSortColumn, nameof(MessageInfo.EnqueuedTime), messageSortAscending)
+                                        </th>
+                                        <th @onclick="() => SortMessages(nameof(MessageInfo.DeliveryCount))" style="cursor: pointer;">
+                                            Delivery Count @GetSortIcon(messageSortColumn, nameof(MessageInfo.DeliveryCount), messageSortAscending)
+                                        </th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var message in FilteredMessages)
+                                    @foreach (var message in SortedAndFilteredMessages)
                                     {
                                         <tr>
                                             <td>@message.MessageId</td>
@@ -358,92 +390,118 @@
     private string selectedTopic = string.Empty;
     private MessageInfo? selectedMessage = null;
     
-    private string filterAttributeName = string.Empty;
-    private string filterAttributeValue = string.Empty;
-    private bool useRegexFilter = false;
+    private List<MessageFilter> messageFilters = new() { new MessageFilter() };
 
-    private IEnumerable<MessageInfo> FilteredMessages
+    // Sorting state for queues
+    private string queueSortColumn = nameof(EntityInfo.Name);
+    private bool queueSortAscending = true;
+
+    // Sorting state for messages
+    private string messageSortColumn = nameof(MessageInfo.EnqueuedTime);
+    private bool messageSortAscending = false;
+
+    private IEnumerable<EntityInfo> SortedQueues
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(filterAttributeName) && string.IsNullOrWhiteSpace(filterAttributeValue))
+            var sorted = queues.AsEnumerable();
+            
+            sorted = queueSortColumn switch
             {
-                return messages;
-            }
+                nameof(EntityInfo.Name) => queueSortAscending 
+                    ? sorted.OrderBy(q => q.Name) 
+                    : sorted.OrderByDescending(q => q.Name),
+                nameof(EntityInfo.ActiveMessageCount) => queueSortAscending 
+                    ? sorted.OrderBy(q => q.ActiveMessageCount) 
+                    : sorted.OrderByDescending(q => q.ActiveMessageCount),
+                nameof(EntityInfo.ScheduledMessageCount) => queueSortAscending 
+                    ? sorted.OrderBy(q => q.ScheduledMessageCount) 
+                    : sorted.OrderByDescending(q => q.ScheduledMessageCount),
+                nameof(EntityInfo.DeadLetterMessageCount) => queueSortAscending 
+                    ? sorted.OrderBy(q => q.DeadLetterMessageCount) 
+                    : sorted.OrderByDescending(q => q.DeadLetterMessageCount),
+                _ => sorted
+            };
+            
+            return sorted;
+        }
+    }
 
-            return messages.Where(message =>
+    private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(messages, messageFilters);
+
+    private IEnumerable<MessageInfo> SortedAndFilteredMessages
+    {
+        get
+        {
+            var filtered = FilteredMessages;
+            
+            var sorted = messageSortColumn switch
             {
-                // If attribute name is specified, find that specific attribute
-                if (!string.IsNullOrWhiteSpace(filterAttributeName))
-                {
-                    if (!message.Properties.TryGetValue(filterAttributeName, out var attributeValue))
-                    {
-                        return false; // Attribute doesn't exist in this message
-                    }
+                nameof(MessageInfo.MessageId) => messageSortAscending 
+                    ? filtered.OrderBy(m => m.MessageId) 
+                    : filtered.OrderByDescending(m => m.MessageId),
+                nameof(MessageInfo.Subject) => messageSortAscending 
+                    ? filtered.OrderBy(m => m.Subject) 
+                    : filtered.OrderByDescending(m => m.Subject),
+                nameof(MessageInfo.EnqueuedTime) => messageSortAscending 
+                    ? filtered.OrderBy(m => m.EnqueuedTime) 
+                    : filtered.OrderByDescending(m => m.EnqueuedTime),
+                nameof(MessageInfo.DeliveryCount) => messageSortAscending 
+                    ? filtered.OrderBy(m => m.DeliveryCount) 
+                    : filtered.OrderByDescending(m => m.DeliveryCount),
+                _ => filtered
+            };
+            
+            return sorted;
+        }
+    }
 
-                    // If no value filter specified, just check attribute existence
-                    if (string.IsNullOrWhiteSpace(filterAttributeValue))
-                    {
-                        return true;
-                    }
+    private string GetSortIcon(string currentSortColumn, string columnName, bool isAscending)
+    {
+        if (currentSortColumn != columnName)
+        {
+            return "⇅";
+        }
+        
+        return isAscending ? "▲" : "▼";
+    }
 
-                    var valueStr = attributeValue?.ToString() ?? string.Empty;
-                    
-                    if (useRegexFilter)
-                    {
-                        try
-                        {
-                            return System.Text.RegularExpressions.Regex.IsMatch(valueStr, filterAttributeValue);
-                        }
-                        catch
-                        {
-                            // Invalid regex, fall back to literal match
-                            return valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase);
-                        }
-                    }
-                    else
-                    {
-                        return valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase);
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(filterAttributeValue))
-                {
-                    // Only value specified, search across all attributes
-                    foreach (var prop in message.Properties)
-                    {
-                        var valueStr = prop.Value?.ToString() ?? string.Empty;
-                        
-                        if (useRegexFilter)
-                        {
-                            try
-                            {
-                                if (System.Text.RegularExpressions.Regex.IsMatch(valueStr, filterAttributeValue))
-                                {
-                                    return true;
-                                }
-                            }
-                            catch
-                            {
-                                // Invalid regex, fall back to literal match
-                                if (valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                }
+    private void SortQueues(string columnName)
+    {
+        if (queueSortColumn == columnName)
+        {
+            queueSortAscending = !queueSortAscending;
+        }
+        else
+        {
+            queueSortColumn = columnName;
+            queueSortAscending = true;
+        }
+    }
 
-                return true;
-            });
+    private void SortMessages(string columnName)
+    {
+        if (messageSortColumn == columnName)
+        {
+            messageSortAscending = !messageSortAscending;
+        }
+        else
+        {
+            messageSortColumn = columnName;
+            messageSortAscending = columnName == nameof(MessageInfo.EnqueuedTime) ? false : true;
+        }
+    }
+
+    private void AddFilter()
+    {
+        messageFilters.Add(new MessageFilter());
+    }
+
+    private void RemoveFilter(int index)
+    {
+        if (messageFilters.Count > 1)
+        {
+            messageFilters.RemoveAt(index);
         }
     }
 
@@ -547,9 +605,8 @@
 
     private void ClearFilters()
     {
-        filterAttributeName = string.Empty;
-        filterAttributeValue = string.Empty;
-        useRegexFilter = false;
+        messageFilters.Clear();
+        messageFilters.Add(new MessageFilter());
     }
 
     private void ViewMessageDetails(MessageInfo message)

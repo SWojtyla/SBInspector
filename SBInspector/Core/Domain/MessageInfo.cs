@@ -1,4 +1,4 @@
-namespace SBInspector.Models;
+namespace SBInspector.Core.Domain;
 
 public class MessageInfo
 {

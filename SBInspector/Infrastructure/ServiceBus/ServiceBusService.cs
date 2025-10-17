@@ -1,11 +1,12 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
-using SBInspector.Models;
+using SBInspector.Core.Domain;
+using SBInspector.Core.Interfaces;
 using System.Text;
 
-namespace SBInspector.Services;
+namespace SBInspector.Infrastructure.ServiceBus;
 
-public class ServiceBusService
+public class ServiceBusService : IServiceBusService
 {
     private ServiceBusAdministrationClient? _adminClient;
     private ServiceBusClient? _client;
