@@ -1,0 +1,63 @@
+@using SBInspector.Core.Domain
+
+@if (Message != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Message Details</h5>
+                    <button type="button" class="btn-close" @onclick="OnClose"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Message ID:</strong> @Message.MessageId
+                    </div>
+                    <div class="mb-3">
+                        <strong>Subject:</strong> @Message.Subject
+                    </div>
+                    <div class="mb-3">
+                        <strong>Content Type:</strong> @Message.ContentType
+                    </div>
+                    <div class="mb-3">
+                        <strong>Enqueued Time:</strong> @Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")
+                    </div>
+                    @if (Message.ScheduledEnqueueTime.HasValue)
+                    {
+                        <div class="mb-3">
+                            <strong>Scheduled Enqueue Time:</strong> @Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <strong>Sequence Number:</strong> @Message.SequenceNumber
+                    </div>
+                    <div class="mb-3">
+                        <strong>Delivery Count:</strong> @Message.DeliveryCount
+                    </div>
+                    @if (Message.Properties.Any())
+                    {
+                        <div class="mb-3">
+                            <strong>Application Properties:</strong>
+                            <pre class="bg-light p-2">@string.Join("\n", Message.Properties.Select(p => $"{p.Key}: {p.Value}"))</pre>
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <strong>Body:</strong>
+                        <pre class="bg-light p-2" style="max-height: 300px; overflow-y: auto;">@Message.Body</pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="OnClose">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public MessageInfo? Message { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+}

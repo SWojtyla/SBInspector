@@ -37,7 +37,7 @@ public class MessageFilterService
                 return true;
             }
 
-            return MatchesValue(attributeValue?.ToString() ?? string.Empty, filter.AttributeValue, filter.UseRegex);
+            return MatchesValueWithOperator(attributeValue?.ToString() ?? string.Empty, filter.AttributeValue, filter.Operator, filter.UseRegex);
         }
         else if (!string.IsNullOrWhiteSpace(filter.AttributeValue))
         {
@@ -45,7 +45,7 @@ public class MessageFilterService
             foreach (var prop in message.Properties)
             {
                 var valueStr = prop.Value?.ToString() ?? string.Empty;
-                if (MatchesValue(valueStr, filter.AttributeValue, filter.UseRegex))
+                if (MatchesValueWithOperator(valueStr, filter.AttributeValue, filter.Operator, filter.UseRegex))
                 {
                     return true;
                 }
@@ -56,23 +56,94 @@ public class MessageFilterService
         return true;
     }
 
-    private bool MatchesValue(string value, string filterValue, bool useRegex)
+    private bool MatchesValueWithOperator(string value, string filterValue, FilterOperator op, bool useRegexLegacy)
     {
-        if (useRegex)
+        // Handle legacy UseRegex flag
+        if (useRegexLegacy && op != FilterOperator.Regex)
         {
-            try
-            {
-                return Regex.IsMatch(value, filterValue);
-            }
-            catch
-            {
-                // Invalid regex, fall back to literal match
+            op = FilterOperator.Regex;
+        }
+
+        switch (op)
+        {
+            case FilterOperator.Equals:
+                return string.Equals(value, filterValue, StringComparison.OrdinalIgnoreCase);
+
+            case FilterOperator.NotEquals:
+                return !string.Equals(value, filterValue, StringComparison.OrdinalIgnoreCase);
+
+            case FilterOperator.Contains:
                 return value.Contains(filterValue, StringComparison.OrdinalIgnoreCase);
-            }
+
+            case FilterOperator.NotContains:
+                return !value.Contains(filterValue, StringComparison.OrdinalIgnoreCase);
+
+            case FilterOperator.StartsWith:
+                return value.StartsWith(filterValue, StringComparison.OrdinalIgnoreCase);
+
+            case FilterOperator.EndsWith:
+                return value.EndsWith(filterValue, StringComparison.OrdinalIgnoreCase);
+
+            case FilterOperator.LessThan:
+                return CompareValues(value, filterValue, result => result < 0);
+
+            case FilterOperator.LessThanOrEqual:
+                return CompareValues(value, filterValue, result => result <= 0);
+
+            case FilterOperator.GreaterThan:
+                return CompareValues(value, filterValue, result => result > 0);
+
+            case FilterOperator.GreaterThanOrEqual:
+                return CompareValues(value, filterValue, result => result >= 0);
+
+            case FilterOperator.Before:
+                return CompareDates(value, filterValue, (a, b) => a < b);
+
+            case FilterOperator.After:
+                return CompareDates(value, filterValue, (a, b) => a > b);
+
+            case FilterOperator.Regex:
+                try
+                {
+                    return System.Text.RegularExpressions.Regex.IsMatch(value, filterValue);
+                }
+                catch
+                {
+                    // Invalid regex, fall back to contains
+                    return value.Contains(filterValue, StringComparison.OrdinalIgnoreCase);
+                }
+
+            default:
+                return value.Contains(filterValue, StringComparison.OrdinalIgnoreCase);
         }
-        else
+    }
+
+    private bool CompareValues(string value, string filterValue, Func<int, bool> comparison)
+    {
+        // Try numeric comparison first
+        if (decimal.TryParse(value, out var numValue) && decimal.TryParse(filterValue, out var numFilterValue))
         {
-            return value.Contains(filterValue, StringComparison.OrdinalIgnoreCase);
+            return comparison(numValue.CompareTo(numFilterValue));
         }
+
+        // Try datetime comparison
+        if (DateTime.TryParse(value, out var dateValue) && DateTime.TryParse(filterValue, out var dateFilterValue))
+        {
+            return comparison(dateValue.CompareTo(dateFilterValue));
+        }
+
+        // Fall back to string comparison
+        return comparison(string.Compare(value, filterValue, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool CompareDates(string value, string filterValue, Func<DateTime, DateTime, bool> comparison)
+    {
+        if (DateTime.TryParse(value, out var dateValue) && DateTime.TryParse(filterValue, out var dateFilterValue))
+        {
+            return comparison(dateValue, dateFilterValue);
+        }
+
+        // If not valid dates, always return false
+        return false;
     }
 }

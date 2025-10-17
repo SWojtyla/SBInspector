@@ -1,0 +1,89 @@
+@using SBInspector.Core.Domain
+@using SBInspector.Application.Services
+
+@if (!string.IsNullOrEmpty(EntityName))
+{
+    <div class="card mt-4">
+        <div class="card-header">
+            <h4>@EntityName - @MessageType Messages</h4>
+            <button class="btn btn-sm btn-secondary" @onclick="OnClose">Close</button>
+        </div>
+        <div class="card-body">
+            @if (IsLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading messages...</span>
+                    </div>
+                </div>
+            }
+            else if (Messages.Any())
+            {
+                <MessageFilterComponent 
+                    Filters="Filters" 
+                    OnAddFilter="OnAddFilter" 
+                    OnRemoveFilter="OnRemoveFilter"
+                    OnClearFilters="OnClearFilters"
+                    FilterStatusMessage="@($"Showing {FilteredMessages.Count()} of {Messages.Count} messages")" />
+                
+                <MessageListComponent 
+                    Messages="SortedAndFilteredMessages" 
+                    SortColumn="SortColumn"
+                    SortAscending="SortAscending"
+                    OnSort="OnSort"
+                    OnViewDetails="OnViewDetails" />
+            }
+            else
+            {
+                <p>No messages found.</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string EntityName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string MessageType { get; set; } = string.Empty;
+
+    [Parameter]
+    public List<MessageInfo> Messages { get; set; } = new();
+
+    [Parameter]
+    public List<MessageFilter> Filters { get; set; } = new();
+
+    [Parameter]
+    public IEnumerable<MessageInfo> FilteredMessages { get; set; } = Enumerable.Empty<MessageInfo>();
+
+    [Parameter]
+    public IEnumerable<MessageInfo> SortedAndFilteredMessages { get; set; } = Enumerable.Empty<MessageInfo>();
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(MessageInfo.EnqueuedTime);
+
+    [Parameter]
+    public bool SortAscending { get; set; } = false;
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnAddFilter { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnRemoveFilter { get; set; }
+
+    [Parameter]
+    public EventCallback OnClearFilters { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSort { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnViewDetails { get; set; }
+}

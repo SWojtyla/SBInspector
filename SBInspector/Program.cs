@@ -12,6 +12,7 @@ builder.Services.AddRazorComponents()
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
+builder.Services.AddSingleton<FilterOperatorService>();
 
 var app = builder.Build();
 

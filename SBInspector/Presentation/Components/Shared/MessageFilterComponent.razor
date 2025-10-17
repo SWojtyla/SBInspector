@@ -1,0 +1,73 @@
+@using SBInspector.Core.Domain
+@using SBInspector.Application.Services
+@inject FilterOperatorService OperatorService
+
+<div class="mb-3">
+    <h5>Filter by Message Attributes</h5>
+    @for (int i = 0; i < Filters.Count; i++)
+    {
+        var index = i;
+        var filter = Filters[index];
+        <div class="row g-2 mb-2">
+            <div class="col-md-3">
+                <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
+                <input type="text" class="form-control" id="filterAttributeName_@index" @bind="filter.AttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
+            </div>
+            <div class="col-md-3">
+                <label for="filterOperator_@index" class="form-label">Operator</label>
+                <select class="form-select" id="filterOperator_@index" @bind="filter.Operator">
+                    @foreach (var op in OperatorService.GetAllOperators())
+                    {
+                        <option value="@op">@OperatorService.GetOperatorDisplayName(op)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="filterAttributeValue_@index" class="form-label">Value</label>
+                <input type="text" class="form-control" id="filterAttributeValue_@index" @bind="filter.AttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    @if (Filters.Count > 1)
+                    {
+                        <button class="btn btn-sm btn-danger w-100" @onclick="@(() => OnRemoveFilter.InvokeAsync(index))">Remove</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    <div class="row g-2 mb-2">
+        <div class="col-12">
+            <button class="btn btn-sm btn-primary me-2" @onclick="OnAddFilter">Add Filter</button>
+            @if (HasActiveFilters)
+            {
+                <button class="btn btn-sm btn-secondary" @onclick="OnClearFilters">Clear All Filters</button>
+            }
+        </div>
+    </div>
+    <div class="mt-2">
+        <small class="text-muted">
+            @FilterStatusMessage
+        </small>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<MessageFilter> Filters { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnAddFilter { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnRemoveFilter { get; set; }
+
+    [Parameter]
+    public EventCallback OnClearFilters { get; set; }
+
+    [Parameter]
+    public string FilterStatusMessage { get; set; } = string.Empty;
+
+    private bool HasActiveFilters => Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue));
+}

@@ -1,0 +1,66 @@
+@using SBInspector.Core.Domain
+
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th @onclick="@(() => OnSort.InvokeAsync(nameof(MessageInfo.MessageId)))" style="cursor: pointer;">
+                    Message ID @GetSortIcon(SortColumn, nameof(MessageInfo.MessageId), SortAscending)
+                </th>
+                <th @onclick="@(() => OnSort.InvokeAsync(nameof(MessageInfo.Subject)))" style="cursor: pointer;">
+                    Subject @GetSortIcon(SortColumn, nameof(MessageInfo.Subject), SortAscending)
+                </th>
+                <th @onclick="@(() => OnSort.InvokeAsync(nameof(MessageInfo.EnqueuedTime)))" style="cursor: pointer;">
+                    Enqueued Time @GetSortIcon(SortColumn, nameof(MessageInfo.EnqueuedTime), SortAscending)
+                </th>
+                <th @onclick="@(() => OnSort.InvokeAsync(nameof(MessageInfo.DeliveryCount)))" style="cursor: pointer;">
+                    Delivery Count @GetSortIcon(SortColumn, nameof(MessageInfo.DeliveryCount), SortAscending)
+                </th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var message in Messages)
+            {
+                <tr>
+                    <td>@message.MessageId</td>
+                    <td>@message.Subject</td>
+                    <td>@message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@message.DeliveryCount</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" @onclick="@(() => OnViewDetails.InvokeAsync(message))">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<MessageInfo> Messages { get; set; } = Enumerable.Empty<MessageInfo>();
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(MessageInfo.EnqueuedTime);
+
+    [Parameter]
+    public bool SortAscending { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<string> OnSort { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnViewDetails { get; set; }
+
+    private string GetSortIcon(string currentSortColumn, string columnName, bool isAscending)
+    {
+        if (currentSortColumn != columnName)
+        {
+            return "⇅";
+        }
+        
+        return isAscending ? "▲" : "▼";
+    }
+}
