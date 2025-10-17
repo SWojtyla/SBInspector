@@ -23,8 +23,9 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - Application properties
 - Filter messages by application properties (attributes):
   - Add multiple filters with AND logic
-  - Filter by attribute name and/or value
-  - Support for literal (case-insensitive) or regex pattern matching
+  - Filter by attribute name, operator, and value
+  - Support for various comparison operators (equals, contains, less than, greater than, before, after, regex, etc.)
+  - Automatic type detection for numeric and date comparisons
   - Real-time filtering with message count display
 - Sortable tables:
   - Click on column headers to sort queues by name or message counts
