@@ -167,6 +167,36 @@
                     }
                     else if (messages.Any())
                     {
+                        <div class="mb-3">
+                            <h5>Filter by Message Attributes</h5>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label for="filterAttributeName" class="form-label">Attribute Name</label>
+                                    <input type="text" class="form-control" id="filterAttributeName" @bind="filterAttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="filterAttributeValue" class="form-label">Attribute Value</label>
+                                    <input type="text" class="form-control" id="filterAttributeValue" @bind="filterAttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="useRegexFilter" @bind="useRegexFilter" />
+                                        <label class="form-check-label" for="useRegexFilter">
+                                            Use Regex Expression
+                                        </label>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(filterAttributeName) || !string.IsNullOrWhiteSpace(filterAttributeValue))
+                                    {
+                                        <button class="btn btn-sm btn-secondary mt-2" @onclick="ClearFilters">Clear Filters</button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Showing @FilteredMessages.Count() of @messages.Count messages
+                                </small>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
@@ -179,7 +209,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var message in messages)
+                                    @foreach (var message in FilteredMessages)
                                     {
                                         <tr>
                                             <td>@message.MessageId</td>
@@ -327,6 +357,95 @@
     private string selectedMessageType = string.Empty;
     private string selectedTopic = string.Empty;
     private MessageInfo? selectedMessage = null;
+    
+    private string filterAttributeName = string.Empty;
+    private string filterAttributeValue = string.Empty;
+    private bool useRegexFilter = false;
+
+    private IEnumerable<MessageInfo> FilteredMessages
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(filterAttributeName) && string.IsNullOrWhiteSpace(filterAttributeValue))
+            {
+                return messages;
+            }
+
+            return messages.Where(message =>
+            {
+                // If attribute name is specified, find that specific attribute
+                if (!string.IsNullOrWhiteSpace(filterAttributeName))
+                {
+                    if (!message.Properties.TryGetValue(filterAttributeName, out var attributeValue))
+                    {
+                        return false; // Attribute doesn't exist in this message
+                    }
+
+                    // If no value filter specified, just check attribute existence
+                    if (string.IsNullOrWhiteSpace(filterAttributeValue))
+                    {
+                        return true;
+                    }
+
+                    var valueStr = attributeValue?.ToString() ?? string.Empty;
+                    
+                    if (useRegexFilter)
+                    {
+                        try
+                        {
+                            return System.Text.RegularExpressions.Regex.IsMatch(valueStr, filterAttributeValue);
+                        }
+                        catch
+                        {
+                            // Invalid regex, fall back to literal match
+                            return valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
+                    else
+                    {
+                        return valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(filterAttributeValue))
+                {
+                    // Only value specified, search across all attributes
+                    foreach (var prop in message.Properties)
+                    {
+                        var valueStr = prop.Value?.ToString() ?? string.Empty;
+                        
+                        if (useRegexFilter)
+                        {
+                            try
+                            {
+                                if (System.Text.RegularExpressions.Regex.IsMatch(valueStr, filterAttributeValue))
+                                {
+                                    return true;
+                                }
+                            }
+                            catch
+                            {
+                                // Invalid regex, fall back to literal match
+                                if (valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (valueStr.Contains(filterAttributeValue, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+
+                return true;
+            });
+        }
+    }
 
     private async Task ConnectAsync()
     {
@@ -423,6 +542,14 @@
         selectedEntity = string.Empty;
         selectedMessageType = string.Empty;
         messages.Clear();
+        ClearFilters();
+    }
+
+    private void ClearFilters()
+    {
+        filterAttributeName = string.Empty;
+        filterAttributeValue = string.Empty;
+        useRegexFilter = false;
     }
 
     private void ViewMessageDetails(MessageInfo message)

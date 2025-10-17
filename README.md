@@ -21,6 +21,10 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - Sequence number and delivery count
   - Message body
   - Application properties
+- Filter messages by application properties (attributes):
+  - Filter by attribute name and/or value
+  - Support for literal (case-insensitive) or regex pattern matching
+  - Real-time filtering with message count display
 
 ## Prerequisites
 
@@ -63,6 +67,10 @@ Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=<keyname>;
 ## Dependencies
 
 - Azure.Messaging.ServiceBus - Azure Service Bus SDK for .NET
+
+## Message Filtering
+
+The application supports filtering messages by their application properties (attributes). See [FILTERING.md](FILTERING.md) for detailed documentation on how to use this feature.
 
 ## License
 
