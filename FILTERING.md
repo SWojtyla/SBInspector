@@ -1,10 +1,10 @@
 # Message Attribute Filtering
 
-This feature allows you to filter Service Bus messages based on their application properties (message attributes).
+This feature allows you to filter Service Bus messages based on their application properties (message attributes). You can add multiple filters that work together using AND logic - messages must match all filters to be displayed.
 
 ## How to Use
 
-When viewing messages from a queue or topic subscription, you will see a "Filter by Message Attributes" section with three input fields:
+When viewing messages from a queue or topic subscription, you will see a "Filter by Message Attributes" section. You can add multiple filters by clicking the "Add Filter" button. Each filter has three input fields:
 
 ### 1. Attribute Name (Optional)
 - Enter the exact name of the message attribute/property you want to filter on
@@ -21,6 +21,21 @@ When viewing messages from a queue or topic subscription, you will see a "Filter
 ### 3. Use Regex Expression (Checkbox)
 - **Unchecked (default)**: Performs literal substring matching (case-insensitive)
 - **Checked**: Treats the attribute value as a regular expression pattern
+
+## Multiple Filters
+
+You can add multiple filters by clicking the "Add Filter" button. All filters are combined using AND logic:
+- A message must match **all** filters to be displayed
+- Empty filters (with no name or value) are ignored
+- You can remove individual filters using the "Remove" button next to each filter (except the last one)
+- Use "Clear All Filters" to reset all filters at once
+
+### Example: Multiple Filters with AND Logic
+To find messages where both `region` is "east" AND `customerType` is "premium":
+1. First filter: Attribute Name: `region`, Attribute Value: `east`
+2. Click "Add Filter"
+3. Second filter: Attribute Name: `customerType`, Attribute Value: `premium`
+Result: Shows only messages that have BOTH attributes matching the specified values.
 
 ## Filtering Behavior
 
