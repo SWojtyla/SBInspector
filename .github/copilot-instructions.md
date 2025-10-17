@@ -27,7 +27,7 @@ Follow the clean architecture principles in this repository:
 **Keep track of your changes by creating an md file for each feature you implement.**
 
 When implementing a new feature:
-1. Create a markdown file in the root directory describing the feature (e.g., `FILTERING.md`, `SORTING.md`)
+1. Create a markdown file in the feature directory describing the feature (e.g., `FILTERING.md`, `SORTING.md`)
 2. Include:
    - Feature overview
    - How to use the feature
