@@ -22,9 +22,14 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - Message body
   - Application properties
 - Filter messages by application properties (attributes):
+  - Add multiple filters with AND logic
   - Filter by attribute name and/or value
   - Support for literal (case-insensitive) or regex pattern matching
   - Real-time filtering with message count display
+- Sortable tables:
+  - Click on column headers to sort queues by name or message counts
+  - Click on column headers to sort messages by ID, subject, enqueued time, or delivery count
+  - Visual indicators show current sort column and direction
 
 ## Prerequisites
 
@@ -59,10 +64,14 @@ Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=<keyname>;
 
 ## Project Structure
 
-- `Models/` - Data models for entities and messages
-- `Services/` - Service Bus client management and operations
-- `Components/Pages/` - Blazor UI components
-- `Components/Layout/` - Layout components
+The project follows Clean Architecture principles:
+
+- `Core/Domain/` - Domain models (EntityInfo, MessageInfo, MessageFilter)
+- `Core/Interfaces/` - Service interfaces
+- `Application/Services/` - Application services (MessageFilterService)
+- `Infrastructure/ServiceBus/` - Service Bus implementation
+- `Presentation/Components/Pages/` - Blazor UI pages
+- `Presentation/Components/Layout/` - Layout components
 
 ## Dependencies
 

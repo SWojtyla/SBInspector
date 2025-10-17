@@ -1,5 +1,7 @@
-using SBInspector.Components;
-using SBInspector.Services;
+using SBInspector.Presentation.Components;
+using SBInspector.Core.Interfaces;
+using SBInspector.Infrastructure.ServiceBus;
+using SBInspector.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,8 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Register ServiceBusService as a singleton
-builder.Services.AddSingleton<ServiceBusService>();
+// Register services following clean architecture
+builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
+builder.Services.AddSingleton<MessageFilterService>();
 
 var app = builder.Build();
 
