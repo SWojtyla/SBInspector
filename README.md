@@ -30,6 +30,11 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - Click on column headers to sort queues by name or message counts
   - Click on column headers to sort messages by ID, subject, enqueued time, or delivery count
   - Visual indicators show current sort column and direction
+- Message pagination:
+  - Customizable page size (50, 100, 200, or 500 messages)
+  - Load more messages on demand with "Load More" button
+  - Efficient browsing of large message collections
+  - See [PAGINATION.md](PAGINATION.md) for details
 
 ## Prerequisites
 
