@@ -5,6 +5,12 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 ## Features
 
 - Connect to Azure Service Bus using a connection string
+- **Tree View Navigation**:
+  - Hierarchical tree view showing all queues, topics, and subscriptions
+  - Split-panel layout with tree on left and details on right
+  - Expandable topics to view subscriptions
+  - Visual selection highlighting and message count badges
+  - See [TREE_VIEW_NAVIGATION.md](TREE_VIEW_NAVIGATION.md) for detailed documentation
 - View all queues and topics in the namespace
 - **Enable/Disable Entities**:
   - View the status (Active/Disabled) of queues, topics, and subscriptions
@@ -34,6 +40,7 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - **Purge All** messages from a queue or topic in one operation
   - Dynamic list updates when messages are deleted or purged
   - Automatic refresh of message counts after operations
+  - **Visual Operation Feedback**: Full-screen loading overlay during delete/purge operations
   - See [MESSAGE_CRUD.md](MESSAGE_CRUD.md) for detailed documentation
 - Filter messages by application properties (attributes):
   - Add multiple filters with AND logic
