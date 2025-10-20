@@ -72,6 +72,9 @@ The project follows Clean Architecture principles:
 - `Infrastructure/ServiceBus/` - Service Bus implementation
 - `Presentation/Components/Pages/` - Blazor UI pages
 - `Presentation/Components/Layout/` - Layout components
+- `Presentation/Components/UI/` - Reusable UI components
+
+For detailed information about the UI component structure, see [UI_COMPONENTS.md](UI_COMPONENTS.md).
 
 ## Dependencies
 
