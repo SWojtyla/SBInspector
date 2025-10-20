@@ -1,44 +1,78 @@
-<div class="card mt-4">
-    <div class="card-header">
-        <h4>@TopicName - Subscriptions</h4>
-        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">Close</button>
+<div class="card card-enhanced mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">
+                <i class="bi bi-folder"></i> @TopicName
+            </h4>
+            <small class="text-muted">Subscriptions (@Subscriptions.Count)</small>
+        </div>
+        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
+            <i class="bi bi-x-lg"></i> Close
+        </button>
     </div>
     <div class="card-body">
         @if (IsLoading)
         {
-            <div class="text-center">
-                <div class="spinner-border" role="status">
+            <div class="loading-container">
+                <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading subscriptions...</span>
                 </div>
+                <div class="loading-text">Loading subscriptions...</div>
             </div>
         }
         else if (Subscriptions.Any())
         {
-            <div class="list-group">
-                @foreach (var subscription in Subscriptions)
+            <div class="mb-3">
+                <div class="search-box">
+                    <input type="text" class="form-control" placeholder="Search subscriptions..." 
+                           @bind="searchTerm" @bind:event="oninput" />
+                </div>
+            </div>
+            
+            <div class="scrollable-content">
+                @foreach (var subscription in FilteredSubscriptions)
                 {
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-1">@subscription</h5>
-                            <div>
-                                <button class="btn btn-sm btn-primary me-1" @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Active")))">
-                                    View Active
+                    <div class="subscription-card">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="mb-2 mb-md-0">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-envelope"></i> @subscription
+                                </h5>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-primary" 
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Active")))"
+                                        title="View Active Messages">
+                                    <i class="bi bi-inbox"></i> <span class="d-none d-lg-inline">View </span>Active
                                 </button>
-                                <button class="btn btn-sm btn-warning me-1" @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Scheduled")))">
-                                    View Scheduled
+                                <button class="btn btn-sm btn-warning" 
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Scheduled")))"
+                                        title="View Scheduled Messages">
+                                    <i class="bi bi-clock"></i> <span class="d-none d-lg-inline">View </span>Scheduled
                                 </button>
-                                <button class="btn btn-sm btn-danger" @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "DeadLetter")))">
-                                    View Dead Letter
+                                <button class="btn btn-sm btn-danger" 
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "DeadLetter")))"
+                                        title="View Dead Letter Messages">
+                                    <i class="bi bi-exclamation-triangle"></i> <span class="d-none d-lg-inline">View </span>DLQ
                                 </button>
                             </div>
                         </div>
                     </div>
                 }
             </div>
+            
+            @if (!FilteredSubscriptions.Any())
+            {
+                <div class="alert alert-info mt-3">
+                    No subscriptions match your search criteria.
+                </div>
+            }
         }
         else
         {
-            <p>No subscriptions found.</p>
+            <div class="alert alert-warning">
+                <i class="bi bi-info-circle"></i> No subscriptions found for this topic.
+            </div>
         }
     </div>
 </div>
@@ -58,6 +92,21 @@
 
     [Parameter]
     public EventCallback<(string TopicName, string SubscriptionName, string MessageType)> OnViewMessages { get; set; }
+
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<string> FilteredSubscriptions
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Subscriptions;
+            }
+            
+            return Subscriptions.Where(s => s.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
 
     private async Task HandleClose()
     {

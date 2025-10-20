@@ -1,35 +1,49 @@
 @using SBInspector.Core.Domain
 
-<div class="table-responsive">
-    <table class="table table-sm">
+<div class="table-responsive scrollable-content">
+    <table class="table table-sm table-enhanced">
         <thead>
             <tr>
-                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.MessageId))" style="cursor: pointer;">
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.MessageId))" class="sortable-header">
                     Message ID @GetSortIcon(nameof(MessageInfo.MessageId))
                 </th>
-                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.Subject))" style="cursor: pointer;">
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.Subject))" class="sortable-header">
                     Subject @GetSortIcon(nameof(MessageInfo.Subject))
                 </th>
-                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime))" style="cursor: pointer;">
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime))" class="sortable-header">
                     Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))
                 </th>
-                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.DeliveryCount))" style="cursor: pointer;">
-                    Delivery Count @GetSortIcon(nameof(MessageInfo.DeliveryCount))
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.DeliveryCount))" class="sortable-header text-center">
+                    Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))
                 </th>
-                <th>Actions</th>
+                <th class="text-center">Actions</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var message in SortedMessages)
             {
-                <tr>
-                    <td>@message.MessageId</td>
-                    <td>@message.Subject</td>
-                    <td>@message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                    <td>@message.DeliveryCount</td>
+                <tr @onclick="() => OnViewDetails.InvokeAsync(message)" style="cursor: pointer;" title="Click to view details">
                     <td>
-                        <button class="btn btn-sm btn-info" @onclick="() => OnViewDetails.InvokeAsync(message)">
-                            Details
+                        <code class="text-truncate d-inline-block" style="max-width: 200px;" title="@message.MessageId">
+                            @message.MessageId
+                        </code>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 300px;" title="@message.Subject">
+                            @(string.IsNullOrEmpty(message.Subject) ? "(no subject)" : message.Subject)
+                        </span>
+                    </td>
+                    <td>
+                        <span class="text-nowrap">@message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge @(message.DeliveryCount > 0 ? "bg-warning text-dark" : "bg-secondary")">
+                            @message.DeliveryCount
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-info" @onclick="() => OnViewDetails.InvokeAsync(message)" @onclick:stopPropagation="true" title="View message details">
+                            <i class="bi bi-eye"></i> <span class="d-none d-md-inline">Details</span>
                         </button>
                     </td>
                 </tr>
@@ -37,6 +51,13 @@
         </tbody>
     </table>
 </div>
+
+@if (!Messages.Any())
+{
+    <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle"></i> No messages match the current filter criteria.
+    </div>
+}
 
 @code {
     [Parameter]

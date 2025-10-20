@@ -2,52 +2,124 @@
 
 @if (Message != null)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Message Details</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-info-circle"></i> Message Details
+                    </h5>
                     <button type="button" class="btn-close" @onclick="HandleClose"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <strong>Message ID:</strong> @Message.MessageId
-                    </div>
-                    <div class="mb-3">
-                        <strong>Subject:</strong> @Message.Subject
-                    </div>
-                    <div class="mb-3">
-                        <strong>Content Type:</strong> @Message.ContentType
-                    </div>
-                    <div class="mb-3">
-                        <strong>Enqueued Time:</strong> @Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")
-                    </div>
-                    @if (Message.ScheduledEnqueueTime.HasValue)
-                    {
-                        <div class="mb-3">
-                            <strong>Scheduled Enqueue Time:</strong> @Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <div class="mb-2">
+                                    <strong>Message ID:</strong>
+                                    <div><code>@Message.MessageId</code></div>
+                                </div>
+                            </div>
                         </div>
-                    }
-                    <div class="mb-3">
-                        <strong>Sequence Number:</strong> @Message.SequenceNumber
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <div class="mb-2">
+                                    <strong>Subject:</strong>
+                                    <div>@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>Delivery Count:</strong> @Message.DeliveryCount
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <div class="mb-2">
+                                    <strong>Content Type:</strong>
+                                    <div>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <div class="mb-2">
+                                    <strong>Delivery Count:</strong>
+                                    <div>
+                                        <span class="badge @(Message.DeliveryCount > 0 ? "bg-warning text-dark" : "bg-success")">
+                                            @Message.DeliveryCount
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-section">
+                                <div class="mb-2">
+                                    <strong>Enqueued Time:</strong>
+                                    <div>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                                </div>
+                            </div>
+                        </div>
+                        @if (Message.ScheduledEnqueueTime.HasValue)
+                        {
+                            <div class="col-md-6">
+                                <div class="info-section">
+                                    <div class="mb-2">
+                                        <strong>Scheduled Enqueue Time:</strong>
+                                        <div>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="info-section mb-3">
+                        <div class="mb-2">
+                            <strong>Sequence Number:</strong>
+                            <div>@Message.SequenceNumber</div>
+                        </div>
+                    </div>
+
                     @if (Message.Properties.Any())
                     {
                         <div class="mb-3">
-                            <strong>Application Properties:</strong>
-                            <pre class="bg-light p-2">@string.Join("\n", Message.Properties.Select(p => $"{p.Key}: {p.Value}"))</pre>
+                            <h6><i class="bi bi-tags"></i> Application Properties (@Message.Properties.Count)</h6>
+                            <div class="info-section">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30%;">Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var prop in Message.Properties)
+                                        {
+                                            <tr>
+                                                <td><code>@prop.Key</code></td>
+                                                <td>@prop.Value</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     }
+
                     <div class="mb-3">
-                        <strong>Body:</strong>
-                        <pre class="bg-light p-2" style="max-height: 300px; overflow-y: auto;">@Message.Body</pre>
+                        <h6><i class="bi bi-file-text"></i> Message Body</h6>
+                        <div class="info-section">
+                            <pre class="mb-0" style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">@Message.Body</pre>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleClose">Close</button>
+                    <button type="button" class="btn btn-secondary" @onclick="HandleClose">
+                        <i class="bi bi-x-lg"></i> Close
+                    </button>
                 </div>
             </div>
         </div>
