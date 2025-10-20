@@ -469,4 +469,69 @@ public class ServiceBusService : IServiceBusService
             }
         }
     }
+
+    public async Task<int> PurgeMessagesAsync(string entityName, string messageType, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return 0;
+
+        ServiceBusReceiver? receiver = null;
+        int totalDeleted = 0;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete // Use ReceiveAndDelete for efficient bulk deletion
+            };
+
+            // Handle dead-letter queue
+            if (messageType == "DeadLetter")
+            {
+                options.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receiver
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+            }
+
+            // Keep receiving and deleting messages in batches until no more messages
+            while (true)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
+                
+                if (messages.Count == 0)
+                {
+                    break; // No more messages to delete
+                }
+
+                totalDeleted += messages.Count;
+                
+                // Messages are automatically deleted when using ReceiveAndDelete mode
+                // Add a small delay to avoid overwhelming the service
+                if (messages.Count == 100)
+                {
+                    await Task.Delay(100);
+                }
+            }
+
+            return totalDeleted;
+        }
+        catch
+        {
+            return totalDeleted; // Return partial count if error occurs
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
 }

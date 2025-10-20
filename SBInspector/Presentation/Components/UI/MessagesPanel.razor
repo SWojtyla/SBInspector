@@ -16,6 +16,9 @@
             <button class="btn btn-sm btn-success" @onclick="HandleSendNew">
                 <i class="bi bi-plus-circle"></i> Send New
             </button>
+            <button class="btn btn-sm btn-danger" @onclick="HandlePurge" title="Delete all messages">
+                <i class="bi bi-trash-fill"></i> Purge All
+            </button>
             <label class="mb-0 me-2 d-none d-md-inline">Page Size:</label>
             <select class="form-select form-select-sm" style="width: auto;" value="@PageSize" @onchange="HandlePageSizeChanged">
                 <option value="50">50</option>
@@ -164,6 +167,9 @@
     [Parameter]
     public EventCallback OnSendNew { get; set; }
 
+    [Parameter]
+    public EventCallback OnPurge { get; set; }
+
     private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(Messages, Filters);
 
     private async Task HandleClose()
@@ -179,6 +185,11 @@
     private async Task HandleSendNew()
     {
         await OnSendNew.InvokeAsync();
+    }
+
+    private async Task HandlePurge()
+    {
+        await OnPurge.InvokeAsync();
     }
 
     private async Task HandlePageSizeChanged(ChangeEventArgs e)

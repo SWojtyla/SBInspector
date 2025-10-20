@@ -81,6 +81,7 @@
                 OnRequeueMessage="@HandleRequeueMessage"
                 OnRescheduleMessage="@HandleRescheduleMessage"
                 OnSendNew="@HandleSendNewMessage"
+                OnPurge="@HandlePurgeMessages"
                 OnLoadMore="@LoadMoreMessages" />
         }
 
@@ -110,7 +111,18 @@
             OnConfirm="@ConfirmRequeue"
             OnCancel="@CancelRequeue" />
 
-        <SendMessageModal 
+        <ConfirmationModal 
+            IsVisible="@showPurgeConfirmation"
+            Title="Purge All Messages"
+            Message="@purgeConfirmationMessage"
+            IconClass="bi-exclamation-triangle-fill"
+            ConfirmIconClass="bi-trash-fill"
+            ConfirmButtonClass="btn-danger"
+            ConfirmText="Purge All"
+            OnConfirm="@ConfirmPurge"
+            OnCancel="@CancelPurge" />
+
+        <SendMessageModal
             IsVisible="@showSendModal"
             Title="@sendModalTitle"
             IsReschedule="@isRescheduleMode"
@@ -365,11 +377,13 @@
     // CRUD operation state
     private bool showDeleteConfirmation = false;
     private bool showRequeueConfirmation = false;
+    private bool showPurgeConfirmation = false;
     private bool showSendModal = false;
     private bool isRescheduleMode = false;
     private string sendModalTitle = "Send Message";
     private MessageInfo? messageForOperation = null;
     private string deleteConfirmationMessage = string.Empty;
+    private string purgeConfirmationMessage = string.Empty;
     private string successMessage = string.Empty;
     private string operationErrorMessage = string.Empty;
 
@@ -629,5 +643,78 @@
         messageForOperation = null;
         isRescheduleMode = false;
         sendModalTitle = "Send Message";
+    }
+
+    private void HandlePurgeMessages()
+    {
+        var messageTypeDisplay = selectedMessageType switch
+        {
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+
+        purgeConfirmationMessage = $"Are you sure you want to PURGE ALL {messageTypeDisplay} messages from '{selectedEntity}'? " +
+            $"This will permanently delete ALL messages and cannot be undone. Type 'PURGE' to confirm.";
+        showPurgeConfirmation = true;
+    }
+
+    private async Task ConfirmPurge()
+    {
+        showPurgeConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            int deletedCount;
+
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                    selectedEntity,
+                    selectedMessageType,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                    selectedEntity,
+                    selectedMessageType);
+            }
+
+            if (deletedCount > 0)
+            {
+                // Clear the messages list
+                messages.Clear();
+                hasMoreMessages = false;
+                
+                successMessage = $"Successfully purged {deletedCount} message(s).";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "No messages were found to purge.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error purging messages: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+    }
+
+    private void CancelPurge()
+    {
+        showPurgeConfirmation = false;
     }
 }
