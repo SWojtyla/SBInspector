@@ -149,14 +149,23 @@ public class ServiceBusService : IServiceBusService
         return messages;
     }
 
-    public async Task<List<string>> GetSubscriptionsAsync(string topicName)
+    public async Task<List<SubscriptionInfo>> GetSubscriptionsAsync(string topicName)
     {
-        if (_adminClient == null) return new List<string>();
+        if (_adminClient == null) return new List<SubscriptionInfo>();
 
-        var subscriptions = new List<string>();
+        var subscriptions = new List<SubscriptionInfo>();
         await foreach (var subscription in _adminClient.GetSubscriptionsAsync(topicName))
         {
-            subscriptions.Add(subscription.SubscriptionName);
+            // Get runtime properties to access message counts
+            var runtimeProps = await _adminClient.GetSubscriptionRuntimePropertiesAsync(topicName, subscription.SubscriptionName);
+            
+            subscriptions.Add(new SubscriptionInfo
+            {
+                Name = subscription.SubscriptionName,
+                ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
+                ScheduledMessageCount = 0, // Subscriptions don't track scheduled messages separately
+                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount
+            });
         }
         return subscriptions;
     }
