@@ -18,7 +18,7 @@
                 <h5 class="card-title">Connect to Service Bus</h5>
                 <div class="mb-3">
                     <label for="connectionString" class="form-label">Connection String</label>
-                    <input type="password" class="form-control" id="connectionString" @bind="connectionString" placeholder="Endpoint=sb://..." />
+                    <input type="password" class="form-control" id="connectionString" @bind="connectionString" @bind:event="oninput" placeholder="Endpoint=sb://..." />
                 </div>
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
@@ -186,11 +186,17 @@
                                 <div class="row g-2 mb-2">
                                     <div class="col-md-4">
                                         <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
-                                        <input type="text" class="form-control" id="filterAttributeName_@index" @bind="filter.AttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
+                                        <input type="text" class="form-control" id="filterAttributeName_@index" 
+                                               value="@filter.AttributeName" 
+                                               @oninput="@(e => UpdateFilterAttributeName(index, e.Value?.ToString() ?? string.Empty))" 
+                                               placeholder="e.g., customerId" />
                                     </div>
                                     <div class="col-md-4">
                                         <label for="filterAttributeValue_@index" class="form-label">Attribute Value</label>
-                                        <input type="text" class="form-control" id="filterAttributeValue_@index" @bind="filter.AttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
+                                        <input type="text" class="form-control" id="filterAttributeValue_@index" 
+                                               value="@filter.AttributeValue" 
+                                               @oninput="@(e => UpdateFilterAttributeValue(index, e.Value?.ToString() ?? string.Empty))" 
+                                               placeholder="e.g., 12345" />
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-check mt-4">
@@ -502,6 +508,24 @@
         if (messageFilters.Count > 1)
         {
             messageFilters.RemoveAt(index);
+        }
+    }
+
+    private void UpdateFilterAttributeName(int index, string value)
+    {
+        if (index >= 0 && index < messageFilters.Count)
+        {
+            messageFilters[index].AttributeName = value;
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateFilterAttributeValue(int index, string value)
+    {
+        if (index >= 0 && index < messageFilters.Count)
+        {
+            messageFilters[index].AttributeValue = value;
+            StateHasChanged();
         }
     }
 
