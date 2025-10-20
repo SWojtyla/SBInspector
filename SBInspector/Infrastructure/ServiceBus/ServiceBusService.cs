@@ -86,7 +86,7 @@ public class ServiceBusService : IServiceBusService
         return topics;
     }
 
-    public async Task<List<MessageInfo>> GetMessagesAsync(string entityName, string messageType, int maxMessages = 100)
+    public async Task<List<MessageInfo>> GetMessagesAsync(string entityName, string messageType, int maxMessages = 100, long? fromSequenceNumber = null)
     {
         if (_client == null) return new List<MessageInfo>();
 
@@ -110,7 +110,7 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            var receivedMessages = await receiver.PeekMessagesAsync(maxMessages);
+            var receivedMessages = await receiver.PeekMessagesAsync(maxMessages, fromSequenceNumber);
             
             foreach (var message in receivedMessages)
             {
@@ -161,7 +161,7 @@ public class ServiceBusService : IServiceBusService
         return subscriptions;
     }
 
-    public async Task<List<MessageInfo>> GetSubscriptionMessagesAsync(string topicName, string subscriptionName, string messageType, int maxMessages = 100)
+    public async Task<List<MessageInfo>> GetSubscriptionMessagesAsync(string topicName, string subscriptionName, string messageType, int maxMessages = 100, long? fromSequenceNumber = null)
     {
         if (_client == null) return new List<MessageInfo>();
 
@@ -182,7 +182,7 @@ public class ServiceBusService : IServiceBusService
 
             receiver = _client.CreateReceiver(topicName, subscriptionName, options);
 
-            var receivedMessages = await receiver.PeekMessagesAsync(maxMessages);
+            var receivedMessages = await receiver.PeekMessagesAsync(maxMessages, fromSequenceNumber);
             
             foreach (var message in receivedMessages)
             {
