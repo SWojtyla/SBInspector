@@ -228,4 +228,310 @@ public class ServiceBusService : IServiceBusService
 
         return messages;
     }
+
+    public async Task<bool> DeleteMessageAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusReceiver? receiver = null;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Create the appropriate receiver
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+            }
+
+            // Receive messages and find the one with matching sequence number
+            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100);
+            var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+
+            if (messageToDelete != null)
+            {
+                await receiver.CompleteMessageAsync(messageToDelete);
+                return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
+
+    public async Task<bool> RequeueDeadLetterMessageAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusReceiver? dlqReceiver = null;
+        ServiceBusSender? sender = null;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            };
+
+            // Create dead-letter queue receiver
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                dlqReceiver = _client.CreateReceiver(topicName, subscriptionName, options);
+                sender = _client.CreateSender(topicName);
+            }
+            else
+            {
+                dlqReceiver = _client.CreateReceiver(entityName, options);
+                sender = _client.CreateSender(entityName);
+            }
+
+            // Receive messages from dead-letter queue
+            var messages = await dlqReceiver.ReceiveMessagesAsync(maxMessages: 100);
+            var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+
+            if (messageToRequeue != null)
+            {
+                // Create a new message with the same content
+                var newMessage = new ServiceBusMessage(messageToRequeue.Body)
+                {
+                    Subject = messageToRequeue.Subject,
+                    ContentType = messageToRequeue.ContentType,
+                    MessageId = messageToRequeue.MessageId
+                };
+
+                // Copy application properties
+                foreach (var prop in messageToRequeue.ApplicationProperties)
+                {
+                    newMessage.ApplicationProperties[prop.Key] = prop.Value;
+                }
+
+                // Send to main queue and complete the DLQ message
+                await sender.SendMessageAsync(newMessage);
+                await dlqReceiver.CompleteMessageAsync(messageToRequeue);
+                return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (dlqReceiver != null)
+            {
+                await dlqReceiver.DisposeAsync();
+            }
+            if (sender != null)
+            {
+                await sender.DisposeAsync();
+            }
+        }
+    }
+
+    public async Task<bool> SendMessageAsync(string entityName, string messageBody, string? subject = null, string? contentType = null, Dictionary<string, object>? properties = null, DateTime? scheduledEnqueueTime = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusSender? sender = null;
+
+        try
+        {
+            sender = _client.CreateSender(entityName);
+
+            var message = new ServiceBusMessage(messageBody)
+            {
+                Subject = subject ?? string.Empty,
+                ContentType = contentType ?? "text/plain"
+            };
+
+            // Add application properties
+            if (properties != null)
+            {
+                foreach (var prop in properties)
+                {
+                    message.ApplicationProperties[prop.Key] = prop.Value;
+                }
+            }
+
+            // Send with or without scheduling
+            if (scheduledEnqueueTime.HasValue)
+            {
+                await sender.ScheduleMessageAsync(message, scheduledEnqueueTime.Value);
+            }
+            else
+            {
+                await sender.SendMessageAsync(message);
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (sender != null)
+            {
+                await sender.DisposeAsync();
+            }
+        }
+    }
+
+    public async Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTime newScheduledTime, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusReceiver? receiver = null;
+        ServiceBusSender? sender = null;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Create receiver and sender
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+                sender = _client.CreateSender(topicName);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+                sender = _client.CreateSender(entityName);
+            }
+
+            // Find the scheduled message
+            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100);
+            var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+
+            if (messageToReschedule != null)
+            {
+                // Create a new message with the same content
+                var newMessage = new ServiceBusMessage(messageToReschedule.Body)
+                {
+                    Subject = messageToReschedule.Subject,
+                    ContentType = messageToReschedule.ContentType,
+                    MessageId = messageToReschedule.MessageId
+                };
+
+                // Copy application properties
+                foreach (var prop in messageToReschedule.ApplicationProperties)
+                {
+                    newMessage.ApplicationProperties[prop.Key] = prop.Value;
+                }
+
+                // Schedule with new time and complete the old message
+                await sender.ScheduleMessageAsync(newMessage, newScheduledTime);
+                await receiver.CompleteMessageAsync(messageToReschedule);
+                return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+            if (sender != null)
+            {
+                await sender.DisposeAsync();
+            }
+        }
+    }
+
+    public async Task<int> PurgeMessagesAsync(string entityName, string messageType, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return 0;
+
+        ServiceBusReceiver? receiver = null;
+        int totalDeleted = 0;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete // Use ReceiveAndDelete for efficient bulk deletion
+            };
+
+            // Handle dead-letter queue
+            if (messageType == "DeadLetter")
+            {
+                options.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receiver
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+            }
+
+            // Keep receiving and deleting messages in batches until no more messages
+            while (true)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
+                
+                if (messages.Count == 0)
+                {
+                    break; // No more messages to delete
+                }
+
+                totalDeleted += messages.Count;
+                
+                // Messages are automatically deleted when using ReceiveAndDelete mode
+                // Add a small delay to avoid overwhelming the service
+                if (messages.Count == 100)
+                {
+                    await Task.Delay(100);
+                }
+            }
+
+            return totalDeleted;
+        }
+        catch
+        {
+            return totalDeleted; // Return partial count if error occurs
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
 }

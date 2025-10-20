@@ -77,12 +77,73 @@
                 IsLoadingMore="@isLoadingMoreMessages"
                 OnClose="@CloseMessages"
                 OnViewMessageDetails="@ViewMessageDetails"
+                OnDeleteMessage="@HandleDeleteMessage"
+                OnRequeueMessage="@HandleRequeueMessage"
+                OnRescheduleMessage="@HandleRescheduleMessage"
+                OnSendNew="@HandleSendNewMessage"
+                OnPurge="@HandlePurgeMessages"
                 OnLoadMore="@LoadMoreMessages" />
         }
 
         <MessageDetailsModal 
             Message="@selectedMessage"
             OnClose="@CloseMessageDetails" />
+
+        <ConfirmationModal 
+            IsVisible="@showDeleteConfirmation"
+            Title="Delete Message"
+            Message="@deleteConfirmationMessage"
+            IconClass="bi-exclamation-triangle"
+            ConfirmIconClass="bi-trash"
+            ConfirmButtonClass="btn-danger"
+            ConfirmText="Delete"
+            OnConfirm="@ConfirmDelete"
+            OnCancel="@CancelDelete" />
+
+        <ConfirmationModal 
+            IsVisible="@showRequeueConfirmation"
+            Title="Requeue Message"
+            Message="Are you sure you want to requeue this message from the dead-letter queue to the active queue?"
+            IconClass="bi-arrow-counterclockwise"
+            ConfirmIconClass="bi-check-lg"
+            ConfirmButtonClass="btn-success"
+            ConfirmText="Requeue"
+            OnConfirm="@ConfirmRequeue"
+            OnCancel="@CancelRequeue" />
+
+        <ConfirmationModal 
+            IsVisible="@showPurgeConfirmation"
+            Title="Purge All Messages"
+            Message="@purgeConfirmationMessage"
+            IconClass="bi-exclamation-triangle-fill"
+            ConfirmIconClass="bi-trash-fill"
+            ConfirmButtonClass="btn-danger"
+            ConfirmText="Purge All"
+            OnConfirm="@ConfirmPurge"
+            OnCancel="@CancelPurge" />
+
+        <SendMessageModal
+            IsVisible="@showSendModal"
+            Title="@sendModalTitle"
+            IsReschedule="@isRescheduleMode"
+            OnClose="@CloseSendModal"
+            OnSend="@HandleSendMessage" />
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+                <i class="bi bi-check-circle"></i> @successMessage
+                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(operationErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> @operationErrorMessage
+                <button type="button" class="btn-close" @onclick="() => operationErrorMessage = string.Empty"></button>
+            </div>
+        }
 
         @if (!string.IsNullOrEmpty(selectedTopic))
         {
@@ -311,5 +372,349 @@
         {
             isLoadingMoreMessages = false;
         }
+    }
+
+    // CRUD operation state
+    private bool showDeleteConfirmation = false;
+    private bool showRequeueConfirmation = false;
+    private bool showPurgeConfirmation = false;
+    private bool showSendModal = false;
+    private bool isRescheduleMode = false;
+    private string sendModalTitle = "Send Message";
+    private MessageInfo? messageForOperation = null;
+    private string deleteConfirmationMessage = string.Empty;
+    private string purgeConfirmationMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private string operationErrorMessage = string.Empty;
+
+    private void HandleDeleteMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        deleteConfirmationMessage = $"Are you sure you want to delete message '{message.MessageId}'? This action cannot be undone.";
+        showDeleteConfirmation = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showDeleteConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        if (messageForOperation == null) return;
+
+        try
+        {
+            bool success;
+            
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                success = await ServiceBusService.DeleteMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                success = await ServiceBusService.DeleteMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber);
+            }
+
+            if (success)
+            {
+                messages.Remove(messageForOperation);
+                successMessage = "Message deleted successfully.";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "Failed to delete message. It may have already been processed.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error deleting message: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            messageForOperation = null;
+        }
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+        messageForOperation = null;
+    }
+
+    private void HandleRequeueMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        showRequeueConfirmation = true;
+    }
+
+    private async Task ConfirmRequeue()
+    {
+        showRequeueConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        if (messageForOperation == null) return;
+
+        try
+        {
+            bool success;
+            
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber);
+            }
+
+            if (success)
+            {
+                messages.Remove(messageForOperation);
+                successMessage = "Message requeued successfully.";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "Failed to requeue message. It may have already been processed.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error requeuing message: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            messageForOperation = null;
+        }
+    }
+
+    private void CancelRequeue()
+    {
+        showRequeueConfirmation = false;
+        messageForOperation = null;
+    }
+
+    private void HandleRescheduleMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        isRescheduleMode = true;
+        sendModalTitle = "Reschedule Message";
+        showSendModal = true;
+    }
+
+    private void HandleSendNewMessage()
+    {
+        messageForOperation = null;
+        isRescheduleMode = false;
+        sendModalTitle = "Send New Message";
+        showSendModal = true;
+    }
+
+    private async Task HandleSendMessage(SendMessageModal.MessageData data)
+    {
+        showSendModal = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            bool success;
+
+            if (isRescheduleMode && messageForOperation != null)
+            {
+                // Reschedule existing message
+                if (!data.ScheduledTime.HasValue)
+                {
+                    operationErrorMessage = "Scheduled time is required for rescheduling.";
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(selectedSubscriptionName))
+                {
+                    // It's a subscription
+                    success = await ServiceBusService.RescheduleMessageAsync(
+                        selectedEntity,
+                        messageForOperation.SequenceNumber,
+                        data.ScheduledTime.Value,
+                        isSubscription: true,
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName);
+                }
+                else
+                {
+                    // It's a queue
+                    success = await ServiceBusService.RescheduleMessageAsync(
+                        selectedEntity,
+                        messageForOperation.SequenceNumber,
+                        data.ScheduledTime.Value);
+                }
+
+                if (success)
+                {
+                    messages.Remove(messageForOperation);
+                    successMessage = $"Message rescheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to reschedule message. It may have already been processed.";
+                }
+            }
+            else
+            {
+                // Send new message
+                var entityToSendTo = !string.IsNullOrEmpty(selectedSubscriptionName) ? selectedTopic : selectedEntity;
+                
+                success = await ServiceBusService.SendMessageAsync(
+                    entityToSendTo,
+                    data.Body,
+                    data.Subject,
+                    data.ContentType,
+                    data.Properties,
+                    data.ScheduledTime);
+
+                if (success)
+                {
+                    if (data.ScheduledTime.HasValue)
+                    {
+                        successMessage = $"Message scheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
+                    }
+                    else
+                    {
+                        successMessage = "Message sent successfully.";
+                    }
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to send message.";
+                }
+            }
+
+            await Task.Delay(3000);
+            successMessage = string.Empty;
+            operationErrorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            messageForOperation = null;
+            isRescheduleMode = false;
+            sendModalTitle = "Send Message";
+        }
+    }
+
+    private void CloseSendModal()
+    {
+        showSendModal = false;
+        messageForOperation = null;
+        isRescheduleMode = false;
+        sendModalTitle = "Send Message";
+    }
+
+    private void HandlePurgeMessages()
+    {
+        var messageTypeDisplay = selectedMessageType switch
+        {
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+
+        purgeConfirmationMessage = $"Are you sure you want to PURGE ALL {messageTypeDisplay} messages from '{selectedEntity}'? " +
+            $"This will permanently delete ALL messages and cannot be undone. Type 'PURGE' to confirm.";
+        showPurgeConfirmation = true;
+    }
+
+    private async Task ConfirmPurge()
+    {
+        showPurgeConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            int deletedCount;
+
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                    selectedEntity,
+                    selectedMessageType,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                    selectedEntity,
+                    selectedMessageType);
+            }
+
+            if (deletedCount > 0)
+            {
+                // Clear the messages list
+                messages.Clear();
+                hasMoreMessages = false;
+                
+                successMessage = $"Successfully purged {deletedCount} message(s).";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "No messages were found to purge.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error purging messages: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+    }
+
+    private void CancelPurge()
+    {
+        showPurgeConfirmation = false;
     }
 }

@@ -1,0 +1,205 @@
+@if (IsVisible)
+{
+    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-send"></i> @Title
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="HandleClose"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Message Body *</label>
+                        <textarea class="form-control" rows="6" @bind="messageBody" placeholder="Enter message body..."></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Subject</label>
+                            <input type="text" class="form-control" @bind="subject" placeholder="Optional subject" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Content Type</label>
+                            <input type="text" class="form-control" @bind="contentType" placeholder="e.g., application/json" />
+                        </div>
+                    </div>
+
+                    @if (IsReschedule)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Scheduled Enqueue Time *</label>
+                            <input type="datetime-local" class="form-control" @bind="scheduledTime" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="scheduleCheck" @bind="isScheduled" />
+                            <label class="form-check-label" for="scheduleCheck">
+                                Schedule message for later delivery
+                            </label>
+                        </div>
+
+                        @if (isScheduled)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Scheduled Enqueue Time *</label>
+                                <input type="datetime-local" class="form-control" @bind="scheduledTime" />
+                            </div>
+                        }
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Application Properties</label>
+                        <small class="text-muted d-block mb-2">Add key-value pairs (one per line, format: key=value)</small>
+                        <textarea class="form-control" rows="4" @bind="propertiesText" placeholder="key1=value1&#10;key2=value2"></textarea>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleClose">
+                        <i class="bi bi-x-lg"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="HandleSend" disabled="@isSending">
+                        @if (isSending)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Sending...</span>
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-send"></i> @(IsReschedule ? "Reschedule" : "Send")</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Send Message";
+
+    [Parameter]
+    public bool IsReschedule { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageData> OnSend { get; set; }
+
+    private string messageBody = string.Empty;
+    private string subject = string.Empty;
+    private string contentType = "text/plain";
+    private string propertiesText = string.Empty;
+    private bool isScheduled = false;
+    private DateTime scheduledTime = DateTime.Now.AddHours(1);
+    private string errorMessage = string.Empty;
+    private bool isSending = false;
+
+    protected override void OnParametersSet()
+    {
+        if (IsReschedule)
+        {
+            isScheduled = true;
+        }
+    }
+
+    private async Task HandleClose()
+    {
+        ResetForm();
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleSend()
+    {
+        errorMessage = string.Empty;
+
+        // Validate
+        if (string.IsNullOrWhiteSpace(messageBody))
+        {
+            errorMessage = "Message body is required.";
+            return;
+        }
+
+        if ((isScheduled || IsReschedule) && scheduledTime <= DateTime.Now)
+        {
+            errorMessage = "Scheduled time must be in the future.";
+            return;
+        }
+
+        isSending = true;
+
+        try
+        {
+            // Parse properties
+            var properties = new Dictionary<string, object>();
+            if (!string.IsNullOrWhiteSpace(propertiesText))
+            {
+                var lines = propertiesText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var parts = line.Split('=', 2);
+                    if (parts.Length == 2)
+                    {
+                        properties[parts[0].Trim()] = parts[1].Trim();
+                    }
+                }
+            }
+
+            var data = new MessageData
+            {
+                Body = messageBody,
+                Subject = subject,
+                ContentType = contentType,
+                Properties = properties,
+                ScheduledTime = (isScheduled || IsReschedule) ? scheduledTime : null
+            };
+
+            await OnSend.InvokeAsync(data);
+            ResetForm();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        messageBody = string.Empty;
+        subject = string.Empty;
+        contentType = "text/plain";
+        propertiesText = string.Empty;
+        isScheduled = false;
+        scheduledTime = DateTime.Now.AddHours(1);
+        errorMessage = string.Empty;
+        isSending = false;
+    }
+
+    public class MessageData
+    {
+        public string Body { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public Dictionary<string, object> Properties { get; set; } = new();
+        public DateTime? ScheduledTime { get; set; }
+    }
+}
