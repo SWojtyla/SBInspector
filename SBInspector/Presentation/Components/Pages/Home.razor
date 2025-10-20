@@ -91,7 +91,8 @@
                 Subscriptions="@subscriptions"
                 IsLoading="@isLoadingSubscriptions"
                 OnClose="@CloseSubscriptions"
-                OnViewMessages="@HandleViewSubscriptionMessages" />
+                OnViewMessages="@HandleViewSubscriptionMessages"
+                OnLoadScheduledCount="@HandleLoadScheduledCount" />
         }
     }
 </div>
@@ -242,6 +243,16 @@
     {
         selectedTopic = string.Empty;
         subscriptions.Clear();
+    }
+
+    private async Task HandleLoadScheduledCount((string TopicName, string SubscriptionName) args)
+    {
+        var subscription = subscriptions.FirstOrDefault(s => s.Name == args.SubscriptionName);
+        if (subscription != null)
+        {
+            var count = await ServiceBusService.GetSubscriptionScheduledMessageCountAsync(args.TopicName, args.SubscriptionName);
+            subscription.ScheduledMessageCount = count;
+        }
     }
 
     private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)

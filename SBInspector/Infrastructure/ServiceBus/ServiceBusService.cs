@@ -163,11 +163,63 @@ public class ServiceBusService : IServiceBusService
             {
                 Name = subscription.SubscriptionName,
                 ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
-                ScheduledMessageCount = 0, // Subscriptions don't track scheduled messages separately
+                ScheduledMessageCount = -1, // -1 indicates not loaded yet
                 DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount
             });
         }
         return subscriptions;
+    }
+
+    public async Task<long> GetSubscriptionScheduledMessageCountAsync(string topicName, string subscriptionName)
+    {
+        if (_client == null) return 0;
+
+        ServiceBusReceiver? receiver = null;
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+
+            // Peek scheduled messages to count them
+            // We peek in batches to count all scheduled messages
+            long count = 0;
+            long? fromSequenceNumber = null;
+            int batchSize = 100;
+            
+            while (true)
+            {
+                var messages = await receiver.PeekMessagesAsync(batchSize, fromSequenceNumber);
+                
+                if (messages.Count == 0)
+                    break;
+
+                // Count only scheduled messages (messages with ScheduledEnqueueTime in the future)
+                var scheduledMessages = messages.Where(m => 
+                    m.ScheduledEnqueueTime > DateTimeOffset.UtcNow).ToList();
+                
+                count += scheduledMessages.Count;
+                
+                // If we got fewer messages than the batch size, we've reached the end
+                if (messages.Count < batchSize)
+                    break;
+                    
+                // Move to the next batch
+                fromSequenceNumber = messages.Max(m => m.SequenceNumber) + 1;
+            }
+
+            return count;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
     }
 
     public async Task<List<MessageInfo>> GetSubscriptionMessagesAsync(string topicName, string subscriptionName, string messageType, int maxMessages = 100, long? fromSequenceNumber = null)

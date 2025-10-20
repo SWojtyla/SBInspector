@@ -8,9 +8,25 @@
             </h4>
             <small class="text-muted">Subscriptions (@Subscriptions.Count)</small>
         </div>
-        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
-            <i class="bi bi-x-lg"></i> Close
-        </button>
+        <div class="d-flex gap-2">
+            @if (!showScheduledCounts && Subscriptions.Any())
+            {
+                <button class="btn btn-sm btn-outline-primary" @onclick="LoadScheduledCounts" disabled="@isLoadingScheduledCounts">
+                    @if (isLoadingScheduledCounts)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-clock-history me-1"></i>
+                    }
+                    Load Scheduled Counts
+                </button>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
+                <i class="bi bi-x-lg"></i> Close
+            </button>
+        </div>
     </div>
     <div class="card-body">
         @if (IsLoading)
@@ -49,9 +65,22 @@
                                     </span>
                                     <span class="message-count">
                                         <i class="bi bi-clock"></i> Scheduled: 
-                                        <span class="message-badge zero" title="Scheduled message count not available for subscriptions in Azure Service Bus API">
-                                            N/A
-                                        </span>
+                                        @if (subscription.ScheduledMessageCount == -1)
+                                        {
+                                            <span class="message-badge zero" title="Click 'Load Scheduled Counts' button to retrieve">
+                                                -
+                                            </span>
+                                        }
+                                        else if (loadingScheduledForSubscription == subscription.Name)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="message-badge @(subscription.ScheduledMessageCount > 0 ? "scheduled" : "zero")">
+                                                @subscription.ScheduledMessageCount
+                                            </span>
+                                        }
                                     </span>
                                     <span class="message-count">
                                         <i class="bi bi-exclamation-triangle"></i> Dead Letter: 
@@ -115,7 +144,13 @@
     [Parameter]
     public EventCallback<(string TopicName, string SubscriptionName, string MessageType)> OnViewMessages { get; set; }
 
+    [Parameter]
+    public EventCallback<(string TopicName, string SubscriptionName)> OnLoadScheduledCount { get; set; }
+
     private string searchTerm = string.Empty;
+    private bool showScheduledCounts = false;
+    private bool isLoadingScheduledCounts = false;
+    private string? loadingScheduledForSubscription = null;
 
     private IEnumerable<SubscriptionInfo> FilteredSubscriptions
     {
@@ -133,5 +168,29 @@
     private async Task HandleClose()
     {
         await OnClose.InvokeAsync();
+    }
+
+    private async Task LoadScheduledCounts()
+    {
+        isLoadingScheduledCounts = true;
+        showScheduledCounts = true;
+        
+        try
+        {
+            foreach (var subscription in Subscriptions)
+            {
+                if (subscription.ScheduledMessageCount == -1)
+                {
+                    loadingScheduledForSubscription = subscription.Name;
+                    StateHasChanged();
+                    await OnLoadScheduledCount.InvokeAsync((TopicName, subscription.Name));
+                    loadingScheduledForSubscription = null;
+                }
+            }
+        }
+        finally
+        {
+            isLoadingScheduledCounts = false;
+        }
     }
 }

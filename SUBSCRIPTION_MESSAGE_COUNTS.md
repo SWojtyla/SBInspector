@@ -2,7 +2,7 @@
 
 ## Overview
 
-This feature adds the display of active and dead letter message counts for Azure Service Bus topic subscriptions, similar to how message counts are displayed for queues.
+This feature adds the display of active, scheduled, and dead letter message counts for Azure Service Bus topic subscriptions, similar to how message counts are displayed for queues.
 
 ## What Changed
 
@@ -11,26 +11,32 @@ This feature adds the display of active and dead letter message counts for Azure
 - **SubscriptionInfo Domain Model** (`Core/Domain/SubscriptionInfo.cs`): A new domain model that holds subscription information including:
   - `Name`: The subscription name
   - `ActiveMessageCount`: Number of active messages
-  - `ScheduledMessageCount`: Number of scheduled messages (always 0 for subscriptions as Azure doesn't track this)
+  - `ScheduledMessageCount`: Number of scheduled messages (retrieved on demand)
   - `DeadLetterMessageCount`: Number of dead letter messages
 
 ### Modified Components
 
 1. **IServiceBusService Interface** (`Core/Interfaces/IServiceBusService.cs`):
    - Changed `GetSubscriptionsAsync` return type from `List<string>` to `List<SubscriptionInfo>`
+   - Added `GetSubscriptionScheduledMessageCountAsync` method to count scheduled messages on demand
 
 2. **ServiceBusService Implementation** (`Infrastructure/ServiceBus/ServiceBusService.cs`):
    - Updated `GetSubscriptionsAsync` to fetch subscription runtime properties using `GetSubscriptionRuntimePropertiesAsync`
    - Extracts and returns message counts for each subscription
+   - Implemented `GetSubscriptionScheduledMessageCountAsync` that peeks messages and counts those with scheduled enqueue times in the future
+   - Initial load sets `ScheduledMessageCount` to -1 (not loaded)
 
 3. **SubscriptionListPanel Component** (`Presentation/Components/UI/SubscriptionListPanel.razor`):
    - Updated to accept `List<SubscriptionInfo>` instead of `List<string>`
    - Displays Active and Dead Letter message counts with styled badges (similar to queue display)
-   - Message counts use color-coded badges (green for active, red for dead letter)
-   - Kept all three action buttons (Active, Scheduled, DLQ) for viewing messages
+   - Shows Scheduled count as "-" when not loaded, with tooltip explaining to click the load button
+   - Added "Load Scheduled Counts" button in the header to retrieve scheduled message counts on demand
+   - Shows loading spinner for each subscription while counting scheduled messages
+   - Message counts use color-coded badges (green for active, yellow for scheduled, red for dead letter)
 
 4. **Home Page** (`Presentation/Components/Pages/Home.razor`):
    - Updated subscriptions field type from `List<string>` to `List<SubscriptionInfo>`
+   - Added `HandleLoadScheduledCount` method to handle scheduled count loading
 
 ## How to Use
 
@@ -40,13 +46,16 @@ When you view subscriptions for a topic:
 2. The subscription panel now shows:
    - Subscription name
    - **Active message count** (with green badge if > 0)
-   - **Scheduled message count** (shows "N/A" - not available from Azure API)
+   - **Scheduled message count** (shows "-" initially, with tooltip)
    - **Dead letter message count** (with red badge if > 0)
    - Action buttons to view messages
+3. Click the **"Load Scheduled Counts"** button in the header to retrieve scheduled message counts for all subscriptions
+4. Each subscription will show a loading spinner while its scheduled count is being retrieved
+5. Once loaded, the actual count will display with appropriate color coding
 
 ## Technical Details
 
-### Why Scheduled Count Shows "N/A"
+### Why Scheduled Count Requires Manual Loading
 
 Azure Service Bus `SubscriptionRuntimeProperties` only provides:
 - `ActiveMessageCount`
@@ -55,22 +64,35 @@ Azure Service Bus `SubscriptionRuntimeProperties` only provides:
 - `TransferMessageCount`
 - `TransferDeadLetterMessageCount`
 
-Unlike queues, subscriptions don't track scheduled message counts in their runtime properties. The scheduled messages exist but are not counted separately by the Azure API. 
+Unlike queues, subscriptions don't track scheduled message counts in their runtime properties. To get the count, we must:
+1. Create a receiver for the subscription
+2. Peek all messages in batches
+3. Count messages where `ScheduledEnqueueTime > DateTimeOffset.UtcNow`
 
-The UI displays "N/A" for the scheduled count to:
-1. Maintain consistency with the queue display layout
-2. Make it clear that this metric is not available for subscriptions
-3. Provide a tooltip explaining the Azure API limitation
+This is an expensive operation, especially for subscriptions with many messages, which is why it's:
+- Not loaded by default
+- Triggered only when the user clicks "Load Scheduled Counts"
+- Processed sequentially to avoid overwhelming the Service Bus
 
-Users can still view scheduled messages using the "View Scheduled" button, but the count is not available at the subscription level.
+### Performance Considerations
+
+- **Initial load**: Fast - only retrieves runtime properties (Active and Dead Letter counts)
+- **Scheduled count load**: Can be slow for subscriptions with many messages
+  - Peeks messages in batches of 100
+  - Continues until all messages are counted
+  - Processes subscriptions sequentially to minimize Service Bus load
+  - Shows individual loading state for each subscription
 
 ### API Calls
 
-Each subscription now makes an additional API call to `GetSubscriptionRuntimePropertiesAsync` to retrieve the message counts. This provides real-time data but may slightly increase loading time when viewing subscriptions for topics with many subscriptions.
+- **GetSubscriptionsAsync**: One API call per subscription to get runtime properties
+- **GetSubscriptionScheduledMessageCountAsync**: Multiple peek operations per subscription (one per 100 messages), only when user requests it
 
 ## Benefits
 
 - **Better Visibility**: Users can now see at a glance which subscriptions have messages waiting
 - **Consistency**: Subscription display now matches the queue display pattern
-- **Quick Insights**: No need to click into each subscription to see if it has messages
+- **On-Demand Loading**: Scheduled counts are loaded only when needed, avoiding performance impact
+- **Quick Insights**: No need to click into each subscription to see if it has active or dead letter messages
 - **Color Coding**: Visual badges make it easy to identify subscriptions with pending or problematic messages
+- **User Control**: Users decide when to pay the performance cost of counting scheduled messages
