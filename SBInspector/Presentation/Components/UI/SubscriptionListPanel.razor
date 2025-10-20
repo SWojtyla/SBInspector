@@ -1,3 +1,5 @@
+@using SBInspector.Core.Domain
+
 <div class="card card-enhanced mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
@@ -33,25 +35,39 @@
                 @foreach (var subscription in FilteredSubscriptions)
                 {
                     <div class="subscription-card">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap">
-                            <div class="mb-2 mb-md-0">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-envelope"></i> @subscription
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                            <div class="flex-grow-1 mb-2 mb-md-0">
+                                <h5 class="mb-2">
+                                    <i class="bi bi-envelope"></i> @subscription.Name
                                 </h5>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <span class="message-count">
+                                        <i class="bi bi-inbox"></i> Active: 
+                                        <span class="message-badge @(subscription.ActiveMessageCount > 0 ? "active" : "zero")">
+                                            @subscription.ActiveMessageCount
+                                        </span>
+                                    </span>
+                                    <span class="message-count">
+                                        <i class="bi bi-exclamation-triangle"></i> Dead Letter: 
+                                        <span class="message-badge @(subscription.DeadLetterMessageCount > 0 ? "deadletter" : "zero")">
+                                            @subscription.DeadLetterMessageCount
+                                        </span>
+                                    </span>
+                                </div>
                             </div>
                             <div class="action-buttons">
                                 <button class="btn btn-sm btn-primary" 
-                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Active")))"
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Active")))"
                                         title="View Active Messages">
                                     <i class="bi bi-inbox"></i> <span class="d-none d-lg-inline">View </span>Active
                                 </button>
                                 <button class="btn btn-sm btn-warning" 
-                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Scheduled")))"
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Scheduled")))"
                                         title="View Scheduled Messages">
                                     <i class="bi bi-clock"></i> <span class="d-none d-lg-inline">View </span>Scheduled
                                 </button>
                                 <button class="btn btn-sm btn-danger" 
-                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "DeadLetter")))"
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "DeadLetter")))"
                                         title="View Dead Letter Messages">
                                     <i class="bi bi-exclamation-triangle"></i> <span class="d-none d-lg-inline">View </span>DLQ
                                 </button>
@@ -82,7 +98,7 @@
     public string TopicName { get; set; } = string.Empty;
 
     [Parameter]
-    public List<string> Subscriptions { get; set; } = new();
+    public List<SubscriptionInfo> Subscriptions { get; set; } = new();
 
     [Parameter]
     public bool IsLoading { get; set; }
@@ -95,7 +111,7 @@
 
     private string searchTerm = string.Empty;
 
-    private IEnumerable<string> FilteredSubscriptions
+    private IEnumerable<SubscriptionInfo> FilteredSubscriptions
     {
         get
         {
@@ -104,7 +120,7 @@
                 return Subscriptions;
             }
             
-            return Subscriptions.Where(s => s.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            return Subscriptions.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
     }
 
