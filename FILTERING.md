@@ -1,102 +1,165 @@
-# Message Attribute Filtering
+# Message Filtering
 
-This feature allows you to filter Service Bus messages based on their application properties (message attributes). You can add multiple filters that work together using AND logic - messages must match all filters to be displayed.
+This feature allows you to filter Service Bus messages using multiple criteria and operators. You can filter both on message attributes (application properties) and on built-in message fields like enqueued time, delivery count, and sequence number.
+
+## Filter Fields
+
+You can filter messages by:
+
+### 1. Application Property (Custom Attributes)
+Filter on custom application properties/attributes that are attached to messages. You can search by attribute name and/or value.
+
+### 2. Enqueued Time
+Filter messages based on when they were enqueued to the Service Bus. Useful for finding messages within specific time ranges.
+
+### 3. Delivery Count
+Filter messages based on how many times they've been delivered. Useful for finding messages that have been retried multiple times or are stuck.
+
+### 4. Sequence Number
+Filter messages based on their sequence number, which is a unique identifier assigned by Service Bus.
+
+## Filter Operators
+
+Depending on the field type, different operators are available:
+
+### For String Fields (Application Properties with Contains/Equals/NotEquals)
+- **Contains**: Case-insensitive substring match (default for application properties)
+- **Equals**: Exact match (case-insensitive)
+- **Not Equals**: Does not match (case-insensitive)
+- **Regex**: Regular expression pattern matching
+
+### For Numeric Fields (Delivery Count, Sequence Number)
+- **Equals**: Exact numeric match
+- **Not Equals**: Does not equal
+- **Greater Than**: Value is greater than the specified number
+- **Less Than**: Value is less than the specified number
+- **Greater Than or Equal**: Value is greater than or equal to the specified number
+- **Less Than or Equal**: Value is less than or equal to the specified number
+
+### For Date/Time Fields (Enqueued Time)
+- **Equals**: Same date (ignores time component)
+- **Not Equals**: Different date
+- **Greater Than**: After the specified date/time
+- **Less Than**: Before the specified date/time
+- **Greater Than or Equal**: On or after the specified date/time
+- **Less Than or Equal**: On or before the specified date/time
+
+### For Application Properties (Numeric Comparison)
+When filtering application properties with numeric operators (>, <, >=, <=), the system will attempt to parse both the property value and filter value as numbers. If both can be parsed as numbers, a numeric comparison is performed.
 
 ## How to Use
 
-When viewing messages from a queue or topic subscription, you will see a "Filter by Message Attributes" section. You can add multiple filters by clicking the "Add Filter" button. Each filter has three input fields:
+When viewing messages from a queue or topic subscription, you will see a "Filter Messages" section. Each filter has the following fields:
 
-### 1. Attribute Name (Optional)
-- Enter the exact name of the message attribute/property you want to filter on
-- Example: `customerId`, `orderType`, `region`
-- If left empty, the filter will search across all attributes
+### 1. Filter Field (Required)
+Select what you want to filter on:
+- **Application Property**: Filter on custom message attributes
+- **Enqueued Time**: Filter on when the message was enqueued
+- **Delivery Count**: Filter on retry count
+- **Sequence Number**: Filter on the message sequence number
 
-### 2. Attribute Value (Optional)
-- Enter the value you want to search for
-- When "Use Regex Expression" is unchecked, performs a case-insensitive substring match
-- When "Use Regex Expression" is checked, treats the value as a regular expression pattern
-- Example literal values: `12345`, `premium`, `US-East`
-- Example regex patterns: `^[A-Z]{2}-`, `\d{5}`, `(premium|gold)`
+### 2. Attribute Name (Only for Application Property)
+When filtering on application properties, optionally specify the exact name of the attribute. If left empty, the filter will search across all attributes.
 
-### 3. Use Regex Expression (Checkbox)
-- **Unchecked (default)**: Performs literal substring matching (case-insensitive)
-- **Checked**: Treats the attribute value as a regular expression pattern
+### 3. Operator (Required)
+Select the comparison operator. Available operators depend on the selected field type.
+
+### 4. Value (Required)
+Enter the value to compare against. The input type changes based on the field:
+- For **Enqueued Time**: Date/time picker
+- For **Delivery Count** and **Sequence Number**: Numeric input
+- For **Application Property**: Text input
 
 ## Multiple Filters
 
 You can add multiple filters by clicking the "Add Filter" button. All filters are combined using AND logic:
 - A message must match **all** filters to be displayed
-- Empty filters (with no name or value) are ignored
-- You can remove individual filters using the "Remove" button next to each filter (except the last one)
-- Use "Clear All Filters" to reset all filters at once
-
-### Example: Multiple Filters with AND Logic
-To find messages where both `region` is "east" AND `customerType` is "premium":
-1. First filter: Attribute Name: `region`, Attribute Value: `east`
-2. Click "Add Filter"
-3. Second filter: Attribute Name: `customerType`, Attribute Value: `premium`
-Result: Shows only messages that have BOTH attributes matching the specified values.
-
-## Filtering Behavior
-
-### Attribute Name Only
-If you specify only an attribute name (leaving value empty), the filter will show all messages that have that attribute, regardless of its value.
-
-Example:
-- Attribute Name: `customerId`
-- Attribute Value: (empty)
-- Result: Shows all messages that have a `customerId` attribute
-
-### Attribute Value Only
-If you specify only a value (leaving name empty), the filter will search across all attributes in each message and show messages where any attribute value matches.
-
-Example:
-- Attribute Name: (empty)
-- Attribute Value: `premium`
-- Result: Shows messages where any attribute contains "premium"
-
-### Both Attribute Name and Value
-If you specify both, the filter will look for the specific attribute and match its value.
-
-Example:
-- Attribute Name: `subscriptionType`
-- Attribute Value: `premium`
-- Result: Shows messages where the `subscriptionType` attribute contains "premium"
+- Empty filters (with no value) are ignored
+- You can remove individual filters using the trash icon (except when only one filter remains)
+- Use "Clear All" to reset all filters at once
 
 ## Examples
 
-### Example 1: Literal Match (Case-Insensitive)
-Filter messages where the `region` attribute contains "east":
-- Attribute Name: `region`
-- Attribute Value: `east`
-- Use Regex: ☐ (unchecked)
-- Matches: "East", "EAST", "east", "Northeast", etc.
+### Example 1: Messages Enqueued After a Specific Date
+Find messages enqueued after January 15, 2024:
+- Filter Field: **Enqueued Time**
+- Operator: **Greater Than**
+- Value: `2024-01-15 00:00`
 
-### Example 2: Exact Match with Regex
-Filter messages where the `orderType` is exactly "PREMIUM":
-- Attribute Name: `orderType`
-- Attribute Value: `^PREMIUM$`
-- Use Regex: ☑ (checked)
-- Matches: Only "PREMIUM" (exact match)
+### Example 2: Messages with High Delivery Count
+Find messages that have been retried 3 or more times:
+- Filter Field: **Delivery Count**
+- Operator: **Greater Than or Equal**
+- Value: `3`
 
-### Example 3: Pattern Match with Regex
-Filter messages where `customerId` starts with "CUST" followed by 5 digits:
+### Example 3: Application Property with Specific Value
+Find messages where the `priority` attribute is "high":
+- Filter Field: **Application Property**
+- Attribute Name: `priority`
+- Operator: **Equals**
+- Value: `high`
+
+### Example 4: Application Property with Pattern Match
+Find messages where `customerId` starts with "CUST" followed by 5 digits:
+- Filter Field: **Application Property**
 - Attribute Name: `customerId`
-- Attribute Value: `^CUST\d{5}$`
-- Use Regex: ☑ (checked)
-- Matches: "CUST12345", "CUST99999", etc.
+- Operator: **Regex**
+- Value: `^CUST\d{5}$`
 
-### Example 4: Multiple Options with Regex
-Filter messages where `status` is either "pending" or "processing":
-- Attribute Name: `status`
-- Attribute Value: `^(pending|processing)$`
-- Use Regex: ☑ (checked)
-- Matches: "pending" or "processing"
+### Example 5: Numeric Comparison on Application Property
+Find messages where the `amount` attribute is greater than 100:
+- Filter Field: **Application Property**
+- Attribute Name: `amount`
+- Operator: **Greater Than**
+- Value: `100`
 
-## Notes
+### Example 6: Multiple Filters with AND Logic
+Find messages enqueued in the last week with high priority:
+1. First filter:
+   - Filter Field: **Enqueued Time**
+   - Operator: **Greater Than**
+   - Value: `2024-01-15 00:00`
+2. Click "Add Filter"
+3. Second filter:
+   - Filter Field: **Application Property**
+   - Attribute Name: `priority`
+   - Operator: **Equals**
+   - Value: `high`
 
-- Filtering is performed client-side on the messages already loaded (up to 100 messages)
-- The filter count shows "Showing X of Y messages" to indicate how many messages match the filter
-- Use the "Clear Filters" button to reset all filter fields
-- If a regex pattern is invalid, the filter automatically falls back to literal substring matching
-- All literal matches are case-insensitive for better usability
+Result: Shows only messages that match BOTH conditions.
+
+### Example 7: Range Filter Using Two Filters
+Find messages with sequence numbers between 1000 and 2000:
+1. First filter:
+   - Filter Field: **Sequence Number**
+   - Operator: **Greater Than or Equal**
+   - Value: `1000`
+2. Click "Add Filter"
+3. Second filter:
+   - Filter Field: **Sequence Number**
+   - Operator: **Less Than or Equal**
+   - Value: `2000`
+
+## Filtering Behavior
+
+### Date/Time Filtering
+- When using **Equals** operator with dates, only the date portion is compared (time is ignored)
+- Other operators (>, <, >=, <=) compare the full date and time
+- Date format is flexible and will parse most standard formats
+
+### Numeric Filtering
+- All numeric values must be valid integers or decimals
+- Invalid numeric values will cause the filter to skip the message
+
+### Application Property Filtering
+- **Attribute Name Only**: Shows all messages that have that attribute, regardless of value
+- **Value Only**: Searches across all attributes and shows messages where any attribute matches
+- **Both Name and Value**: Filters on the specific attribute with the specified value
+
+## Technical Details
+
+- Filtering is performed client-side on the messages already loaded (based on page size)
+- The filter count shows "Showing X of Y messages" to indicate how many messages match all filters
+- Invalid regex patterns automatically fall back to literal substring matching
+- All string comparisons (except regex) are case-insensitive
+- Filters are applied in the order they are defined, using AND logic
