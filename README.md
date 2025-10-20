@@ -6,6 +6,11 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 
 - Connect to Azure Service Bus using a connection string
 - View all queues and topics in the namespace
+- **Enable/Disable Entities**:
+  - View the status (Active/Disabled) of queues, topics, and subscriptions
+  - Toggle entities between Active and Disabled states
+  - Visual status indicators with color-coded badges
+  - See [ENABLE_DISABLE.md](ENABLE_DISABLE.md) for detailed documentation
 - Inspect messages in queues:
   - Active messages
   - Scheduled messages
@@ -28,6 +33,7 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - **Reschedule** scheduled messages to a different delivery time
   - **Purge All** messages from a queue or topic in one operation
   - Dynamic list updates when messages are deleted or purged
+  - Automatic refresh of message counts after operations
   - See [MESSAGE_CRUD.md](MESSAGE_CRUD.md) for detailed documentation
 - Filter messages by application properties (attributes):
   - Add multiple filters with AND logic
