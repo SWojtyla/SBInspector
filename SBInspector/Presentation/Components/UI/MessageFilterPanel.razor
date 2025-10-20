@@ -1,55 +1,74 @@
 @using SBInspector.Core.Domain
 
-<div class="mb-3">
-    <h5>Filter by Message Attributes</h5>
+<div class="filter-panel mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-funnel"></i> Filter by Message Attributes
+        </h5>
+        @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
+        {
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAllFilters">
+                <i class="bi bi-x-circle"></i> Clear All
+            </button>
+        }
+    </div>
+    
     @for (int i = 0; i < Filters.Count; i++)
     {
         var index = i;
         var filter = Filters[index];
-        <div class="row g-2 mb-2">
-            <div class="col-md-4">
-                <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
-                <input type="text" class="form-control" id="filterAttributeName_@index" 
-                       value="@filter.AttributeName" 
-                       @oninput="@(async e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
-                       placeholder="e.g., customerId" />
-            </div>
-            <div class="col-md-4">
-                <label for="filterAttributeValue_@index" class="form-label">Attribute Value</label>
-                <input type="text" class="form-control" id="filterAttributeValue_@index" 
-                       value="@filter.AttributeValue" 
-                       @oninput="@(async e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
-                       placeholder="e.g., 12345" />
-            </div>
-            <div class="col-md-4">
-                <div class="form-check mt-4">
-                    <input class="form-check-input" type="checkbox" id="useRegexFilter_@index" 
-                           checked="@filter.UseRegex" 
-                           @onchange="@(async e => { filter.UseRegex = (bool)(e.Value ?? false); await NotifyFiltersChanged(); })" />
-                    <label class="form-check-label" for="useRegexFilter_@index">
-                        Use Regex Expression
-                    </label>
+        <div class="card mb-2" style="border: 1px solid #dee2e6;">
+            <div class="card-body p-3">
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <label for="filterAttributeName_@index" class="form-label fw-semibold">Attribute Name</label>
+                        <input type="text" class="form-control form-control-sm" id="filterAttributeName_@index" 
+                               value="@filter.AttributeName" 
+                               @oninput="@(async e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
+                               placeholder="e.g., customerId, orderId" />
+                    </div>
+                    <div class="col-md-5">
+                        <label for="filterAttributeValue_@index" class="form-label fw-semibold">Attribute Value</label>
+                        <input type="text" class="form-control form-control-sm" id="filterAttributeValue_@index" 
+                               value="@filter.AttributeValue" 
+                               @oninput="@(async e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
+                               placeholder="e.g., 12345, ABC.*" />
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        @if (Filters.Count > 1)
+                        {
+                            <button class="btn btn-sm btn-outline-danger w-100" @onclick="() => RemoveFilterAtIndex(index)" title="Remove this filter">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
                 </div>
-                @if (Filters.Count > 1)
-                {
-                    <button class="btn btn-sm btn-danger mt-2" @onclick="() => RemoveFilterAtIndex(index)">Remove</button>
-                }
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useRegexFilter_@index" 
+                                   checked="@filter.UseRegex" 
+                                   @onchange="@(async e => { filter.UseRegex = (bool)(e.Value ?? false); await NotifyFiltersChanged(); })" />
+                            <label class="form-check-label" for="useRegexFilter_@index">
+                                <small><i class="bi bi-regex"></i> Use Regular Expression</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     }
-    <div class="row g-2 mb-2">
-        <div class="col-12">
-            <button class="btn btn-sm btn-primary me-2" @onclick="AddNewFilter">Add Filter</button>
-            @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
-            {
-                <button class="btn btn-sm btn-secondary" @onclick="ClearAllFilters">Clear All Filters</button>
-            }
+    
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <button class="btn btn-sm btn-outline-primary" @onclick="AddNewFilter">
+            <i class="bi bi-plus-circle"></i> Add Filter
+        </button>
+        <div class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            <small>
+                Showing <strong>@FilteredCount</strong> of <strong>@TotalCount</strong> messages
+            </small>
         </div>
-    </div>
-    <div class="mt-2">
-        <small class="text-muted">
-            Showing @FilteredCount of @TotalCount messages
-        </small>
     </div>
 </div>
 
