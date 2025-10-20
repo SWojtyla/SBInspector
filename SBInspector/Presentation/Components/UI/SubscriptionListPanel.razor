@@ -2,52 +2,15 @@
 
 <div class="card card-enhanced mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="flex-grow-1">
+        <div>
             <h4 class="mb-0">
                 <i class="bi bi-folder"></i> @TopicName
             </h4>
-            <div class="d-flex gap-3 align-items-center mt-2">
-                <small class="text-muted">Subscriptions (@Subscriptions.Count)</small>
-                <span class="message-count">
-                    <i class="bi bi-clock"></i> Topic Scheduled: 
-                    @if (TopicScheduledMessageCount == -1)
-                    {
-                        <span class="message-badge zero" title="Click 'Load Scheduled Count' button to retrieve">
-                            -
-                        </span>
-                    }
-                    else if (isLoadingScheduledCount)
-                    {
-                        <span class="spinner-border spinner-border-sm" role="status"></span>
-                    }
-                    else
-                    {
-                        <span class="message-badge @(TopicScheduledMessageCount > 0 ? "scheduled" : "zero")">
-                            @TopicScheduledMessageCount
-                        </span>
-                    }
-                </span>
-            </div>
+            <small class="text-muted">Subscriptions (@Subscriptions.Count)</small>
         </div>
-        <div class="d-flex gap-2">
-            @if (TopicScheduledMessageCount == -1 && Subscriptions.Any())
-            {
-                <button class="btn btn-sm btn-outline-primary" @onclick="LoadScheduledCount" disabled="@isLoadingScheduledCount">
-                    @if (isLoadingScheduledCount)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    }
-                    else
-                    {
-                        <i class="bi bi-clock-history me-1"></i>
-                    }
-                    Load Scheduled Count
-                </button>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
-                <i class="bi bi-x-lg"></i> Close
-            </button>
-        </div>
+        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
+            <i class="bi bi-x-lg"></i> Close
+        </button>
     </div>
     <div class="card-body">
         @if (IsLoading)
@@ -141,19 +104,12 @@
     public bool IsLoading { get; set; }
 
     [Parameter]
-    public long TopicScheduledMessageCount { get; set; } = -1;
-
-    [Parameter]
     public EventCallback OnClose { get; set; }
 
     [Parameter]
     public EventCallback<(string TopicName, string SubscriptionName, string MessageType)> OnViewMessages { get; set; }
 
-    [Parameter]
-    public EventCallback<string> OnLoadScheduledCount { get; set; }
-
     private string searchTerm = string.Empty;
-    private bool isLoadingScheduledCount = false;
 
     private IEnumerable<SubscriptionInfo> FilteredSubscriptions
     {
@@ -171,19 +127,5 @@
     private async Task HandleClose()
     {
         await OnClose.InvokeAsync();
-    }
-
-    private async Task LoadScheduledCount()
-    {
-        isLoadingScheduledCount = true;
-        
-        try
-        {
-            await OnLoadScheduledCount.InvokeAsync(TopicName);
-        }
-        finally
-        {
-            isLoadingScheduledCount = false;
-        }
     }
 }

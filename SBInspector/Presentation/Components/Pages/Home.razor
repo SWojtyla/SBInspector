@@ -90,10 +90,8 @@
                 TopicName="@selectedTopic"
                 Subscriptions="@subscriptions"
                 IsLoading="@isLoadingSubscriptions"
-                TopicScheduledMessageCount="@topicScheduledMessageCount"
                 OnClose="@CloseSubscriptions"
-                OnViewMessages="@HandleViewSubscriptionMessages"
-                OnLoadScheduledCount="@HandleLoadTopicScheduledCount" />
+                OnViewMessages="@HandleViewSubscriptionMessages" />
         }
     }
 </div>
@@ -117,7 +115,6 @@
     private string selectedTopic = string.Empty;
     private string selectedSubscriptionName = string.Empty;
     private MessageInfo? selectedMessage = null;
-    private long topicScheduledMessageCount = -1;
     
     private List<MessageFilter> messageFilters = new() { new MessageFilter() };
     
@@ -245,12 +242,6 @@
     {
         selectedTopic = string.Empty;
         subscriptions.Clear();
-        topicScheduledMessageCount = -1;
-    }
-
-    private async Task HandleLoadTopicScheduledCount(string topicName)
-    {
-        topicScheduledMessageCount = await ServiceBusService.GetTopicScheduledMessageCountAsync(topicName);
     }
 
     private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)
