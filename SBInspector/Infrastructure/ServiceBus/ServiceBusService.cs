@@ -60,7 +60,8 @@ public class ServiceBusService : IServiceBusService
                 Type = "Queue",
                 ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
                 ScheduledMessageCount = runtimeProps.Value.ScheduledMessageCount,
-                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount
+                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount,
+                Status = queue.Status.ToString()
             });
         }
         return queues;
@@ -80,7 +81,8 @@ public class ServiceBusService : IServiceBusService
                 // Note: Topics don't have message counts directly, subscriptions do
                 ActiveMessageCount = 0,
                 ScheduledMessageCount = 0,
-                DeadLetterMessageCount = 0
+                DeadLetterMessageCount = 0,
+                Status = topic.Status.ToString()
             });
         }
         return topics;
@@ -163,7 +165,8 @@ public class ServiceBusService : IServiceBusService
             {
                 Name = subscription.SubscriptionName,
                 ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
-                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount
+                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount,
+                Status = subscription.Status.ToString()
             });
         }
         return subscriptions;
@@ -532,6 +535,135 @@ public class ServiceBusService : IServiceBusService
             {
                 await receiver.DisposeAsync();
             }
+        }
+    }
+
+    public async Task<bool> SetQueueStatusAsync(string queueName, bool enabled)
+    {
+        if (_adminClient == null) return false;
+
+        try
+        {
+            var queue = await _adminClient.GetQueueAsync(queueName);
+            queue.Value.Status = enabled 
+                ? Azure.Messaging.ServiceBus.Administration.EntityStatus.Active 
+                : Azure.Messaging.ServiceBus.Administration.EntityStatus.Disabled;
+            await _adminClient.UpdateQueueAsync(queue.Value);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> SetTopicStatusAsync(string topicName, bool enabled)
+    {
+        if (_adminClient == null) return false;
+
+        try
+        {
+            var topic = await _adminClient.GetTopicAsync(topicName);
+            topic.Value.Status = enabled 
+                ? Azure.Messaging.ServiceBus.Administration.EntityStatus.Active 
+                : Azure.Messaging.ServiceBus.Administration.EntityStatus.Disabled;
+            await _adminClient.UpdateTopicAsync(topic.Value);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> SetSubscriptionStatusAsync(string topicName, string subscriptionName, bool enabled)
+    {
+        if (_adminClient == null) return false;
+
+        try
+        {
+            var subscription = await _adminClient.GetSubscriptionAsync(topicName, subscriptionName);
+            subscription.Value.Status = enabled 
+                ? Azure.Messaging.ServiceBus.Administration.EntityStatus.Active 
+                : Azure.Messaging.ServiceBus.Administration.EntityStatus.Disabled;
+            await _adminClient.UpdateSubscriptionAsync(subscription.Value);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<EntityInfo?> GetQueueInfoAsync(string queueName)
+    {
+        if (_adminClient == null) return null;
+
+        try
+        {
+            var queue = await _adminClient.GetQueueAsync(queueName);
+            var runtimeProps = await _adminClient.GetQueueRuntimePropertiesAsync(queueName);
+            
+            return new EntityInfo
+            {
+                Name = queue.Value.Name,
+                Type = "Queue",
+                ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
+                ScheduledMessageCount = runtimeProps.Value.ScheduledMessageCount,
+                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount,
+                Status = queue.Value.Status.ToString()
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<EntityInfo?> GetTopicInfoAsync(string topicName)
+    {
+        if (_adminClient == null) return null;
+
+        try
+        {
+            var topic = await _adminClient.GetTopicAsync(topicName);
+            
+            return new EntityInfo
+            {
+                Name = topic.Value.Name,
+                Type = "Topic",
+                ActiveMessageCount = 0,
+                ScheduledMessageCount = 0,
+                DeadLetterMessageCount = 0,
+                Status = topic.Value.Status.ToString()
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<SubscriptionInfo?> GetSubscriptionInfoAsync(string topicName, string subscriptionName)
+    {
+        if (_adminClient == null) return null;
+
+        try
+        {
+            var subscription = await _adminClient.GetSubscriptionAsync(topicName, subscriptionName);
+            var runtimeProps = await _adminClient.GetSubscriptionRuntimePropertiesAsync(topicName, subscriptionName);
+            
+            return new SubscriptionInfo
+            {
+                Name = subscription.Value.SubscriptionName,
+                ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
+                DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount,
+                Status = subscription.Value.Status.ToString()
+            };
+        }
+        catch
+        {
+            return null;
         }
     }
 }

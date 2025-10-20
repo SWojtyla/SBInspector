@@ -21,6 +21,7 @@
                         <th @onclick="() => HandleSortColumn(nameof(EntityInfo.Name))" class="sortable-header">
                             Name @GetSortIcon(nameof(EntityInfo.Name))
                         </th>
+                        <th class="text-center">Status</th>
                         <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ActiveMessageCount))" class="sortable-header text-center">
                             Active @GetSortIcon(nameof(EntityInfo.ActiveMessageCount))
                         </th>
@@ -39,6 +40,11 @@
                         <tr>
                             <td><strong>@queue.Name</strong></td>
                             <td class="text-center">
+                                <span class="badge @(queue.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                    @queue.Status
+                                </span>
+                            </td>
+                            <td class="text-center">
                                 <span class="message-badge @(queue.ActiveMessageCount > 0 ? "active" : "zero")">
                                     @queue.ActiveMessageCount
                                 </span>
@@ -55,6 +61,18 @@
                             </td>
                             <td>
                                 <div class="action-buttons justify-content-center">
+                                    @if (queue.Status == "Active")
+                                    {
+                                        <button class="btn btn-sm btn-secondary" @onclick="@(() => OnToggleStatus.InvokeAsync(queue.Name))" title="Disable Queue">
+                                            <i class="bi bi-pause-circle"></i> <span class="d-none d-md-inline">Disable</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-success" @onclick="@(() => OnToggleStatus.InvokeAsync(queue.Name))" title="Enable Queue">
+                                            <i class="bi bi-play-circle"></i> <span class="d-none d-md-inline">Enable</span>
+                                        </button>
+                                    }
                                     @if (queue.ActiveMessageCount > 0)
                                     {
                                         <button class="btn btn-sm btn-primary" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Active")))" title="View Active Messages">
@@ -118,6 +136,9 @@
 
     [Parameter]
     public EventCallback<(string QueueName, string MessageType)> OnViewMessages { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnToggleStatus { get; set; }
 
     private string searchTerm = string.Empty;
 

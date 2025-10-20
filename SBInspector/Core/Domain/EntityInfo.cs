@@ -7,4 +7,5 @@ public class EntityInfo
     public long ActiveMessageCount { get; set; }
     public long ScheduledMessageCount { get; set; }
     public long DeadLetterMessageCount { get; set; }
+    public string Status { get; set; } = string.Empty; // Active, Disabled, SendDisabled, ReceiveDisabled
 }

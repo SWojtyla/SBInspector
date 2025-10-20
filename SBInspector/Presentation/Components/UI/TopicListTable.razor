@@ -21,6 +21,7 @@
                         <th @onclick="() => HandleSortColumn(nameof(EntityInfo.Name))" class="sortable-header">
                             Name @GetSortIcon()
                         </th>
+                        <th class="text-center">Status</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
@@ -29,8 +30,25 @@
                     {
                         <tr>
                             <td><strong>@topic.Name</strong></td>
+                            <td class="text-center">
+                                <span class="badge @(topic.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                    @topic.Status
+                                </span>
+                            </td>
                             <td>
                                 <div class="action-buttons justify-content-center">
+                                    @if (topic.Status == "Active")
+                                    {
+                                        <button class="btn btn-sm btn-secondary" @onclick="@(() => OnToggleStatus.InvokeAsync(topic.Name))" title="Disable Topic">
+                                            <i class="bi bi-pause-circle"></i> <span class="d-none d-md-inline">Disable</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-success" @onclick="@(() => OnToggleStatus.InvokeAsync(topic.Name))" title="Enable Topic">
+                                            <i class="bi bi-play-circle"></i> <span class="d-none d-md-inline">Enable</span>
+                                        </button>
+                                    }
                                     <button class="btn btn-sm btn-info" @onclick="() => OnViewSubscriptions.InvokeAsync(topic.Name)" title="View Subscriptions">
                                         <i class="bi bi-list"></i> View Subscriptions
                                     </button>
@@ -63,6 +81,9 @@
 
     [Parameter]
     public EventCallback<string> OnViewSubscriptions { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnToggleStatus { get; set; }
 
     private string searchTerm = string.Empty;
     private bool sortAscending = true;
