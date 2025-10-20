@@ -48,6 +48,12 @@
                                         </span>
                                     </span>
                                     <span class="message-count">
+                                        <i class="bi bi-clock"></i> Scheduled: 
+                                        <span class="message-badge zero" title="Scheduled message count not available for subscriptions in Azure Service Bus API">
+                                            N/A
+                                        </span>
+                                    </span>
+                                    <span class="message-count">
                                         <i class="bi bi-exclamation-triangle"></i> Dead Letter: 
                                         <span class="message-badge @(subscription.DeadLetterMessageCount > 0 ? "deadletter" : "zero")">
                                             @subscription.DeadLetterMessageCount

@@ -40,12 +40,13 @@ When you view subscriptions for a topic:
 2. The subscription panel now shows:
    - Subscription name
    - **Active message count** (with green badge if > 0)
+   - **Scheduled message count** (shows "N/A" - not available from Azure API)
    - **Dead letter message count** (with red badge if > 0)
    - Action buttons to view messages
 
 ## Technical Details
 
-### Why Scheduled Count is Not Displayed
+### Why Scheduled Count Shows "N/A"
 
 Azure Service Bus `SubscriptionRuntimeProperties` only provides:
 - `ActiveMessageCount`
@@ -54,7 +55,14 @@ Azure Service Bus `SubscriptionRuntimeProperties` only provides:
 - `TransferMessageCount`
 - `TransferDeadLetterMessageCount`
 
-Unlike queues, subscriptions don't track scheduled message counts in their runtime properties. The scheduled messages exist but are not counted separately by the Azure API. Users can still view scheduled messages using the "View Scheduled" button, but the count is not available at the subscription level.
+Unlike queues, subscriptions don't track scheduled message counts in their runtime properties. The scheduled messages exist but are not counted separately by the Azure API. 
+
+The UI displays "N/A" for the scheduled count to:
+1. Maintain consistency with the queue display layout
+2. Make it clear that this metric is not available for subscriptions
+3. Provide a tooltip explaining the Azure API limitation
+
+Users can still view scheduled messages using the "View Scheduled" button, but the count is not available at the subscription level.
 
 ### API Calls
 
