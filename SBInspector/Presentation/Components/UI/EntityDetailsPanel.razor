@@ -1,0 +1,169 @@
+@using SBInspector.Core.Domain
+
+<div class="entity-details-panel">
+    @if (EntityType == "queue" && QueueInfo != null)
+    {
+        <div class="details-header">
+            <div>
+                <h4><i class="bi bi-inbox-fill"></i> @QueueInfo.Name</h4>
+                <span class="badge @(QueueInfo.Status == "Active" ? "bg-success" : "bg-secondary")">
+                    @QueueInfo.Status
+                </span>
+            </div>
+            <button class="btn btn-sm @(QueueInfo.Status == "Active" ? "btn-secondary" : "btn-success")" 
+                    @onclick="() => OnToggleStatus.InvokeAsync()">
+                <i class="bi @(QueueInfo.Status == "Active" ? "bi-pause-circle" : "bi-play-circle")"></i>
+                @(QueueInfo.Status == "Active" ? "Disable" : "Enable")
+            </button>
+        </div>
+
+        <div class="details-content">
+            <h5>Message Counts</h5>
+            <div class="message-type-cards">
+                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Active"))">
+                    <div class="message-type-icon active">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <div class="message-type-info">
+                        <h6>Active Messages</h6>
+                        <span class="message-count">@QueueInfo.ActiveMessageCount</span>
+                    </div>
+                    @if (QueueInfo.ActiveMessageCount > 0)
+                    {
+                        <button class="btn btn-sm btn-primary">View</button>
+                    }
+                </div>
+
+                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Scheduled"))">
+                    <div class="message-type-icon scheduled">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="message-type-info">
+                        <h6>Scheduled Messages</h6>
+                        <span class="message-count">@QueueInfo.ScheduledMessageCount</span>
+                    </div>
+                    @if (QueueInfo.ScheduledMessageCount > 0)
+                    {
+                        <button class="btn btn-sm btn-warning">View</button>
+                    }
+                </div>
+
+                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
+                    <div class="message-type-icon deadletter">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="message-type-info">
+                        <h6>Dead Letter Messages</h6>
+                        <span class="message-count">@QueueInfo.DeadLetterMessageCount</span>
+                    </div>
+                    @if (QueueInfo.DeadLetterMessageCount > 0)
+                    {
+                        <button class="btn btn-sm btn-danger">View</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else if (EntityType == "topic" && TopicInfo != null)
+    {
+        <div class="details-header">
+            <div>
+                <h4><i class="bi bi-broadcast-pin"></i> @TopicInfo.Name</h4>
+                <span class="badge @(TopicInfo.Status == "Active" ? "bg-success" : "bg-secondary")">
+                    @TopicInfo.Status
+                </span>
+            </div>
+            <button class="btn btn-sm @(TopicInfo.Status == "Active" ? "btn-secondary" : "btn-success")" 
+                    @onclick="() => OnToggleStatus.InvokeAsync()">
+                <i class="bi @(TopicInfo.Status == "Active" ? "bi-pause-circle" : "bi-play-circle")"></i>
+                @(TopicInfo.Status == "Active" ? "Disable" : "Enable")
+            </button>
+        </div>
+
+        <div class="details-content">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Select a subscription from the tree to view its messages.
+            </div>
+        </div>
+    }
+    else if (EntityType == "subscription" && SubscriptionInfo != null)
+    {
+        <div class="details-header">
+            <div>
+                <h4><i class="bi bi-envelope"></i> @TopicName / @SubscriptionInfo.Name</h4>
+                <span class="badge @(SubscriptionInfo.Status == "Active" ? "bg-success" : "bg-secondary")">
+                    @SubscriptionInfo.Status
+                </span>
+            </div>
+            <button class="btn btn-sm @(SubscriptionInfo.Status == "Active" ? "btn-secondary" : "btn-success")" 
+                    @onclick="() => OnToggleStatus.InvokeAsync()">
+                <i class="bi @(SubscriptionInfo.Status == "Active" ? "bi-pause-circle" : "bi-play-circle")"></i>
+                @(SubscriptionInfo.Status == "Active" ? "Disable" : "Enable")
+            </button>
+        </div>
+
+        <div class="details-content">
+            <h5>Message Counts</h5>
+            <div class="message-type-cards">
+                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Active"))">
+                    <div class="message-type-icon active">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <div class="message-type-info">
+                        <h6>Active Messages</h6>
+                        <span class="message-count">@SubscriptionInfo.ActiveMessageCount</span>
+                    </div>
+                    @if (SubscriptionInfo.ActiveMessageCount > 0)
+                    {
+                        <button class="btn btn-sm btn-primary">View</button>
+                    }
+                </div>
+
+                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
+                    <div class="message-type-icon deadletter">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="message-type-info">
+                        <h6>Dead Letter Messages</h6>
+                        <span class="message-count">@SubscriptionInfo.DeadLetterMessageCount</span>
+                    </div>
+                    @if (SubscriptionInfo.DeadLetterMessageCount > 0)
+                    {
+                        <button class="btn btn-sm btn-danger">View</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="details-placeholder">
+            <i class="bi bi-arrow-left-circle"></i>
+            <h5>Select an entity from the tree</h5>
+            <p>Choose a queue, topic, or subscription to view its details and messages.</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? EntityType { get; set; }
+
+    [Parameter]
+    public EntityInfo? QueueInfo { get; set; }
+
+    [Parameter]
+    public EntityInfo? TopicInfo { get; set; }
+
+    [Parameter]
+    public SubscriptionInfo? SubscriptionInfo { get; set; }
+
+    [Parameter]
+    public string? TopicName { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnViewMessages { get; set; }
+
+    [Parameter]
+    public EventCallback OnToggleStatus { get; set; }
+}

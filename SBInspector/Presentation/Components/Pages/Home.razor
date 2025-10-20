@@ -23,46 +23,33 @@
             <button class="btn btn-danger" @onclick="Disconnect">Disconnect</button>
         </div>
 
-        <ul class="nav nav-tabs mb-3" id="entityTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link @(activeTab == "queues" ? "active" : "")" @onclick="() => LoadQueuesAsync()">
-                    Queues
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link @(activeTab == "topics" ? "active" : "")" @onclick="() => LoadTopicsAsync()">
-                    Topics
-                </button>
-            </li>
-        </ul>
-
-        @if (isLoading)
-        {
-            <div class="text-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        }
-        else
-        {
-            @if (activeTab == "queues")
-            {
-                <QueueListTable 
-                    Queues="@queues" 
-                    @bind-SortColumn="@queueSortColumn"
-                    @bind-SortAscending="@queueSortAscending"
-                    OnViewMessages="@HandleViewQueueMessages"
-                    OnToggleStatus="@HandleToggleQueueStatus" />
-            }
-            else if (activeTab == "topics")
-            {
-                <TopicListTable 
+        <div class="split-panel-container">
+            <div class="split-panel-left">
+                <EntityTreeView 
+                    Queues="@queues"
                     Topics="@topics"
-                    OnViewSubscriptions="@ViewTopicSubscriptions"
-                    OnToggleStatus="@HandleToggleTopicStatus" />
-            }
-        }
+                    TopicSubscriptions="@topicSubscriptions"
+                    LoadingTopics="@loadingTopics"
+                    IsLoading="@isLoadingEntities"
+                    SelectedEntityType="@selectedEntityType"
+                    SelectedEntityName="@selectedEntityName"
+                    OnQueueSelected="@HandleQueueSelected"
+                    OnTopicSelected="@HandleTopicSelected"
+                    OnSubscriptionSelected="@HandleSubscriptionSelected"
+                    OnLoadSubscriptions="@LoadSubscriptionsForTopic" />
+            </div>
+
+            <div class="split-panel-right">
+                <EntityDetailsPanel 
+                    EntityType="@selectedEntityType"
+                    QueueInfo="@selectedQueueInfo"
+                    TopicInfo="@selectedTopicInfo"
+                    SubscriptionInfo="@selectedSubscriptionInfo"
+                    TopicName="@selectedTopicForSubscription"
+                    OnViewMessages="@HandleViewMessagesFromDetails"
+                    OnToggleStatus="@HandleToggleStatusFromDetails" />
+            </div>
+        </div>
 
         @if (!string.IsNullOrEmpty(selectedEntity))
         {
@@ -147,16 +134,10 @@
             </div>
         }
 
-        @if (!string.IsNullOrEmpty(selectedTopic))
-        {
-            <SubscriptionListPanel 
-                TopicName="@selectedTopic"
-                Subscriptions="@subscriptions"
-                IsLoading="@isLoadingSubscriptions"
-                OnClose="@CloseSubscriptions"
-                OnViewMessages="@HandleViewSubscriptionMessages"
-                OnToggleStatus="@HandleToggleSubscriptionStatus" />
-        }
+        <OperationLoadingOverlay 
+            IsVisible="@isOperationInProgress"
+            Title="@operationLoadingTitle"
+            Message="@operationLoadingMessage" />
     }
 </div>
 
@@ -164,16 +145,24 @@
     private string connectionString = string.Empty;
     private string errorMessage = string.Empty;
     private bool isConnecting = false;
-    private bool isLoading = false;
+    private bool isLoadingEntities = false;
     private bool isLoadingMessages = false;
-    private bool isLoadingSubscriptions = false;
-    private string activeTab = "queues";
     
     private List<EntityInfo> queues = new();
     private List<EntityInfo> topics = new();
     private List<MessageInfo> messages = new();
-    private List<SubscriptionInfo> subscriptions = new();
+    private Dictionary<string, List<SubscriptionInfo>> topicSubscriptions = new();
+    private HashSet<string> loadingTopics = new();
     
+    // Tree selection state
+    private string? selectedEntityType = null;
+    private string? selectedEntityName = null;
+    private EntityInfo? selectedQueueInfo = null;
+    private EntityInfo? selectedTopicInfo = null;
+    private SubscriptionInfo? selectedSubscriptionInfo = null;
+    private string? selectedTopicForSubscription = null;
+    
+    // Message viewing state
     private string selectedEntity = string.Empty;
     private string selectedMessageType = string.Empty;
     private string selectedTopic = string.Empty;
@@ -187,17 +176,13 @@
     private bool hasMoreMessages = false;
     private bool isLoadingMoreMessages = false;
 
-    // Sorting state for queues
-    private string queueSortColumn = nameof(EntityInfo.Name);
-    private bool queueSortAscending = true;
-
     // Sorting state for messages
     private string messageSortColumn = nameof(MessageInfo.EnqueuedTime);
     private bool messageSortAscending = false;
 
     private async Task HandleConnected()
     {
-        await LoadQueuesAsync();
+        await LoadAllEntitiesAsync();
     }
 
     private void Disconnect()
@@ -206,43 +191,127 @@
         queues.Clear();
         topics.Clear();
         messages.Clear();
-        subscriptions.Clear();
+        topicSubscriptions.Clear();
+        loadingTopics.Clear();
         selectedEntity = string.Empty;
         selectedTopic = string.Empty;
-        activeTab = "queues";
+        selectedEntityType = null;
+        selectedEntityName = null;
+        selectedQueueInfo = null;
+        selectedTopicInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
     }
 
-    private async Task LoadQueuesAsync()
+    private async Task LoadAllEntitiesAsync()
     {
-        activeTab = "queues";
-        isLoading = true;
+        isLoadingEntities = true;
         selectedEntity = string.Empty;
         selectedTopic = string.Empty;
         
         try
         {
             queues = await ServiceBusService.GetQueuesAsync();
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private async Task LoadTopicsAsync()
-    {
-        activeTab = "topics";
-        isLoading = true;
-        selectedEntity = string.Empty;
-        selectedTopic = string.Empty;
-        
-        try
-        {
             topics = await ServiceBusService.GetTopicsAsync();
         }
         finally
         {
-            isLoading = false;
+            isLoadingEntities = false;
+        }
+    }
+
+    private void HandleQueueSelected(string queueName)
+    {
+        selectedEntityType = "queue";
+        selectedEntityName = queueName;
+        selectedQueueInfo = queues.FirstOrDefault(q => q.Name == queueName);
+        selectedTopicInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
+        
+        // Clear messages panel
+        selectedEntity = string.Empty;
+        messages.Clear();
+    }
+
+    private void HandleTopicSelected(string topicName)
+    {
+        selectedEntityType = "topic";
+        selectedEntityName = topicName;
+        selectedTopicInfo = topics.FirstOrDefault(t => t.Name == topicName);
+        selectedQueueInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
+        
+        // Clear messages panel
+        selectedEntity = string.Empty;
+        messages.Clear();
+    }
+
+    private void HandleSubscriptionSelected((string TopicName, string SubscriptionName) args)
+    {
+        selectedEntityType = "subscription";
+        selectedEntityName = $"{args.TopicName}/{args.SubscriptionName}";
+        selectedTopicForSubscription = args.TopicName;
+        
+        if (topicSubscriptions.ContainsKey(args.TopicName))
+        {
+            selectedSubscriptionInfo = topicSubscriptions[args.TopicName].FirstOrDefault(s => s.Name == args.SubscriptionName);
+        }
+        
+        selectedQueueInfo = null;
+        selectedTopicInfo = null;
+        
+        // Clear messages panel
+        selectedEntity = string.Empty;
+        messages.Clear();
+    }
+
+    private async Task LoadSubscriptionsForTopic(string topicName)
+    {
+        if (topicSubscriptions.ContainsKey(topicName))
+        {
+            return; // Already loaded
+        }
+
+        loadingTopics.Add(topicName);
+        
+        try
+        {
+            var subs = await ServiceBusService.GetSubscriptionsAsync(topicName);
+            topicSubscriptions[topicName] = subs;
+        }
+        finally
+        {
+            loadingTopics.Remove(topicName);
+        }
+    }
+
+    private async Task HandleViewMessagesFromDetails(string messageType)
+    {
+        if (selectedEntityType == "queue" && selectedQueueInfo != null)
+        {
+            await HandleViewQueueMessages((selectedQueueInfo.Name, messageType));
+        }
+        else if (selectedEntityType == "subscription" && selectedSubscriptionInfo != null && !string.IsNullOrEmpty(selectedTopicForSubscription))
+        {
+            await HandleViewSubscriptionMessages((selectedTopicForSubscription, selectedSubscriptionInfo.Name, messageType));
+        }
+    }
+
+    private async Task HandleToggleStatusFromDetails()
+    {
+        if (selectedEntityType == "queue" && selectedQueueInfo != null)
+        {
+            await HandleToggleQueueStatus(selectedQueueInfo.Name);
+        }
+        else if (selectedEntityType == "topic" && selectedTopicInfo != null)
+        {
+            await HandleToggleTopicStatus(selectedTopicInfo.Name);
+        }
+        else if (selectedEntityType == "subscription" && selectedSubscriptionInfo != null && !string.IsNullOrEmpty(selectedTopicForSubscription))
+        {
+            await HandleToggleSubscriptionStatus((selectedTopicForSubscription, selectedSubscriptionInfo.Name));
         }
     }
 
@@ -286,27 +355,7 @@
         selectedMessage = null;
     }
 
-    private async Task ViewTopicSubscriptions(string topicName)
-    {
-        selectedTopic = topicName;
-        selectedEntity = string.Empty;
-        isLoadingSubscriptions = true;
-        
-        try
-        {
-            subscriptions = await ServiceBusService.GetSubscriptionsAsync(topicName);
-        }
-        finally
-        {
-            isLoadingSubscriptions = false;
-        }
-    }
 
-    private void CloseSubscriptions()
-    {
-        selectedTopic = string.Empty;
-        subscriptions.Clear();
-    }
 
     private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)
     {
@@ -389,6 +438,11 @@
     private string purgeConfirmationMessage = string.Empty;
     private string successMessage = string.Empty;
     private string operationErrorMessage = string.Empty;
+    
+    // Operation loading state
+    private bool isOperationInProgress = false;
+    private string operationLoadingTitle = string.Empty;
+    private string operationLoadingMessage = string.Empty;
 
     private void HandleDeleteMessage(MessageInfo message)
     {
@@ -404,6 +458,10 @@
         successMessage = string.Empty;
 
         if (messageForOperation == null) return;
+
+        isOperationInProgress = true;
+        operationLoadingTitle = "Deleting Message";
+        operationLoadingMessage = "Please wait while the message is being deleted...";
 
         try
         {
@@ -432,7 +490,7 @@
                 messages.Remove(messageForOperation);
                 successMessage = "Message deleted successfully.";
                 
-                // Refresh entity counts to update the table above
+                // Refresh entity counts to update the tree
                 await RefreshEntityCounts();
                 
                 await Task.Delay(3000);
@@ -453,6 +511,7 @@
         }
         finally
         {
+            isOperationInProgress = false;
             messageForOperation = null;
         }
     }
@@ -476,6 +535,10 @@
         successMessage = string.Empty;
 
         if (messageForOperation == null) return;
+
+        isOperationInProgress = true;
+        operationLoadingTitle = "Requeuing Message";
+        operationLoadingMessage = "Please wait while the message is being moved back to the active queue...";
 
         try
         {
@@ -504,7 +567,7 @@
                 messages.Remove(messageForOperation);
                 successMessage = "Message requeued successfully.";
                 
-                // Refresh entity counts to update the table above
+                // Refresh entity counts to update the tree
                 await RefreshEntityCounts();
                 
                 await Task.Delay(3000);
@@ -525,6 +588,7 @@
         }
         finally
         {
+            isOperationInProgress = false;
             messageForOperation = null;
         }
     }
@@ -677,6 +741,10 @@
         operationErrorMessage = string.Empty;
         successMessage = string.Empty;
 
+        isOperationInProgress = true;
+        operationLoadingTitle = "Purging Messages";
+        operationLoadingMessage = "Please wait while all messages are being deleted. This may take a while...";
+
         try
         {
             int deletedCount;
@@ -705,7 +773,7 @@
                 messages.Clear();
                 hasMoreMessages = false;
                 
-                // Refresh entity counts to update the table above
+                // Refresh entity counts to update the tree
                 await RefreshEntityCounts();
                 
                 successMessage = $"Successfully purged {deletedCount} message(s).";
@@ -724,6 +792,10 @@
             operationErrorMessage = $"Error purging messages: {ex.Message}";
             await Task.Delay(5000);
             operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            isOperationInProgress = false;
         }
     }
 
@@ -756,6 +828,12 @@
                     if (index >= 0)
                     {
                         queues[index] = updatedQueue;
+                    }
+                    
+                    // Update selected queue info if this is the selected queue
+                    if (selectedEntityType == "queue" && selectedEntityName == queueName)
+                    {
+                        selectedQueueInfo = updatedQueue;
                     }
                 }
 
@@ -803,6 +881,12 @@
                     {
                         topics[index] = updatedTopic;
                     }
+                    
+                    // Update selected topic info if this is the selected topic
+                    if (selectedEntityType == "topic" && selectedEntityName == topicName)
+                    {
+                        selectedTopicInfo = updatedTopic;
+                    }
                 }
 
                 successMessage = $"Topic '{topicName}' has been {(newStatus ? "enabled" : "disabled")}.";
@@ -832,7 +916,12 @@
         try
         {
             // Find the subscription to toggle its status
-            var subscription = subscriptions.FirstOrDefault(s => s.Name == args.SubscriptionName);
+            SubscriptionInfo? subscription = null;
+            if (topicSubscriptions.ContainsKey(args.TopicName))
+            {
+                subscription = topicSubscriptions[args.TopicName].FirstOrDefault(s => s.Name == args.SubscriptionName);
+            }
+            
             if (subscription == null) return;
 
             bool newStatus = subscription.Status != "Active";
@@ -842,12 +931,18 @@
             {
                 // Refresh the subscription info to get the updated status
                 var updatedSubscription = await ServiceBusService.GetSubscriptionInfoAsync(args.TopicName, args.SubscriptionName);
-                if (updatedSubscription != null)
+                if (updatedSubscription != null && topicSubscriptions.ContainsKey(args.TopicName))
                 {
-                    var index = subscriptions.FindIndex(s => s.Name == args.SubscriptionName);
+                    var index = topicSubscriptions[args.TopicName].FindIndex(s => s.Name == args.SubscriptionName);
                     if (index >= 0)
                     {
-                        subscriptions[index] = updatedSubscription;
+                        topicSubscriptions[args.TopicName][index] = updatedSubscription;
+                    }
+                    
+                    // Update selected subscription info if this is the selected subscription
+                    if (selectedEntityType == "subscription" && selectedEntityName == $"{args.TopicName}/{args.SubscriptionName}")
+                    {
+                        selectedSubscriptionInfo = updatedSubscription;
                     }
                 }
 
@@ -884,18 +979,30 @@
                 {
                     queues[index] = updatedQueue;
                 }
+                
+                // Update selected queue info in details panel
+                if (selectedEntityType == "queue" && selectedEntityName == selectedEntity)
+                {
+                    selectedQueueInfo = updatedQueue;
+                }
             }
         }
         else if (!string.IsNullOrEmpty(selectedSubscriptionName))
         {
             // It's a subscription
             var updatedSubscription = await ServiceBusService.GetSubscriptionInfoAsync(selectedTopic, selectedSubscriptionName);
-            if (updatedSubscription != null)
+            if (updatedSubscription != null && topicSubscriptions.ContainsKey(selectedTopic))
             {
-                var index = subscriptions.FindIndex(s => s.Name == selectedSubscriptionName);
+                var index = topicSubscriptions[selectedTopic].FindIndex(s => s.Name == selectedSubscriptionName);
                 if (index >= 0)
                 {
-                    subscriptions[index] = updatedSubscription;
+                    topicSubscriptions[selectedTopic][index] = updatedSubscription;
+                }
+                
+                // Update selected subscription info in details panel
+                if (selectedEntityType == "subscription" && selectedEntityName == $"{selectedTopic}/{selectedSubscriptionName}")
+                {
+                    selectedSubscriptionInfo = updatedSubscription;
                 }
             }
         }
