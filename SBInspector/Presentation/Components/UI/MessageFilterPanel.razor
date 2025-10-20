@@ -11,21 +11,21 @@
                 <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
                 <input type="text" class="form-control" id="filterAttributeName_@index" 
                        value="@filter.AttributeName" 
-                       @oninput="@(e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; NotifyFiltersChanged(); })" 
+                       @oninput="@(async e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
                        placeholder="e.g., customerId" />
             </div>
             <div class="col-md-4">
                 <label for="filterAttributeValue_@index" class="form-label">Attribute Value</label>
                 <input type="text" class="form-control" id="filterAttributeValue_@index" 
                        value="@filter.AttributeValue" 
-                       @oninput="@(e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; NotifyFiltersChanged(); })" 
+                       @oninput="@(async e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
                        placeholder="e.g., 12345" />
             </div>
             <div class="col-md-4">
                 <div class="form-check mt-4">
                     <input class="form-check-input" type="checkbox" id="useRegexFilter_@index" 
                            checked="@filter.UseRegex" 
-                           @onchange="@(e => { filter.UseRegex = (bool)(e.Value ?? false); NotifyFiltersChanged(); })" />
+                           @onchange="@(async e => { filter.UseRegex = (bool)(e.Value ?? false); await NotifyFiltersChanged(); })" />
                     <label class="form-check-label" for="useRegexFilter_@index">
                         Use Regex Expression
                     </label>
