@@ -1,0 +1,66 @@
+<div class="card mt-4">
+    <div class="card-header">
+        <h4>@TopicName - Subscriptions</h4>
+        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">Close</button>
+    </div>
+    <div class="card-body">
+        @if (IsLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading subscriptions...</span>
+                </div>
+            </div>
+        }
+        else if (Subscriptions.Any())
+        {
+            <div class="list-group">
+                @foreach (var subscription in Subscriptions)
+                {
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-1">@subscription</h5>
+                            <div>
+                                <button class="btn btn-sm btn-primary me-1" @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Active")))">
+                                    View Active
+                                </button>
+                                <button class="btn btn-sm btn-warning me-1" @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "Scheduled")))">
+                                    View Scheduled
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription, "DeadLetter")))">
+                                    View Dead Letter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p>No subscriptions found.</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string TopicName { get; set; } = string.Empty;
+
+    [Parameter]
+    public List<string> Subscriptions { get; set; } = new();
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<(string TopicName, string SubscriptionName, string MessageType)> OnViewMessages { get; set; }
+
+    private async Task HandleClose()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

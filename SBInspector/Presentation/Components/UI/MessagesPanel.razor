@@ -1,0 +1,85 @@
+@using SBInspector.Core.Domain
+@using SBInspector.Application.Services
+@inject MessageFilterService FilterService
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h4>@EntityName - @MessageType Messages</h4>
+        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">Close</button>
+    </div>
+    <div class="card-body">
+        @if (IsLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading messages...</span>
+                </div>
+            </div>
+        }
+        else if (Messages.Any())
+        {
+            <MessageFilterPanel 
+                Filters="@Filters" 
+                FiltersChanged="@FiltersChanged"
+                FilteredCount="@FilteredMessages.Count()"
+                TotalCount="@Messages.Count" />
+
+            <MessageListTable 
+                Messages="@FilteredMessages"
+                SortColumn="@SortColumn"
+                SortColumnChanged="@SortColumnChanged"
+                SortAscending="@SortAscending"
+                SortAscendingChanged="@SortAscendingChanged"
+                OnViewDetails="@OnViewMessageDetails" />
+        }
+        else
+        {
+            <p>No messages found.</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string EntityName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string MessageType { get; set; } = string.Empty;
+
+    [Parameter]
+    public List<MessageInfo> Messages { get; set; } = new();
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public List<MessageFilter> Filters { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<MessageFilter>> FiltersChanged { get; set; }
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(MessageInfo.EnqueuedTime);
+
+    [Parameter]
+    public EventCallback<string> SortColumnChanged { get; set; }
+
+    [Parameter]
+    public bool SortAscending { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> SortAscendingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnViewMessageDetails { get; set; }
+
+    private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(Messages, Filters);
+
+    private async Task HandleClose()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

@@ -1,0 +1,123 @@
+@using SBInspector.Core.Domain
+
+<h3>Queues</h3>
+@if (Queues.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th @onclick="() => HandleSortColumn(nameof(EntityInfo.Name))" style="cursor: pointer;">
+                        Name @GetSortIcon(nameof(EntityInfo.Name))
+                    </th>
+                    <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ActiveMessageCount))" style="cursor: pointer;">
+                        Active Messages @GetSortIcon(nameof(EntityInfo.ActiveMessageCount))
+                    </th>
+                    <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ScheduledMessageCount))" style="cursor: pointer;">
+                        Scheduled Messages @GetSortIcon(nameof(EntityInfo.ScheduledMessageCount))
+                    </th>
+                    <th @onclick="() => HandleSortColumn(nameof(EntityInfo.DeadLetterMessageCount))" style="cursor: pointer;">
+                        Dead Letter Messages @GetSortIcon(nameof(EntityInfo.DeadLetterMessageCount))
+                    </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var queue in SortedQueues)
+                {
+                    <tr>
+                        <td>@queue.Name</td>
+                        <td>@queue.ActiveMessageCount</td>
+                        <td>@queue.ScheduledMessageCount</td>
+                        <td>@queue.DeadLetterMessageCount</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Active")))">
+                                View Active
+                            </button>
+                            <button class="btn btn-sm btn-warning me-1" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Scheduled")))">
+                                View Scheduled
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "DeadLetter")))">
+                                View Dead Letter
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p>No queues found.</p>
+}
+
+@code {
+    [Parameter]
+    public List<EntityInfo> Queues { get; set; } = new();
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(EntityInfo.Name);
+
+    [Parameter]
+    public EventCallback<string> SortColumnChanged { get; set; }
+
+    [Parameter]
+    public bool SortAscending { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> SortAscendingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<(string QueueName, string MessageType)> OnViewMessages { get; set; }
+
+    private IEnumerable<EntityInfo> SortedQueues
+    {
+        get
+        {
+            var sorted = Queues.AsEnumerable();
+            
+            sorted = SortColumn switch
+            {
+                nameof(EntityInfo.Name) => SortAscending 
+                    ? sorted.OrderBy(q => q.Name) 
+                    : sorted.OrderByDescending(q => q.Name),
+                nameof(EntityInfo.ActiveMessageCount) => SortAscending 
+                    ? sorted.OrderBy(q => q.ActiveMessageCount) 
+                    : sorted.OrderByDescending(q => q.ActiveMessageCount),
+                nameof(EntityInfo.ScheduledMessageCount) => SortAscending 
+                    ? sorted.OrderBy(q => q.ScheduledMessageCount) 
+                    : sorted.OrderByDescending(q => q.ScheduledMessageCount),
+                nameof(EntityInfo.DeadLetterMessageCount) => SortAscending 
+                    ? sorted.OrderBy(q => q.DeadLetterMessageCount) 
+                    : sorted.OrderByDescending(q => q.DeadLetterMessageCount),
+                _ => sorted
+            };
+            
+            return sorted;
+        }
+    }
+
+    private string GetSortIcon(string columnName)
+    {
+        if (SortColumn != columnName)
+        {
+            return "⇅";
+        }
+        
+        return SortAscending ? "▲" : "▼";
+    }
+
+    private async Task HandleSortColumn(string columnName)
+    {
+        if (SortColumn == columnName)
+        {
+            await SortAscendingChanged.InvokeAsync(!SortAscending);
+        }
+        else
+        {
+            await SortColumnChanged.InvokeAsync(columnName);
+            await SortAscendingChanged.InvokeAsync(true);
+        }
+    }
+}
