@@ -163,16 +163,28 @@ public class ServiceBusService : IServiceBusService
             {
                 Name = subscription.SubscriptionName,
                 ActiveMessageCount = runtimeProps.Value.ActiveMessageCount,
-                ScheduledMessageCount = -1, // -1 indicates not loaded yet
                 DeadLetterMessageCount = runtimeProps.Value.DeadLetterMessageCount
             });
         }
         return subscriptions;
     }
 
-    public async Task<long> GetSubscriptionScheduledMessageCountAsync(string topicName, string subscriptionName)
+    public async Task<long> GetTopicScheduledMessageCountAsync(string topicName)
     {
         if (_client == null) return 0;
+
+        // Get the first subscription to peek messages from the topic
+        // Scheduled messages exist at topic level, so we can peek from any subscription
+        string? firstSubscription = null;
+        
+        await foreach (var subscription in _adminClient!.GetSubscriptionsAsync(topicName))
+        {
+            firstSubscription = subscription.SubscriptionName;
+            break;
+        }
+
+        if (firstSubscription == null)
+            return 0;
 
         ServiceBusReceiver? receiver = null;
         try
@@ -182,7 +194,7 @@ public class ServiceBusService : IServiceBusService
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
 
-            receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            receiver = _client.CreateReceiver(topicName, firstSubscription, options);
 
             // Peek scheduled messages to count them
             // We peek in batches to count all scheduled messages
