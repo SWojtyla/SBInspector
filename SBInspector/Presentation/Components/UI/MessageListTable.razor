@@ -16,7 +16,7 @@
                 <th @onclick="() => HandleSortColumn(nameof(MessageInfo.DeliveryCount))" class="sortable-header text-center">
                     Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))
                 </th>
-                <th class="text-center">Actions</th>
+                <th class="text-center" style="min-width: 200px;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -42,9 +42,26 @@
                         </span>
                     </td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-info" @onclick="() => OnViewDetails.InvokeAsync(message)" @onclick:stopPropagation="true" title="View message details">
-                            <i class="bi bi-eye"></i> <span class="d-none d-md-inline">Details</span>
-                        </button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-info" @onclick="() => OnViewDetails.InvokeAsync(message)" @onclick:stopPropagation="true" title="View message details">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            @if (message.State == "DeadLetter")
+                            {
+                                <button class="btn btn-success" @onclick="() => OnRequeue.InvokeAsync(message)" @onclick:stopPropagation="true" title="Requeue message to active queue">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                            }
+                            @if (message.State == "Scheduled" && message.ScheduledEnqueueTime.HasValue)
+                            {
+                                <button class="btn btn-warning" @onclick="() => OnReschedule.InvokeAsync(message)" @onclick:stopPropagation="true" title="Reschedule message">
+                                    <i class="bi bi-clock-history"></i>
+                                </button>
+                            }
+                            <button class="btn btn-danger" @onclick="() => OnDelete.InvokeAsync(message)" @onclick:stopPropagation="true" title="Delete message">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             }
@@ -77,6 +94,15 @@
 
     [Parameter]
     public EventCallback<MessageInfo> OnViewDetails { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnRequeue { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnReschedule { get; set; }
 
     private IEnumerable<MessageInfo> SortedMessages
     {
