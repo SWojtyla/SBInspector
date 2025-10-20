@@ -3,9 +3,18 @@
 @inject MessageFilterService FilterService
 
 <div class="card mt-4">
-    <div class="card-header">
-        <h4>@EntityName - @MessageType Messages</h4>
-        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">Close</button>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">@EntityName - @MessageType Messages</h4>
+        <div class="d-flex align-items-center gap-2">
+            <label class="mb-0 me-2">Page Size:</label>
+            <select class="form-select form-select-sm" style="width: auto;" @bind="PageSize">
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+            </select>
+            <button class="btn btn-sm btn-secondary" @onclick="HandleClose">Close</button>
+        </div>
     </div>
     <div class="card-body">
         @if (IsLoading)
@@ -31,6 +40,29 @@
                 SortAscending="@SortAscending"
                 SortAscendingChanged="@SortAscendingChanged"
                 OnViewDetails="@OnViewMessageDetails" />
+
+            @if (HasMoreMessages)
+            {
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" @onclick="HandleLoadMore" disabled="@IsLoadingMore">
+                        @if (IsLoadingMore)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Loading more messages...</span>
+                        }
+                        else
+                        {
+                            <span>Load More Messages</span>
+                        }
+                    </button>
+                </div>
+            }
+            else if (Messages.Count >= PageSize)
+            {
+                <div class="text-center mt-3">
+                    <span class="text-muted">All available messages loaded</span>
+                </div>
+            }
         }
         else
         {
@@ -71,15 +103,35 @@
     public EventCallback<bool> SortAscendingChanged { get; set; }
 
     [Parameter]
+    public int PageSize { get; set; } = 100;
+
+    [Parameter]
+    public EventCallback<int> PageSizeChanged { get; set; }
+
+    [Parameter]
+    public bool HasMoreMessages { get; set; }
+
+    [Parameter]
+    public bool IsLoadingMore { get; set; }
+
+    [Parameter]
     public EventCallback OnClose { get; set; }
 
     [Parameter]
     public EventCallback<MessageInfo> OnViewMessageDetails { get; set; }
+
+    [Parameter]
+    public EventCallback OnLoadMore { get; set; }
 
     private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(Messages, Filters);
 
     private async Task HandleClose()
     {
         await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleLoadMore()
+    {
+        await OnLoadMore.InvokeAsync();
     }
 }

@@ -72,8 +72,12 @@
                 @bind-Filters="@messageFilters"
                 @bind-SortColumn="@messageSortColumn"
                 @bind-SortAscending="@messageSortAscending"
+                @bind-PageSize="@pageSize"
+                HasMoreMessages="@hasMoreMessages"
+                IsLoadingMore="@isLoadingMoreMessages"
                 OnClose="@CloseMessages"
-                OnViewMessageDetails="@ViewMessageDetails" />
+                OnViewMessageDetails="@ViewMessageDetails"
+                OnLoadMore="@LoadMoreMessages" />
         }
 
         <MessageDetailsModal 
@@ -109,9 +113,15 @@
     private string selectedEntity = string.Empty;
     private string selectedMessageType = string.Empty;
     private string selectedTopic = string.Empty;
+    private string selectedSubscriptionName = string.Empty;
     private MessageInfo? selectedMessage = null;
     
     private List<MessageFilter> messageFilters = new() { new MessageFilter() };
+    
+    // Pagination state
+    private int pageSize = 100;
+    private bool hasMoreMessages = false;
+    private bool isLoadingMoreMessages = false;
 
     // Sorting state for queues
     private string queueSortColumn = nameof(EntityInfo.Name);
@@ -177,11 +187,13 @@
         selectedEntity = args.QueueName;
         selectedMessageType = args.MessageType;
         selectedTopic = string.Empty;
+        selectedSubscriptionName = string.Empty;
         isLoadingMessages = true;
         
         try
         {
-            messages = await ServiceBusService.GetMessagesAsync(args.QueueName, args.MessageType);
+            messages = await ServiceBusService.GetMessagesAsync(args.QueueName, args.MessageType, pageSize);
+            hasMoreMessages = messages.Count == pageSize;
         }
         finally
         {
@@ -193,9 +205,11 @@
     {
         selectedEntity = string.Empty;
         selectedMessageType = string.Empty;
+        selectedSubscriptionName = string.Empty;
         messages.Clear();
         messageFilters.Clear();
         messageFilters.Add(new MessageFilter());
+        hasMoreMessages = false;
     }
 
     private void ViewMessageDetails(MessageInfo message)
@@ -234,15 +248,68 @@
     {
         selectedEntity = $"{args.TopicName}/{args.SubscriptionName}";
         selectedMessageType = args.MessageType;
+        selectedSubscriptionName = args.SubscriptionName;
+        selectedTopic = args.TopicName;
         isLoadingMessages = true;
         
         try
         {
-            messages = await ServiceBusService.GetSubscriptionMessagesAsync(args.TopicName, args.SubscriptionName, args.MessageType);
+            messages = await ServiceBusService.GetSubscriptionMessagesAsync(args.TopicName, args.SubscriptionName, args.MessageType, pageSize);
+            hasMoreMessages = messages.Count == pageSize;
         }
         finally
         {
             isLoadingMessages = false;
+        }
+    }
+    
+    private async Task LoadMoreMessages()
+    {
+        if (!hasMoreMessages || isLoadingMoreMessages || messages.Count == 0) return;
+        
+        isLoadingMoreMessages = true;
+        
+        try
+        {
+            // Get the last message's sequence number to continue from the next one
+            var lastSequenceNumber = messages.Max(m => m.SequenceNumber) + 1;
+            
+            List<MessageInfo> newMessages;
+            
+            // Determine if we're loading from a queue or subscription
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                newMessages = await ServiceBusService.GetSubscriptionMessagesAsync(
+                    selectedTopic, 
+                    selectedSubscriptionName, 
+                    selectedMessageType, 
+                    pageSize, 
+                    lastSequenceNumber);
+            }
+            else
+            {
+                // It's a queue
+                newMessages = await ServiceBusService.GetMessagesAsync(
+                    selectedEntity, 
+                    selectedMessageType, 
+                    pageSize, 
+                    lastSequenceNumber);
+            }
+            
+            if (newMessages.Count > 0)
+            {
+                messages.AddRange(newMessages);
+                hasMoreMessages = newMessages.Count == pageSize;
+            }
+            else
+            {
+                hasMoreMessages = false;
+            }
+        }
+        finally
+        {
+            isLoadingMoreMessages = false;
         }
     }
 }
