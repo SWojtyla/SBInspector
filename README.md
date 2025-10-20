@@ -26,6 +26,8 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - **Requeue** messages from dead-letter queue back to active queue
   - **Send** new messages to queues or topics (with optional scheduling)
   - **Reschedule** scheduled messages to a different delivery time
+  - **Purge All** messages from a queue or topic in one operation
+  - Dynamic list updates when messages are deleted or purged
   - See [MESSAGE_CRUD.md](MESSAGE_CRUD.md) for detailed documentation
 - Filter messages by application properties (attributes):
   - Add multiple filters with AND logic

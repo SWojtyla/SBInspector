@@ -1,6 +1,6 @@
 # Message CRUD Operations
 
-SBInspector now supports full CRUD (Create, Read, Update, Delete) operations for Azure Service Bus messages, allowing you to manage messages across queues, topics, and subscriptions.
+SBInspector now supports full CRUD (Create, Read, Update, Delete) operations for Azure Service Bus messages, including bulk operations, allowing you to manage messages across queues, topics, and subscriptions.
 
 ## Features Overview
 
@@ -16,14 +16,40 @@ Remove unwanted messages from active queues, dead-letter queues, or topic subscr
 1. Navigate to a queue or subscription
 2. Click the **red trash icon** (🗑️) next to the message you want to delete
 3. Confirm the deletion in the confirmation dialog
-4. The message will be permanently removed from the queue/subscription
+4. The message will be permanently removed and the list will update automatically
 
 **Notes:**
 - Deletion is permanent and cannot be undone
 - The message must be available (not locked by another receiver)
 - Works for Active, Scheduled, and Dead-letter messages
+- The message list updates dynamically when a message is deleted
 
-### 2. Requeue Dead-Letter Messages
+### 2. Purge All Messages (NEW)
+Delete all messages from a queue or topic in a single operation.
+
+**Use Cases:**
+- Clear out all messages from a test queue
+- Clean up dead-letter queue after resolving issues
+- Remove all scheduled messages
+- Reset a queue to empty state
+
+**How to Use:**
+1. Navigate to a queue or subscription
+2. Click the **red "Purge All" button** in the message panel header
+3. Read the confirmation dialog carefully - it shows the count and type of messages
+4. Type 'PURGE' to confirm (case-sensitive)
+5. All messages will be deleted and the list will be cleared
+
+**Notes:**
+- **WARNING**: This operation is permanent and cannot be undone
+- Deletes ALL messages of the selected type (Active, Scheduled, or Dead-letter)
+- Uses efficient batch deletion (processes up to 100 messages at a time)
+- Returns the total count of deleted messages
+- Locked messages will not be deleted
+- Works for both queues and topic subscriptions
+- The message list is cleared immediately after successful purge
+
+### 3. Requeue Dead-Letter Messages
 Move messages from the dead-letter queue back to the active queue for reprocessing.
 
 **Use Cases:**
@@ -36,6 +62,7 @@ Move messages from the dead-letter queue back to the active queue for reprocessi
 2. Click the **green requeue icon** (↻) next to the message
 3. Confirm the requeue operation
 4. The message will be removed from the dead-letter queue and sent to the active queue
+5. The message list will update automatically
 
 **Notes:**
 - The original message is removed from the dead-letter queue
@@ -43,7 +70,7 @@ Move messages from the dead-letter queue back to the active queue for reprocessi
 - All application properties are preserved
 - The message will have a new sequence number in the active queue
 
-### 3. Send New Messages
+### 4. Send New Messages
 Create and send new messages to queues or topics.
 
 **Use Cases:**
@@ -77,7 +104,7 @@ ProcessingDeadline=2024-01-15T10:00:00
 - Messages sent to topics will be delivered to all subscriptions
 - All properties are optional except the message body
 
-### 4. Reschedule Scheduled Messages
+### 5. Reschedule Scheduled Messages
 Change the scheduled enqueue time for messages that are waiting to be delivered.
 
 **Use Cases:**
@@ -108,6 +135,10 @@ Each message in the message list has action buttons based on its state:
 - **Requeue** (green requeue icon ↻): Only for dead-letter messages - moves back to active queue
 - **Reschedule** (yellow clock icon 🕐): Only for scheduled messages - changes delivery time
 
+### Panel Header Buttons
+- **Send New** (green button with +): Create and send a new message to the queue/topic
+- **Purge All** (red button): Delete ALL messages from the current view (Active, Scheduled, or Dead-letter)
+
 ### Notifications
 Success and error notifications appear at the top of the screen:
 - **Green notifications**: Operations completed successfully
@@ -133,14 +164,24 @@ Task<bool> SendMessageAsync(string entityName, string messageBody, ...)
 
 // Reschedule a scheduled message
 Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTime newScheduledTime, ...)
+
+// Purge all messages
+Task<int> PurgeMessagesAsync(string entityName, string messageType, ...)
 ```
 
 ### Azure Service Bus SDK Operations
 
 - **Delete**: Uses `ReceiveMessagesAsync` + `CompleteMessageAsync` to acquire lock and complete (delete) the message
+- **Purge**: Uses `ReceiveAndDelete` mode to efficiently delete all messages in batches of 100
 - **Requeue**: Uses `ReceiveMessagesAsync` from DLQ + `SendMessageAsync` to new queue + `CompleteMessageAsync` on DLQ message
 - **Send**: Uses `SendMessageAsync` or `ScheduleMessageAsync` depending on whether scheduling is required
 - **Reschedule**: Similar to requeue - receives old message, schedules new one, completes old one
+
+### Dynamic UI Updates
+
+- Single message deletion: Uses `messages.Remove(messageForOperation)` to update the list
+- Purge operation: Uses `messages.Clear()` to empty the list
+- Blazor's data binding automatically refreshes the UI when the collection changes
 
 ## Limitations and Considerations
 
@@ -148,13 +189,18 @@ Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTi
 
 2. **Sequence Numbers**: Messages are identified by sequence number. After certain operations (requeue, reschedule), messages get new sequence numbers.
 
-3. **PeekLock Mode**: All operations use PeekLock mode to ensure safe message handling.
+3. **PeekLock Mode**: Most operations use PeekLock mode to ensure safe message handling. Purge uses ReceiveAndDelete mode for efficiency.
 
-4. **Batch Operations**: Currently, operations work on individual messages. For bulk operations, repeat the action for each message.
+4. **Batch Operations**: 
+   - Single delete works on individual messages
+   - Purge operation processes up to 100 messages per batch automatically
+   - Locked messages during purge will not be deleted
 
 5. **Scheduled Messages**: When rescheduling or sending scheduled messages, ensure the time is in the future.
 
 6. **Topic Messages**: When sending to a topic, the message is delivered to all subscriptions with matching filters.
+
+7. **Purge Performance**: Large queues may take time to purge as messages are deleted in batches. The operation will continue until no more messages are found.
 
 ## Error Handling
 
@@ -169,11 +215,13 @@ If an operation fails, you'll see an error notification with details. Common rea
 ## Best Practices
 
 1. **Test First**: Always test CRUD operations in a development environment before using in production
-2. **Backup Important Messages**: Before deleting, consider saving message content if you might need it later
-3. **Monitor Results**: Watch for success/error notifications to confirm operations completed
-4. **Scheduled Time Zones**: Be aware of time zones when scheduling messages - times are in your local time
-5. **Application Properties**: Use consistent naming and formatting for application properties
-6. **Permissions**: Ensure your Service Bus connection has appropriate permissions (Manage for all operations)
+2. **Backup Important Messages**: Before deleting or purging, consider saving message content if you might need it later
+3. **Use Purge Carefully**: The purge operation is powerful but destructive - double-check which message type (Active/Scheduled/Dead-letter) you're viewing before purging
+4. **Monitor Results**: Watch for success/error notifications to confirm operations completed
+5. **Scheduled Time Zones**: Be aware of time zones when scheduling messages - times are in your local time
+6. **Application Properties**: Use consistent naming and formatting for application properties
+7. **Permissions**: Ensure your Service Bus connection has appropriate permissions (Manage for all operations)
+8. **Dynamic Updates**: The message list updates automatically when you delete or purge messages - no need to refresh manually
 
 ## Troubleshooting
 
@@ -185,6 +233,15 @@ If an operation fails, you'll see an error notification with details. Common rea
 - Similar to delete - message may be locked or already processed
 - Verify the message is still in the dead-letter queue
 
+**"No messages were found to purge."**
+- The queue or subscription is already empty
+- Ensure you're viewing the correct message type (Active/Scheduled/Dead-letter)
+
+**"Error purging messages: ..."**
+- Check your connection to Service Bus is still active
+- Verify you have appropriate permissions (Manage rights required)
+- Some messages may be locked by other receivers
+
 **"Error sending message: Message size exceeded."**
 - Your message body or properties are too large
 - Standard tier: 256 KB limit, Premium tier: 1 MB limit
@@ -193,3 +250,8 @@ If an operation fails, you'll see an error notification with details. Common rea
 **"Scheduled time must be in the future."**
 - Select a date and time that hasn't passed yet
 - Check your system time and time zone settings
+
+**Messages not updating in the list:**
+- This should not happen as the UI updates dynamically
+- Try closing and reopening the message panel
+- Verify your connection to Service Bus is still active
