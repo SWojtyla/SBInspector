@@ -21,6 +21,12 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - Sequence number and delivery count
   - Message body
   - Application properties
+- **CRUD Operations on Messages**:
+  - **Delete** messages from active queues, dead-letter queues, or subscriptions
+  - **Requeue** messages from dead-letter queue back to active queue
+  - **Send** new messages to queues or topics (with optional scheduling)
+  - **Reschedule** scheduled messages to a different delivery time
+  - See [MESSAGE_CRUD.md](MESSAGE_CRUD.md) for detailed documentation
 - Filter messages by application properties (attributes):
   - Add multiple filters with AND logic
   - Filter by attribute name and/or value
