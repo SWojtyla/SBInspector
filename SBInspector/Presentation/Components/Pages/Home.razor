@@ -40,39 +40,41 @@
             </div>
 
             <div class="split-panel-right">
-                <EntityDetailsPanel 
-                    EntityType="@selectedEntityType"
-                    QueueInfo="@selectedQueueInfo"
-                    TopicInfo="@selectedTopicInfo"
-                    SubscriptionInfo="@selectedSubscriptionInfo"
-                    TopicName="@selectedTopicForSubscription"
-                    OnViewMessages="@HandleViewMessagesFromDetails"
-                    OnToggleStatus="@HandleToggleStatusFromDetails" />
+                @if (!string.IsNullOrEmpty(selectedEntity))
+                {
+                    <MessagesPanel 
+                        EntityName="@selectedEntity"
+                        MessageType="@selectedMessageType"
+                        Messages="@messages"
+                        IsLoading="@isLoadingMessages"
+                        @bind-Filters="@messageFilters"
+                        @bind-SortColumn="@messageSortColumn"
+                        @bind-SortAscending="@messageSortAscending"
+                        @bind-PageSize="@pageSize"
+                        HasMoreMessages="@hasMoreMessages"
+                        IsLoadingMore="@isLoadingMoreMessages"
+                        OnClose="@CloseMessages"
+                        OnViewMessageDetails="@ViewMessageDetails"
+                        OnDeleteMessage="@HandleDeleteMessage"
+                        OnRequeueMessage="@HandleRequeueMessage"
+                        OnRescheduleMessage="@HandleRescheduleMessage"
+                        OnSendNew="@HandleSendNewMessage"
+                        OnPurge="@HandlePurgeMessages"
+                        OnLoadMore="@LoadMoreMessages" />
+                }
+                else
+                {
+                    <EntityDetailsPanel 
+                        EntityType="@selectedEntityType"
+                        QueueInfo="@selectedQueueInfo"
+                        TopicInfo="@selectedTopicInfo"
+                        SubscriptionInfo="@selectedSubscriptionInfo"
+                        TopicName="@selectedTopicForSubscription"
+                        OnViewMessages="@HandleViewMessagesFromDetails"
+                        OnToggleStatus="@HandleToggleStatusFromDetails" />
+                }
             </div>
         </div>
-
-        @if (!string.IsNullOrEmpty(selectedEntity))
-        {
-            <MessagesPanel 
-                EntityName="@selectedEntity"
-                MessageType="@selectedMessageType"
-                Messages="@messages"
-                IsLoading="@isLoadingMessages"
-                @bind-Filters="@messageFilters"
-                @bind-SortColumn="@messageSortColumn"
-                @bind-SortAscending="@messageSortAscending"
-                @bind-PageSize="@pageSize"
-                HasMoreMessages="@hasMoreMessages"
-                IsLoadingMore="@isLoadingMoreMessages"
-                OnClose="@CloseMessages"
-                OnViewMessageDetails="@ViewMessageDetails"
-                OnDeleteMessage="@HandleDeleteMessage"
-                OnRequeueMessage="@HandleRequeueMessage"
-                OnRescheduleMessage="@HandleRescheduleMessage"
-                OnSendNew="@HandleSendNewMessage"
-                OnPurge="@HandlePurgeMessages"
-                OnLoadMore="@LoadMoreMessages" />
-        }
 
         <MessageDetailsModal 
             Message="@selectedMessage"

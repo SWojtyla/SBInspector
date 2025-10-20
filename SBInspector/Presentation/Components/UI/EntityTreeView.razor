@@ -11,24 +11,38 @@
                 </div>
             </div>
         }
+        @if (!IsLoading && (Queues.Any() || Topics.Any()))
+        {
+            <div class="tree-search-box">
+                <input type="text" 
+                       class="form-control form-control-sm" 
+                       placeholder="Search queues and topics..." 
+                       @bind="searchTerm" 
+                       @bind:event="oninput" />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <i class="bi bi-x-circle search-clear" @onclick="ClearSearch" title="Clear search"></i>
+                }
+            </div>
+        }
     </div>
 
     @if (!IsLoading)
     {
         <div class="tree-content">
             @* Queues Section *@
-            @if (Queues.Any())
+            @if (FilteredQueues.Any())
             {
                 <div class="tree-section">
                     <div class="tree-section-header" @onclick="@(() => ToggleSection("queues"))">
                         <i class="bi @(expandedSections.Contains("queues") ? "bi-chevron-down" : "bi-chevron-right")"></i>
                         <i class="bi bi-inbox"></i>
-                        <span>Queues (@Queues.Count)</span>
+                        <span>Queues (@FilteredQueues.Count())</span>
                     </div>
                     @if (expandedSections.Contains("queues"))
                     {
                         <div class="tree-section-content">
-                            @foreach (var queue in Queues)
+                            @foreach (var queue in FilteredQueues)
                             {
                                 <div class="tree-node @(IsSelected("queue", queue.Name) ? "selected" : "")" 
                                      @onclick="() => SelectQueue(queue.Name)">
@@ -62,18 +76,18 @@
             }
 
             @* Topics Section *@
-            @if (Topics.Any())
+            @if (FilteredTopics.Any())
             {
                 <div class="tree-section">
                     <div class="tree-section-header" @onclick="@(() => ToggleSection("topics"))">
                         <i class="bi @(expandedSections.Contains("topics") ? "bi-chevron-down" : "bi-chevron-right")"></i>
                         <i class="bi bi-broadcast"></i>
-                        <span>Topics (@Topics.Count)</span>
+                        <span>Topics (@FilteredTopics.Count())</span>
                     </div>
                     @if (expandedSections.Contains("topics"))
                     {
                         <div class="tree-section-content">
-                            @foreach (var topic in Topics)
+                            @foreach (var topic in FilteredTopics)
                             {
                                 <div class="tree-node @(IsSelected("topic", topic.Name) ? "selected" : "")"
                                      @onclick="() => SelectTopic(topic.Name)">
@@ -106,7 +120,7 @@
                                         }
                                         else
                                         {
-                                            @foreach (var subscription in TopicSubscriptions[topic.Name])
+                                            @foreach (var subscription in FilteredSubscriptions(topic.Name))
                                             {
                                                 <div class="tree-node tree-node-child @(IsSelected("subscription", $"{topic.Name}/{subscription.Name}") ? "selected" : "")"
                                                      @onclick="() => SelectSubscription(topic.Name, subscription.Name)">
@@ -139,6 +153,13 @@
                 </div>
             }
 
+            @if (!FilteredQueues.Any() && !FilteredTopics.Any() && (Queues.Any() || Topics.Any()))
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No entities match your search criteria.
+                </div>
+            }
+            
             @if (!Queues.Any() && !Topics.Any())
             {
                 <div class="alert alert-info">
@@ -185,6 +206,53 @@
 
     private HashSet<string> expandedSections = new() { "queues", "topics" };
     private HashSet<string> expandedTopics = new();
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<EntityInfo> FilteredQueues
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Queues;
+            }
+            return Queues.Where(q => q.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private IEnumerable<EntityInfo> FilteredTopics
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Topics;
+            }
+            return Topics.Where(t => t.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private IEnumerable<SubscriptionInfo> FilteredSubscriptions(string topicName)
+    {
+        if (!TopicSubscriptions.ContainsKey(topicName))
+        {
+            return Enumerable.Empty<SubscriptionInfo>();
+        }
+
+        var subscriptions = TopicSubscriptions[topicName];
+        
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return subscriptions;
+        }
+        
+        return subscriptions.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = string.Empty;
+    }
 
     private void ToggleSection(string sectionName)
     {
