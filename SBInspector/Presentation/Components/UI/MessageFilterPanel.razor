@@ -1,0 +1,82 @@
+@using SBInspector.Core.Domain
+
+<div class="mb-3">
+    <h5>Filter by Message Attributes</h5>
+    @for (int i = 0; i < Filters.Count; i++)
+    {
+        var index = i;
+        var filter = Filters[index];
+        <div class="row g-2 mb-2">
+            <div class="col-md-4">
+                <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
+                <input type="text" class="form-control" id="filterAttributeName_@index" @bind="filter.AttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
+            </div>
+            <div class="col-md-4">
+                <label for="filterAttributeValue_@index" class="form-label">Attribute Value</label>
+                <input type="text" class="form-control" id="filterAttributeValue_@index" @bind="filter.AttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
+            </div>
+            <div class="col-md-4">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="useRegexFilter_@index" @bind="filter.UseRegex" />
+                    <label class="form-check-label" for="useRegexFilter_@index">
+                        Use Regex Expression
+                    </label>
+                </div>
+                @if (Filters.Count > 1)
+                {
+                    <button class="btn btn-sm btn-danger mt-2" @onclick="() => RemoveFilterAtIndex(index)">Remove</button>
+                }
+            </div>
+        </div>
+    }
+    <div class="row g-2 mb-2">
+        <div class="col-12">
+            <button class="btn btn-sm btn-primary me-2" @onclick="AddNewFilter">Add Filter</button>
+            @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
+            {
+                <button class="btn btn-sm btn-secondary" @onclick="ClearAllFilters">Clear All Filters</button>
+            }
+        </div>
+    </div>
+    <div class="mt-2">
+        <small class="text-muted">
+            Showing @FilteredCount of @TotalCount messages
+        </small>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<MessageFilter> Filters { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<MessageFilter>> FiltersChanged { get; set; }
+
+    [Parameter]
+    public int FilteredCount { get; set; }
+
+    [Parameter]
+    public int TotalCount { get; set; }
+
+    private async Task AddNewFilter()
+    {
+        Filters.Add(new MessageFilter());
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private async Task RemoveFilterAtIndex(int index)
+    {
+        if (Filters.Count > 1)
+        {
+            Filters.RemoveAt(index);
+            await FiltersChanged.InvokeAsync(Filters);
+        }
+    }
+
+    private async Task ClearAllFilters()
+    {
+        Filters.Clear();
+        Filters.Add(new MessageFilter());
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+}

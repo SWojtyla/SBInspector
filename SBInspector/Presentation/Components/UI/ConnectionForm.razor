@@ -1,0 +1,79 @@
+@using SBInspector.Core.Interfaces
+@inject IServiceBusService ServiceBusService
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Connect to Service Bus</h5>
+        <div class="mb-3">
+            <label for="connectionString" class="form-label">Connection String</label>
+            <input type="password" class="form-control" id="connectionString" @bind="ConnectionString" placeholder="Endpoint=sb://..." />
+        </div>
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                @ErrorMessage
+            </div>
+        }
+        <button class="btn btn-primary" @onclick="HandleConnectAsync" disabled="@IsConnecting">
+            @if (IsConnecting)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span> Connecting...</span>
+            }
+            else
+            {
+                <span>Connect</span>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string ConnectionString { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ConnectionStringChanged { get; set; }
+
+    [Parameter]
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ErrorMessageChanged { get; set; }
+
+    [Parameter]
+    public bool IsConnecting { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsConnectingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnConnected { get; set; }
+
+    private async Task HandleConnectAsync()
+    {
+        await IsConnectingChanged.InvokeAsync(true);
+        await ErrorMessageChanged.InvokeAsync(string.Empty);
+        
+        try
+        {
+            var success = await ServiceBusService.ConnectAsync(ConnectionString);
+            if (success)
+            {
+                await OnConnected.InvokeAsync();
+            }
+            else
+            {
+                await ErrorMessageChanged.InvokeAsync("Failed to connect. Please check your connection string.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ErrorMessageChanged.InvokeAsync($"Error: {ex.Message}");
+        }
+        finally
+        {
+            await IsConnectingChanged.InvokeAsync(false);
+        }
+    }
+}

@@ -1,9 +1,7 @@
 @page "/"
 @using SBInspector.Core.Interfaces
 @using SBInspector.Core.Domain
-@using SBInspector.Application.Services
 @inject IServiceBusService ServiceBusService
-@inject MessageFilterService FilterService
 @rendermode InteractiveServer
 
 <PageTitle>Service Bus Inspector</PageTitle>
@@ -13,32 +11,11 @@
 
     @if (!ServiceBusService.IsConnected)
     {
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Connect to Service Bus</h5>
-                <div class="mb-3">
-                    <label for="connectionString" class="form-label">Connection String</label>
-                    <input type="password" class="form-control" id="connectionString" @bind="connectionString" placeholder="Endpoint=sb://..." />
-                </div>
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="alert alert-danger" role="alert">
-                        @errorMessage
-                    </div>
-                }
-                <button class="btn btn-primary" @onclick="ConnectAsync" disabled="@isConnecting">
-                    @if (isConnecting)
-                    {
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <span> Connecting...</span>
-                    }
-                    else
-                    {
-                        <span>Connect</span>
-                    }
-                </button>
-            </div>
-        </div>
+        <ConnectionForm 
+            @bind-ConnectionString="@connectionString"
+            @bind-ErrorMessage="@errorMessage"
+            @bind-IsConnecting="@isConnecting"
+            OnConnected="@HandleConnected" />
     }
     else
     {
@@ -71,302 +48,46 @@
         {
             @if (activeTab == "queues")
             {
-                <h3>Queues</h3>
-                @if (queues.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th @onclick="() => SortQueues(nameof(EntityInfo.Name))" style="cursor: pointer;">
-                                        Name @GetSortIcon(queueSortColumn, nameof(EntityInfo.Name), queueSortAscending)
-                                    </th>
-                                    <th @onclick="() => SortQueues(nameof(EntityInfo.ActiveMessageCount))" style="cursor: pointer;">
-                                        Active Messages @GetSortIcon(queueSortColumn, nameof(EntityInfo.ActiveMessageCount), queueSortAscending)
-                                    </th>
-                                    <th @onclick="() => SortQueues(nameof(EntityInfo.ScheduledMessageCount))" style="cursor: pointer;">
-                                        Scheduled Messages @GetSortIcon(queueSortColumn, nameof(EntityInfo.ScheduledMessageCount), queueSortAscending)
-                                    </th>
-                                    <th @onclick="() => SortQueues(nameof(EntityInfo.DeadLetterMessageCount))" style="cursor: pointer;">
-                                        Dead Letter Messages @GetSortIcon(queueSortColumn, nameof(EntityInfo.DeadLetterMessageCount), queueSortAscending)
-                                    </th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var queue in SortedQueues)
-                                {
-                                    <tr>
-                                        <td>@queue.Name</td>
-                                        <td>@queue.ActiveMessageCount</td>
-                                        <td>@queue.ScheduledMessageCount</td>
-                                        <td>@queue.DeadLetterMessageCount</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary me-1" @onclick="@(() => ViewQueueMessages(queue.Name, "Active"))">
-                                                View Active
-                                            </button>
-                                            <button class="btn btn-sm btn-warning me-1" @onclick="@(() => ViewQueueMessages(queue.Name, "Scheduled"))">
-                                                View Scheduled
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" @onclick="@(() => ViewQueueMessages(queue.Name, "DeadLetter"))">
-                                                View Dead Letter
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <p>No queues found.</p>
-                }
+                <QueueListTable 
+                    Queues="@queues" 
+                    @bind-SortColumn="@queueSortColumn"
+                    @bind-SortAscending="@queueSortAscending"
+                    OnViewMessages="@HandleViewQueueMessages" />
             }
             else if (activeTab == "topics")
             {
-                <h3>Topics</h3>
-                @if (topics.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var topic in topics)
-                                {
-                                    <tr>
-                                        <td>@topic.Name</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-info" @onclick="() => ViewTopicSubscriptions(topic.Name)">
-                                                View Subscriptions
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <p>No topics found.</p>
-                }
+                <TopicListTable 
+                    Topics="@topics"
+                    OnViewSubscriptions="@ViewTopicSubscriptions" />
             }
         }
 
         @if (!string.IsNullOrEmpty(selectedEntity))
         {
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h4>@selectedEntity - @selectedMessageType Messages</h4>
-                    <button class="btn btn-sm btn-secondary" @onclick="CloseMessages">Close</button>
-                </div>
-                <div class="card-body">
-                    @if (isLoadingMessages)
-                    {
-                        <div class="text-center">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading messages...</span>
-                            </div>
-                        </div>
-                    }
-                    else if (messages.Any())
-                    {
-                        <div class="mb-3">
-                            <h5>Filter by Message Attributes</h5>
-                            @for (int i = 0; i < messageFilters.Count; i++)
-                            {
-                                var index = i;
-                                var filter = messageFilters[index];
-                                <div class="row g-2 mb-2">
-                                    <div class="col-md-4">
-                                        <label for="filterAttributeName_@index" class="form-label">Attribute Name</label>
-                                        <input type="text" class="form-control" id="filterAttributeName_@index" @bind="filter.AttributeName" @bind:event="oninput" placeholder="e.g., customerId" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="filterAttributeValue_@index" class="form-label">Attribute Value</label>
-                                        <input type="text" class="form-control" id="filterAttributeValue_@index" @bind="filter.AttributeValue" @bind:event="oninput" placeholder="e.g., 12345" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-check mt-4">
-                                            <input class="form-check-input" type="checkbox" id="useRegexFilter_@index" @bind="filter.UseRegex" />
-                                            <label class="form-check-label" for="useRegexFilter_@index">
-                                                Use Regex Expression
-                                            </label>
-                                        </div>
-                                        @if (messageFilters.Count > 1)
-                                        {
-                                            <button class="btn btn-sm btn-danger mt-2" @onclick="() => RemoveFilter(index)">Remove</button>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                            <div class="row g-2 mb-2">
-                                <div class="col-12">
-                                    <button class="btn btn-sm btn-primary me-2" @onclick="AddFilter">Add Filter</button>
-                                    @if (messageFilters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
-                                    {
-                                        <button class="btn btn-sm btn-secondary" @onclick="ClearFilters">Clear All Filters</button>
-                                    }
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    Showing @FilteredMessages.Count() of @messages.Count messages
-                                </small>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th @onclick="() => SortMessages(nameof(MessageInfo.MessageId))" style="cursor: pointer;">
-                                            Message ID @GetSortIcon(messageSortColumn, nameof(MessageInfo.MessageId), messageSortAscending)
-                                        </th>
-                                        <th @onclick="() => SortMessages(nameof(MessageInfo.Subject))" style="cursor: pointer;">
-                                            Subject @GetSortIcon(messageSortColumn, nameof(MessageInfo.Subject), messageSortAscending)
-                                        </th>
-                                        <th @onclick="() => SortMessages(nameof(MessageInfo.EnqueuedTime))" style="cursor: pointer;">
-                                            Enqueued Time @GetSortIcon(messageSortColumn, nameof(MessageInfo.EnqueuedTime), messageSortAscending)
-                                        </th>
-                                        <th @onclick="() => SortMessages(nameof(MessageInfo.DeliveryCount))" style="cursor: pointer;">
-                                            Delivery Count @GetSortIcon(messageSortColumn, nameof(MessageInfo.DeliveryCount), messageSortAscending)
-                                        </th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var message in SortedAndFilteredMessages)
-                                    {
-                                        <tr>
-                                            <td>@message.MessageId</td>
-                                            <td>@message.Subject</td>
-                                            <td>@message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                                            <td>@message.DeliveryCount</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-info" @onclick="() => ViewMessageDetails(message)">
-                                                    Details
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <p>No messages found.</p>
-                    }
-                </div>
-            </div>
+            <MessagesPanel 
+                EntityName="@selectedEntity"
+                MessageType="@selectedMessageType"
+                Messages="@messages"
+                IsLoading="@isLoadingMessages"
+                @bind-Filters="@messageFilters"
+                @bind-SortColumn="@messageSortColumn"
+                @bind-SortAscending="@messageSortAscending"
+                OnClose="@CloseMessages"
+                OnViewMessageDetails="@ViewMessageDetails" />
         }
 
-        @if (selectedMessage != null)
-        {
-            <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Message Details</h5>
-                            <button type="button" class="btn-close" @onclick="CloseMessageDetails"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <strong>Message ID:</strong> @selectedMessage.MessageId
-                            </div>
-                            <div class="mb-3">
-                                <strong>Subject:</strong> @selectedMessage.Subject
-                            </div>
-                            <div class="mb-3">
-                                <strong>Content Type:</strong> @selectedMessage.ContentType
-                            </div>
-                            <div class="mb-3">
-                                <strong>Enqueued Time:</strong> @selectedMessage.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")
-                            </div>
-                            @if (selectedMessage.ScheduledEnqueueTime.HasValue)
-                            {
-                                <div class="mb-3">
-                                    <strong>Scheduled Enqueue Time:</strong> @selectedMessage.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                                </div>
-                            }
-                            <div class="mb-3">
-                                <strong>Sequence Number:</strong> @selectedMessage.SequenceNumber
-                            </div>
-                            <div class="mb-3">
-                                <strong>Delivery Count:</strong> @selectedMessage.DeliveryCount
-                            </div>
-                            @if (selectedMessage.Properties.Any())
-                            {
-                                <div class="mb-3">
-                                    <strong>Application Properties:</strong>
-                                    <pre class="bg-light p-2">@string.Join("\n", selectedMessage.Properties.Select(p => $"{p.Key}: {p.Value}"))</pre>
-                                </div>
-                            }
-                            <div class="mb-3">
-                                <strong>Body:</strong>
-                                <pre class="bg-light p-2" style="max-height: 300px; overflow-y: auto;">@selectedMessage.Body</pre>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseMessageDetails">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
+        <MessageDetailsModal 
+            Message="@selectedMessage"
+            OnClose="@CloseMessageDetails" />
 
         @if (!string.IsNullOrEmpty(selectedTopic))
         {
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h4>@selectedTopic - Subscriptions</h4>
-                    <button class="btn btn-sm btn-secondary" @onclick="CloseSubscriptions">Close</button>
-                </div>
-                <div class="card-body">
-                    @if (isLoadingSubscriptions)
-                    {
-                        <div class="text-center">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading subscriptions...</span>
-                            </div>
-                        </div>
-                    }
-                    else if (subscriptions.Any())
-                    {
-                        <div class="list-group">
-                            @foreach (var subscription in subscriptions)
-                            {
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-1">@subscription</h5>
-                                        <div>
-                                            <button class="btn btn-sm btn-primary me-1" @onclick="@(() => ViewSubscriptionMessages(selectedTopic, subscription, "Active"))">
-                                                View Active
-                                            </button>
-                                            <button class="btn btn-sm btn-warning me-1" @onclick="@(() => ViewSubscriptionMessages(selectedTopic, subscription, "Scheduled"))">
-                                                View Scheduled
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" @onclick="@(() => ViewSubscriptionMessages(selectedTopic, subscription, "DeadLetter"))">
-                                                View Dead Letter
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <p>No subscriptions found.</p>
-                    }
-                </div>
-            </div>
+            <SubscriptionListPanel 
+                TopicName="@selectedTopic"
+                Subscriptions="@subscriptions"
+                IsLoading="@isLoadingSubscriptions"
+                OnClose="@CloseSubscriptions"
+                OnViewMessages="@HandleViewSubscriptionMessages" />
         }
     }
 </div>
@@ -400,136 +121,9 @@
     private string messageSortColumn = nameof(MessageInfo.EnqueuedTime);
     private bool messageSortAscending = false;
 
-    private IEnumerable<EntityInfo> SortedQueues
+    private async Task HandleConnected()
     {
-        get
-        {
-            var sorted = queues.AsEnumerable();
-            
-            sorted = queueSortColumn switch
-            {
-                nameof(EntityInfo.Name) => queueSortAscending 
-                    ? sorted.OrderBy(q => q.Name) 
-                    : sorted.OrderByDescending(q => q.Name),
-                nameof(EntityInfo.ActiveMessageCount) => queueSortAscending 
-                    ? sorted.OrderBy(q => q.ActiveMessageCount) 
-                    : sorted.OrderByDescending(q => q.ActiveMessageCount),
-                nameof(EntityInfo.ScheduledMessageCount) => queueSortAscending 
-                    ? sorted.OrderBy(q => q.ScheduledMessageCount) 
-                    : sorted.OrderByDescending(q => q.ScheduledMessageCount),
-                nameof(EntityInfo.DeadLetterMessageCount) => queueSortAscending 
-                    ? sorted.OrderBy(q => q.DeadLetterMessageCount) 
-                    : sorted.OrderByDescending(q => q.DeadLetterMessageCount),
-                _ => sorted
-            };
-            
-            return sorted;
-        }
-    }
-
-    private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(messages, messageFilters);
-
-    private IEnumerable<MessageInfo> SortedAndFilteredMessages
-    {
-        get
-        {
-            var filtered = FilteredMessages;
-            
-            var sorted = messageSortColumn switch
-            {
-                nameof(MessageInfo.MessageId) => messageSortAscending 
-                    ? filtered.OrderBy(m => m.MessageId) 
-                    : filtered.OrderByDescending(m => m.MessageId),
-                nameof(MessageInfo.Subject) => messageSortAscending 
-                    ? filtered.OrderBy(m => m.Subject) 
-                    : filtered.OrderByDescending(m => m.Subject),
-                nameof(MessageInfo.EnqueuedTime) => messageSortAscending 
-                    ? filtered.OrderBy(m => m.EnqueuedTime) 
-                    : filtered.OrderByDescending(m => m.EnqueuedTime),
-                nameof(MessageInfo.DeliveryCount) => messageSortAscending 
-                    ? filtered.OrderBy(m => m.DeliveryCount) 
-                    : filtered.OrderByDescending(m => m.DeliveryCount),
-                _ => filtered
-            };
-            
-            return sorted;
-        }
-    }
-
-    private string GetSortIcon(string currentSortColumn, string columnName, bool isAscending)
-    {
-        if (currentSortColumn != columnName)
-        {
-            return "⇅";
-        }
-        
-        return isAscending ? "▲" : "▼";
-    }
-
-    private void SortQueues(string columnName)
-    {
-        if (queueSortColumn == columnName)
-        {
-            queueSortAscending = !queueSortAscending;
-        }
-        else
-        {
-            queueSortColumn = columnName;
-            queueSortAscending = true;
-        }
-    }
-
-    private void SortMessages(string columnName)
-    {
-        if (messageSortColumn == columnName)
-        {
-            messageSortAscending = !messageSortAscending;
-        }
-        else
-        {
-            messageSortColumn = columnName;
-            messageSortAscending = columnName == nameof(MessageInfo.EnqueuedTime) ? false : true;
-        }
-    }
-
-    private void AddFilter()
-    {
-        messageFilters.Add(new MessageFilter());
-    }
-
-    private void RemoveFilter(int index)
-    {
-        if (messageFilters.Count > 1)
-        {
-            messageFilters.RemoveAt(index);
-        }
-    }
-
-    private async Task ConnectAsync()
-    {
-        isConnecting = true;
-        errorMessage = string.Empty;
-        
-        try
-        {
-            var success = await ServiceBusService.ConnectAsync(connectionString);
-            if (success)
-            {
-                await LoadQueuesAsync();
-            }
-            else
-            {
-                errorMessage = "Failed to connect. Please check your connection string.";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isConnecting = false;
-        }
+        await LoadQueuesAsync();
     }
 
     private void Disconnect()
@@ -578,16 +172,16 @@
         }
     }
 
-    private async Task ViewQueueMessages(string queueName, string messageType)
+    private async Task HandleViewQueueMessages((string QueueName, string MessageType) args)
     {
-        selectedEntity = queueName;
-        selectedMessageType = messageType;
+        selectedEntity = args.QueueName;
+        selectedMessageType = args.MessageType;
         selectedTopic = string.Empty;
         isLoadingMessages = true;
         
         try
         {
-            messages = await ServiceBusService.GetMessagesAsync(queueName, messageType);
+            messages = await ServiceBusService.GetMessagesAsync(args.QueueName, args.MessageType);
         }
         finally
         {
@@ -600,11 +194,6 @@
         selectedEntity = string.Empty;
         selectedMessageType = string.Empty;
         messages.Clear();
-        ClearFilters();
-    }
-
-    private void ClearFilters()
-    {
         messageFilters.Clear();
         messageFilters.Add(new MessageFilter());
     }
@@ -641,15 +230,15 @@
         subscriptions.Clear();
     }
 
-    private async Task ViewSubscriptionMessages(string topicName, string subscriptionName, string messageType)
+    private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)
     {
-        selectedEntity = $"{topicName}/{subscriptionName}";
-        selectedMessageType = messageType;
+        selectedEntity = $"{args.TopicName}/{args.SubscriptionName}";
+        selectedMessageType = args.MessageType;
         isLoadingMessages = true;
         
         try
         {
-            messages = await ServiceBusService.GetSubscriptionMessagesAsync(topicName, subscriptionName, messageType);
+            messages = await ServiceBusService.GetSubscriptionMessagesAsync(args.TopicName, args.SubscriptionName, args.MessageType);
         }
         finally
         {

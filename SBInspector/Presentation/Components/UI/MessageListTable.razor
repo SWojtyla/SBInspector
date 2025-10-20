@@ -1,0 +1,108 @@
+@using SBInspector.Core.Domain
+
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.MessageId))" style="cursor: pointer;">
+                    Message ID @GetSortIcon(nameof(MessageInfo.MessageId))
+                </th>
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.Subject))" style="cursor: pointer;">
+                    Subject @GetSortIcon(nameof(MessageInfo.Subject))
+                </th>
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime))" style="cursor: pointer;">
+                    Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))
+                </th>
+                <th @onclick="() => HandleSortColumn(nameof(MessageInfo.DeliveryCount))" style="cursor: pointer;">
+                    Delivery Count @GetSortIcon(nameof(MessageInfo.DeliveryCount))
+                </th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var message in SortedMessages)
+            {
+                <tr>
+                    <td>@message.MessageId</td>
+                    <td>@message.Subject</td>
+                    <td>@message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@message.DeliveryCount</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" @onclick="() => OnViewDetails.InvokeAsync(message)">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<MessageInfo> Messages { get; set; } = Enumerable.Empty<MessageInfo>();
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(MessageInfo.EnqueuedTime);
+
+    [Parameter]
+    public EventCallback<string> SortColumnChanged { get; set; }
+
+    [Parameter]
+    public bool SortAscending { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> SortAscendingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnViewDetails { get; set; }
+
+    private IEnumerable<MessageInfo> SortedMessages
+    {
+        get
+        {
+            var sorted = SortColumn switch
+            {
+                nameof(MessageInfo.MessageId) => SortAscending 
+                    ? Messages.OrderBy(m => m.MessageId) 
+                    : Messages.OrderByDescending(m => m.MessageId),
+                nameof(MessageInfo.Subject) => SortAscending 
+                    ? Messages.OrderBy(m => m.Subject) 
+                    : Messages.OrderByDescending(m => m.Subject),
+                nameof(MessageInfo.EnqueuedTime) => SortAscending 
+                    ? Messages.OrderBy(m => m.EnqueuedTime) 
+                    : Messages.OrderByDescending(m => m.EnqueuedTime),
+                nameof(MessageInfo.DeliveryCount) => SortAscending 
+                    ? Messages.OrderBy(m => m.DeliveryCount) 
+                    : Messages.OrderByDescending(m => m.DeliveryCount),
+                _ => Messages
+            };
+            
+            return sorted;
+        }
+    }
+
+    private string GetSortIcon(string columnName)
+    {
+        if (SortColumn != columnName)
+        {
+            return "⇅";
+        }
+        
+        return SortAscending ? "▲" : "▼";
+    }
+
+    private async Task HandleSortColumn(string columnName)
+    {
+        if (SortColumn == columnName)
+        {
+            await SortAscendingChanged.InvokeAsync(!SortAscending);
+        }
+        else
+        {
+            await SortColumnChanged.InvokeAsync(columnName);
+            // Default to descending for EnqueuedTime, ascending for others
+            await SortAscendingChanged.InvokeAsync(columnName != nameof(MessageInfo.EnqueuedTime));
+        }
+    }
+}

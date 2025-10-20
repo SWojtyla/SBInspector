@@ -1,0 +1,41 @@
+@using SBInspector.Core.Domain
+
+<h3>Topics</h3>
+@if (Topics.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var topic in Topics)
+                {
+                    <tr>
+                        <td>@topic.Name</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" @onclick="() => OnViewSubscriptions.InvokeAsync(topic.Name)">
+                                View Subscriptions
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p>No topics found.</p>
+}
+
+@code {
+    [Parameter]
+    public List<EntityInfo> Topics { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<string> OnViewSubscriptions { get; set; }
+}
