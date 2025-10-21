@@ -1,0 +1,302 @@
+@using SBInspector.Core.Domain
+
+<div class="entity-tree-container">
+    <div class="tree-header">
+        <h5 class="mb-3"><i class="bi bi-diagram-3"></i> Service Bus Entities</h5>
+        @if (IsLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        @if (!IsLoading && (Queues.Any() || Topics.Any()))
+        {
+            <div class="tree-search-box">
+                <input type="text" 
+                       class="form-control form-control-sm" 
+                       placeholder="Search queues and topics..." 
+                       @bind="searchTerm" 
+                       @bind:event="oninput" />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <i class="bi bi-x-circle search-clear" @onclick="ClearSearch" title="Clear search"></i>
+                }
+            </div>
+        }
+    </div>
+
+    @if (!IsLoading)
+    {
+        <div class="tree-content">
+            @* Queues Section *@
+            @if (FilteredQueues.Any())
+            {
+                <div class="tree-section">
+                    <div class="tree-section-header" @onclick="@(() => ToggleSection("queues"))">
+                        <i class="bi @(expandedSections.Contains("queues") ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                        <i class="bi bi-inbox"></i>
+                        <span>Queues (@FilteredQueues.Count())</span>
+                    </div>
+                    @if (expandedSections.Contains("queues"))
+                    {
+                        <div class="tree-section-content">
+                            @foreach (var queue in FilteredQueues)
+                            {
+                                <div class="tree-node @(IsSelected("queue", queue.Name) ? "selected" : "")" 
+                                     @onclick="() => SelectQueue(queue.Name)">
+                                    <i class="bi bi-inbox-fill"></i>
+                                    <span class="node-name">@queue.Name</span>
+                                    <span class="node-status badge @(queue.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                        @queue.Status
+                                    </span>
+                                    @if (queue.ActiveMessageCount > 0 || queue.ScheduledMessageCount > 0 || queue.DeadLetterMessageCount > 0)
+                                    {
+                                        <span class="node-counts">
+                                            @if (queue.ActiveMessageCount > 0)
+                                            {
+                                                <span class="count-badge active" title="Active Messages">@queue.ActiveMessageCount</span>
+                                            }
+                                            @if (queue.ScheduledMessageCount > 0)
+                                            {
+                                                <span class="count-badge scheduled" title="Scheduled Messages">@queue.ScheduledMessageCount</span>
+                                            }
+                                            @if (queue.DeadLetterMessageCount > 0)
+                                            {
+                                                <span class="count-badge deadletter" title="Dead Letter Messages">@queue.DeadLetterMessageCount</span>
+                                            }
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @* Topics Section *@
+            @if (FilteredTopics.Any())
+            {
+                <div class="tree-section">
+                    <div class="tree-section-header" @onclick="@(() => ToggleSection("topics"))">
+                        <i class="bi @(expandedSections.Contains("topics") ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                        <i class="bi bi-broadcast"></i>
+                        <span>Topics (@FilteredTopics.Count())</span>
+                    </div>
+                    @if (expandedSections.Contains("topics"))
+                    {
+                        <div class="tree-section-content">
+                            @foreach (var topic in FilteredTopics)
+                            {
+                                <div class="tree-node @(IsSelected("topic", topic.Name) ? "selected" : "")"
+                                     @onclick="() => SelectTopic(topic.Name)">
+                                    <i class="bi bi-broadcast-pin"></i>
+                                    <span class="node-name">@topic.Name</span>
+                                    <span class="node-status badge @(topic.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                        @topic.Status
+                                    </span>
+                                    @if (expandedTopics.Contains(topic.Name))
+                                    {
+                                        <i class="bi bi-chevron-up node-expand" @onclick:stopPropagation="true" @onclick="() => CollapseSubscriptions(topic.Name)"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-chevron-down node-expand" @onclick:stopPropagation="true" @onclick="() => ExpandSubscriptions(topic.Name)"></i>
+                                    }
+                                </div>
+                                
+                                @* Subscriptions for this topic *@
+                                @if (expandedTopics.Contains(topic.Name) && TopicSubscriptions.ContainsKey(topic.Name))
+                                {
+                                    <div class="tree-node-children">
+                                        @if (LoadingTopics.Contains(topic.Name))
+                                        {
+                                            <div class="text-center py-2">
+                                                <div class="spinner-border spinner-border-sm" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var subscription in FilteredSubscriptions(topic.Name))
+                                            {
+                                                <div class="tree-node tree-node-child @(IsSelected("subscription", $"{topic.Name}/{subscription.Name}") ? "selected" : "")"
+                                                     @onclick="() => SelectSubscription(topic.Name, subscription.Name)">
+                                                    <i class="bi bi-envelope"></i>
+                                                    <span class="node-name">@subscription.Name</span>
+                                                    <span class="node-status badge @(subscription.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                                        @subscription.Status
+                                                    </span>
+                                                    @if (subscription.ActiveMessageCount > 0 || subscription.DeadLetterMessageCount > 0)
+                                                    {
+                                                        <span class="node-counts">
+                                                            @if (subscription.ActiveMessageCount > 0)
+                                                            {
+                                                                <span class="count-badge active" title="Active Messages">@subscription.ActiveMessageCount</span>
+                                                            }
+                                                            @if (subscription.DeadLetterMessageCount > 0)
+                                                            {
+                                                                <span class="count-badge deadletter" title="Dead Letter Messages">@subscription.DeadLetterMessageCount</span>
+                                                            }
+                                                        </span>
+                                                    }
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (!FilteredQueues.Any() && !FilteredTopics.Any() && (Queues.Any() || Topics.Any()))
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No entities match your search criteria.
+                </div>
+            }
+            
+            @if (!Queues.Any() && !Topics.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No entities found
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<EntityInfo> Queues { get; set; } = new();
+
+    [Parameter]
+    public List<EntityInfo> Topics { get; set; } = new();
+
+    [Parameter]
+    public Dictionary<string, List<SubscriptionInfo>> TopicSubscriptions { get; set; } = new();
+
+    [Parameter]
+    public HashSet<string> LoadingTopics { get; set; } = new();
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public string? SelectedEntityType { get; set; }
+
+    [Parameter]
+    public string? SelectedEntityName { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnQueueSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnTopicSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<(string TopicName, string SubscriptionName)> OnSubscriptionSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnLoadSubscriptions { get; set; }
+
+    private HashSet<string> expandedSections = new() { "queues", "topics" };
+    private HashSet<string> expandedTopics = new();
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<EntityInfo> FilteredQueues
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Queues;
+            }
+            return Queues.Where(q => q.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private IEnumerable<EntityInfo> FilteredTopics
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Topics;
+            }
+            return Topics.Where(t => t.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private IEnumerable<SubscriptionInfo> FilteredSubscriptions(string topicName)
+    {
+        if (!TopicSubscriptions.ContainsKey(topicName))
+        {
+            return Enumerable.Empty<SubscriptionInfo>();
+        }
+
+        var subscriptions = TopicSubscriptions[topicName];
+        
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return subscriptions;
+        }
+        
+        return subscriptions.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = string.Empty;
+    }
+
+    private void ToggleSection(string sectionName)
+    {
+        if (expandedSections.Contains(sectionName))
+        {
+            expandedSections.Remove(sectionName);
+        }
+        else
+        {
+            expandedSections.Add(sectionName);
+        }
+    }
+
+    private async Task SelectQueue(string queueName)
+    {
+        await OnQueueSelected.InvokeAsync(queueName);
+    }
+
+    private async Task SelectTopic(string topicName)
+    {
+        await OnTopicSelected.InvokeAsync(topicName);
+    }
+
+    private async Task SelectSubscription(string topicName, string subscriptionName)
+    {
+        await OnSubscriptionSelected.InvokeAsync((topicName, subscriptionName));
+    }
+
+    private async Task ExpandSubscriptions(string topicName)
+    {
+        expandedTopics.Add(topicName);
+        if (!TopicSubscriptions.ContainsKey(topicName))
+        {
+            await OnLoadSubscriptions.InvokeAsync(topicName);
+        }
+    }
+
+    private void CollapseSubscriptions(string topicName)
+    {
+        expandedTopics.Remove(topicName);
+    }
+
+    private bool IsSelected(string entityType, string entityName)
+    {
+        return SelectedEntityType == entityType && SelectedEntityName == entityName;
+    }
+}

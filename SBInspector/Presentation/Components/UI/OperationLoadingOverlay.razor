@@ -1,0 +1,26 @@
+@if (IsVisible)
+{
+    <div class="operation-overlay">
+        <div class="operation-loading-card">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">@Title</span>
+            </div>
+            <h5>@Title</h5>
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <p>@Message</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Processing...";
+
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+}
