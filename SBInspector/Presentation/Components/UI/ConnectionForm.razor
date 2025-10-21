@@ -3,80 +3,84 @@
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title">Connect to Service Bus</h5>
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h5" Class="mb-4">Connect to Service Bus</MudText>
         
         @if (savedConnections.Any())
         {
-            <div class="mb-3">
-                <label class="form-label">Saved Connections</label>
+            <div class="mb-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Saved Connections</MudText>
                 <div class="d-flex gap-2">
-                    <select class="form-select" @bind="selectedConnectionName">
-                        <option value="">-- Select a saved connection --</option>
+                    <MudSelect T="string" @bind-Value="selectedConnectionName" Label="Select a saved connection" Variant="Variant.Outlined" Dense="true">
+                        <MudSelectItem T="string" Value="@("")">-- Select a saved connection --</MudSelectItem>
                         @foreach (var conn in savedConnections)
                         {
-                            <option value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</option>
+                            <MudSelectItem T="string" Value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</MudSelectItem>
                         }
-                    </select>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="LoadSelectedConnection" disabled="@string.IsNullOrEmpty(selectedConnectionName)">
-                        <i class="bi bi-arrow-down-circle"></i> Load
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedConnection" disabled="@string.IsNullOrEmpty(selectedConnectionName)">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="LoadSelectedConnection" Disabled="@string.IsNullOrEmpty(selectedConnectionName)">
+                        <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Small" Class="mr-1" /> Load
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="DeleteSelectedConnection" Disabled="@string.IsNullOrEmpty(selectedConnectionName)">
+                        <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
+                    </MudButton>
                 </div>
             </div>
         }
         
-        <div class="mb-3">
-            <label for="connectionString" class="form-label">Connection String</label>
-            <input type="password" class="form-control" id="connectionString" @bind="ConnectionString" placeholder="Endpoint=sb://..." />
-        </div>
+        <MudTextField @bind-Value="ConnectionString" 
+                      Label="Connection String" 
+                      Variant="Variant.Outlined" 
+                      InputType="InputType.Password"
+                      Placeholder="Endpoint=sb://..." 
+                      FullWidth="true"
+                      Class="mb-4" />
         
-        <div class="mb-3">
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="saveConnection" @bind="shouldSaveConnection" />
-                <label class="form-check-label" for="saveConnection">
-                    Save this connection for later use
-                </label>
-            </div>
+        <div class="mb-4">
+            <MudCheckBox @bind-Value="shouldSaveConnection" Color="Color.Primary">
+                Save this connection for later use
+            </MudCheckBox>
             @if (shouldSaveConnection)
             {
-                <div class="mt-2">
-                    <input type="text" class="form-control" @bind="connectionName" placeholder="Enter a name for this connection" />
-                </div>
+                <MudTextField @bind-Value="connectionName" 
+                              Label="Connection Name" 
+                              Variant="Variant.Outlined"
+                              Placeholder="Enter a name for this connection" 
+                              FullWidth="true"
+                              Class="mt-2" />
             }
         </div>
         
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
-            <div class="alert alert-danger" role="alert">
-                @ErrorMessage
-            </div>
+            <MudAlert Severity="Severity.Error" Class="mb-4">@ErrorMessage</MudAlert>
         }
         
         @if (!string.IsNullOrEmpty(successMessage))
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle"></i> @successMessage
-                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
-            </div>
+            <MudAlert Severity="Severity.Success" Class="mb-4" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="@(() => successMessage = string.Empty)">
+                @successMessage
+            </MudAlert>
         }
         
-        <button class="btn btn-primary" @onclick="HandleConnectAsync" disabled="@IsConnecting">
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="HandleConnectAsync" 
+                   Disabled="@IsConnecting"
+                   FullWidth="true">
             @if (IsConnecting)
             {
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                <span> Connecting...</span>
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Connecting...</span>
             }
             else
             {
                 <span>Connect</span>
             }
-        </button>
-    </div>
-</div>
+        </MudButton>
+    </MudCardContent>
+</MudCard>
 
 @code {
     [Parameter]

@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider @ref="@_mudThemeProvider" IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudThemeProvider IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -25,7 +25,6 @@
 
 @code {
     private bool _isDarkMode = true;
-    private MudThemeProvider? _mudThemeProvider;
 
     private readonly MudTheme _theme = new()
     {
@@ -37,6 +36,8 @@
             Background = "#ffffff",
             Surface = "#ffffff",
             DrawerBackground = "#ffffff",
+            TextPrimary = "#212529",
+            TextSecondary = "#6c757d",
         },
         PaletteDark = new PaletteDark()
         {
@@ -46,6 +47,8 @@
             Background = "#1e1e1e",
             Surface = "#252525",
             DrawerBackground = "#1e1e1e",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#b0b0b0",
         }
     };
 
@@ -54,9 +57,8 @@
         // No drawer to toggle anymore, but keeping the button for potential future use
     }
 
-    private async Task ToggleDarkMode()
+    private void ToggleDarkMode()
     {
         _isDarkMode = !_isDarkMode;
-        StateHasChanged();
     }
 }
