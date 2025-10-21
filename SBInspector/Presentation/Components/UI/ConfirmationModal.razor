@@ -1,28 +1,20 @@
 @if (IsVisible)
 {
-    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi @IconClass"></i> @Title
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="HandleCancel"></button>
-                </div>
-                <div class="modal-body">
-                    @Message
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
-                        <i class="bi bi-x-lg"></i> Cancel
-                    </button>
-                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">
-                        <i class="bi @ConfirmIconClass"></i> @ConfirmText
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <MudDialog>
+        <TitleContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@GetMudIcon(IconClass)" />
+                <MudText Typo="Typo.h6">@Title</MudText>
+            </MudStack>
+        </TitleContent>
+        <DialogContent>
+            <MudText>@Message</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="HandleCancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+            <MudButton OnClick="HandleConfirm" Color="@GetButtonColor()" Variant="Variant.Filled" StartIcon="@GetMudIcon(ConfirmIconClass)">@ConfirmText</MudButton>
+        </DialogActions>
+    </MudDialog>
 }
 
 @code {
@@ -61,5 +53,31 @@
     private async Task HandleCancel()
     {
         await OnCancel.InvokeAsync();
+    }
+
+    private string GetMudIcon(string bootstrapIcon)
+    {
+        return bootstrapIcon switch
+        {
+            "bi-exclamation-triangle" => Icons.Material.Filled.Warning,
+            "bi-trash" => Icons.Material.Filled.Delete,
+            "bi-check-lg" => Icons.Material.Filled.Check,
+            "bi-arrow-counterclockwise" => Icons.Material.Filled.Refresh,
+            "bi-exclamation-triangle-fill" => Icons.Material.Filled.Warning,
+            "bi-trash-fill" => Icons.Material.Filled.Delete,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private Color GetButtonColor()
+    {
+        return ConfirmButtonClass switch
+        {
+            "btn-danger" => Color.Error,
+            "btn-success" => Color.Success,
+            "btn-warning" => Color.Warning,
+            "btn-primary" => Color.Primary,
+            _ => Color.Primary
+        };
     }
 }

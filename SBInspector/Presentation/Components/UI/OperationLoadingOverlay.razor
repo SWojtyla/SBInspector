@@ -1,17 +1,15 @@
 @if (IsVisible)
 {
-    <div class="operation-overlay">
-        <div class="operation-loading-card">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">@Title</span>
-            </div>
-            <h5>@Title</h5>
+    <MudOverlay Visible="true" DarkBackground="true" Absolute="false">
+        <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="10">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Typo="Typo.h5" Class="mt-4">@Title</MudText>
             @if (!string.IsNullOrEmpty(Message))
             {
-                <p>@Message</p>
+                <MudText Typo="Typo.body1" Class="mt-2">@Message</MudText>
             }
-        </div>
-    </div>
+        </MudPaper>
+    </MudOverlay>
 }
 
 @code {

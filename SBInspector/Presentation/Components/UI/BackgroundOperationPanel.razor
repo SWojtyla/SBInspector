@@ -1,88 +1,33 @@
 @if (IsVisible)
 {
-    <div class="background-operation-panel">
-        <div class="background-operation-card">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">
-                        <i class="bi bi-arrow-repeat spinning"></i> @Title
-                    </h6>
-                    @if (!string.IsNullOrEmpty(Message))
-                    {
-                        <p class="mb-2 text-muted small">@Message</p>
-                    }
-                    @if (Progress > 0)
-                    {
-                        <div class="progress mb-2" style="height: 20px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" 
-                                 style="width: 100%">
-                                @Progress deleted
-                            </div>
-                        </div>
-                    }
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="HandleCancel" title="Cancel operation">
-                    <i class="bi bi-x-circle"></i> Cancel
-                </button>
-            </div>
-        </div>
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1050; max-width: 400px;">
+        <MudPaper Elevation="8" Class="pa-4">
+            <MudStack Spacing="2">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                    <MudStack Spacing="1" Style="flex-grow: 1;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            <MudText Typo="Typo.subtitle1">@Title</MudText>
+                        </MudStack>
+                        @if (!string.IsNullOrEmpty(Message))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Default">@Message</MudText>
+                        }
+                        @if (Progress > 0)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+                            <MudText Typo="Typo.body2">@Progress deleted</MudText>
+                        }
+                    </MudStack>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                   Color="Color.Error" 
+                                   Size="Size.Small" 
+                                   OnClick="HandleCancel" />
+                </MudStack>
+            </MudStack>
+        </MudPaper>
     </div>
 }
-
-<style>
-    .background-operation-panel {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1050;
-        max-width: 400px;
-        animation: slideInRight 0.3s ease-out;
-    }
-
-    .background-operation-card {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .background-operation-card h6 {
-        margin: 0;
-        font-weight: 600;
-        color: #333;
-    }
-
-    .background-operation-card p {
-        margin: 0;
-    }
-
-    @@keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @@keyframes spinning {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .spinning {
-        display: inline-block;
-        animation: spinning 1s linear infinite;
-    }
-</style>
 
 @code {
     [Parameter]
