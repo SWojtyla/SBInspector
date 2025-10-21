@@ -36,7 +36,8 @@
                     OnQueueSelected="@HandleQueueSelected"
                     OnTopicSelected="@HandleTopicSelected"
                     OnSubscriptionSelected="@HandleSubscriptionSelected"
-                    OnLoadSubscriptions="@LoadSubscriptionsForTopic" />
+                    OnLoadSubscriptions="@LoadSubscriptionsForTopic"
+                    OnRefresh="@HandleRefreshEntities" />
             </div>
 
             <div class="split-panel-right">
@@ -60,7 +61,8 @@
                         OnRescheduleMessage="@HandleRescheduleMessage"
                         OnSendNew="@HandleSendNewMessage"
                         OnPurge="@HandlePurgeMessages"
-                        OnLoadMore="@LoadMoreMessages" />
+                        OnLoadMore="@LoadMoreMessages"
+                        OnRefresh="@HandleRefreshMessages" />
                 }
                 else
                 {
@@ -194,6 +196,15 @@
         await LoadAllEntitiesAsync();
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        // If already connected (e.g., after page refresh), reload entities
+        if (ServiceBusService.IsConnected)
+        {
+            await LoadAllEntitiesAsync();
+        }
+    }
+
     private void Disconnect()
     {
         ServiceBusService.Disconnect();
@@ -222,6 +233,56 @@
         {
             queues = await ServiceBusService.GetQueuesAsync();
             topics = await ServiceBusService.GetTopicsAsync();
+        }
+        finally
+        {
+            isLoadingEntities = false;
+        }
+    }
+
+    private async Task HandleRefreshEntities()
+    {
+        isLoadingEntities = true;
+        
+        try
+        {
+            // Reload all queues and topics
+            queues = await ServiceBusService.GetQueuesAsync();
+            topics = await ServiceBusService.GetTopicsAsync();
+            
+            // Reload subscriptions for expanded topics
+            var expandedTopicsList = topicSubscriptions.Keys.ToList();
+            foreach (var topicName in expandedTopicsList)
+            {
+                loadingTopics.Add(topicName);
+                try
+                {
+                    var subs = await ServiceBusService.GetSubscriptionsAsync(topicName);
+                    topicSubscriptions[topicName] = subs;
+                }
+                finally
+                {
+                    loadingTopics.Remove(topicName);
+                }
+            }
+            
+            // Update selected entity info if applicable
+            if (selectedEntityType == "queue" && !string.IsNullOrEmpty(selectedEntityName))
+            {
+                selectedQueueInfo = queues.FirstOrDefault(q => q.Name == selectedEntityName);
+            }
+            else if (selectedEntityType == "topic" && !string.IsNullOrEmpty(selectedEntityName))
+            {
+                selectedTopicInfo = topics.FirstOrDefault(t => t.Name == selectedEntityName);
+            }
+            else if (selectedEntityType == "subscription" && !string.IsNullOrEmpty(selectedTopicForSubscription))
+            {
+                var parts = selectedEntityName?.Split('/');
+                if (parts?.Length == 2 && topicSubscriptions.ContainsKey(parts[0]))
+                {
+                    selectedSubscriptionInfo = topicSubscriptions[parts[0]].FirstOrDefault(s => s.Name == parts[1]);
+                }
+            }
         }
         finally
         {
@@ -432,6 +493,43 @@
         finally
         {
             isLoadingMoreMessages = false;
+        }
+    }
+
+    private async Task HandleRefreshMessages()
+    {
+        if (string.IsNullOrEmpty(selectedEntity)) return;
+        
+        isLoadingMessages = true;
+        
+        try
+        {
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                messages = await ServiceBusService.GetSubscriptionMessagesAsync(
+                    selectedTopic, 
+                    selectedSubscriptionName, 
+                    selectedMessageType, 
+                    pageSize);
+            }
+            else
+            {
+                // It's a queue
+                messages = await ServiceBusService.GetMessagesAsync(
+                    selectedEntity, 
+                    selectedMessageType, 
+                    pageSize);
+            }
+            
+            hasMoreMessages = messages.Count == pageSize;
+            
+            // Also refresh entity counts
+            await RefreshEntityCounts();
+        }
+        finally
+        {
+            isLoadingMessages = false;
         }
     }
 
