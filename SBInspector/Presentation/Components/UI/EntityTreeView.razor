@@ -2,7 +2,15 @@
 
 <div class="entity-tree-container">
     <div class="tree-header">
-        <h5 class="mb-3"><i class="bi bi-diagram-3"></i> Service Bus Entities</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Service Bus Entities</h5>
+            @if (!IsLoading)
+            {
+                <button class="btn btn-sm btn-primary" @onclick="HandleRefresh" title="Refresh all entities">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            }
+        </div>
         @if (IsLoading)
         {
             <div class="text-center">
@@ -204,6 +212,9 @@
     [Parameter]
     public EventCallback<string> OnLoadSubscriptions { get; set; }
 
+    [Parameter]
+    public EventCallback OnRefresh { get; set; }
+
     private HashSet<string> expandedSections = new() { "queues", "topics" };
     private HashSet<string> expandedTopics = new();
     private string searchTerm = string.Empty;
@@ -252,6 +263,11 @@
     private void ClearSearch()
     {
         searchTerm = string.Empty;
+    }
+
+    private async Task HandleRefresh()
+    {
+        await OnRefresh.InvokeAsync();
     }
 
     private void ToggleSection(string sectionName)
