@@ -70,6 +70,7 @@
                         TopicInfo="@selectedTopicInfo"
                         SubscriptionInfo="@selectedSubscriptionInfo"
                         TopicName="@selectedTopicForSubscription"
+                        TopicSubscriptions="@GetTopicSubscriptions()"
                         OnViewMessages="@HandleViewMessagesFromDetails"
                         OnToggleStatus="@HandleToggleStatusFromDetails" />
                 }
@@ -1008,5 +1009,14 @@
                 }
             }
         }
+    }
+
+    private List<SubscriptionInfo>? GetTopicSubscriptions()
+    {
+        if (selectedEntityType == "topic" && !string.IsNullOrEmpty(selectedEntityName) && topicSubscriptions.ContainsKey(selectedEntityName))
+        {
+            return topicSubscriptions[selectedEntityName];
+        }
+        return null;
     }
 }

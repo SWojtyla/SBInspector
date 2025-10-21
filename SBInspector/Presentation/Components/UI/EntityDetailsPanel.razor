@@ -81,8 +81,33 @@
         </div>
 
         <div class="details-content">
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> Select a subscription from the tree to view its messages.
+            @if (TopicSubscriptions != null && TopicSubscriptions.Any())
+            {
+                <h5>Aggregated Message Counts (All Subscriptions)</h5>
+                <div class="message-type-cards">
+                    <div class="message-type-card">
+                        <div class="message-type-icon active">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <div class="message-type-info">
+                            <h6>Active Messages</h6>
+                            <span class="message-count">@TotalActiveMessages</span>
+                        </div>
+                    </div>
+
+                    <div class="message-type-card">
+                        <div class="message-type-icon deadletter">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div class="message-type-info">
+                            <h6>Dead Letter Messages</h6>
+                            <span class="message-count">@TotalDeadLetterMessages</span>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i> Select a subscription from the tree to view and manage its messages, including scheduled messages.
             </div>
         </div>
     }
@@ -117,6 +142,17 @@
                     {
                         <button class="btn btn-sm btn-primary">View</button>
                     }
+                </div>
+
+                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Scheduled"))">
+                    <div class="message-type-icon scheduled">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="message-type-info">
+                        <h6>Scheduled Messages</h6>
+                        <span class="message-count text-muted">-</span>
+                    </div>
+                    <button class="btn btn-sm btn-warning">View</button>
                 </div>
 
                 <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
@@ -162,8 +198,14 @@
     public string? TopicName { get; set; }
 
     [Parameter]
+    public List<SubscriptionInfo>? TopicSubscriptions { get; set; }
+
+    [Parameter]
     public EventCallback<string> OnViewMessages { get; set; }
 
     [Parameter]
     public EventCallback OnToggleStatus { get; set; }
+
+    private long TotalActiveMessages => TopicSubscriptions?.Sum(s => s.ActiveMessageCount) ?? 0;
+    private long TotalDeadLetterMessages => TopicSubscriptions?.Sum(s => s.DeadLetterMessageCount) ?? 0;
 }
