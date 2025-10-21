@@ -1,94 +1,101 @@
 @using SBInspector.Core.Domain
 @using DomainFilterOperator = SBInspector.Core.Domain.FilterOperator
 
-<div class="filter-panel mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">
-            <i class="bi bi-funnel"></i> Filter Messages
-        </h5>
+<MudPaper Class="pa-4 mb-3" Elevation="2">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.FilterList" />
+            <MudText Typo="Typo.h6">Filter Messages</MudText>
+        </MudStack>
         @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
         {
-            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAllFilters">
-                <i class="bi bi-x-circle"></i> Clear All
-            </button>
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="ClearAllFilters" StartIcon="@Icons.Material.Filled.Clear">
+                Clear All
+            </MudButton>
         }
-    </div>
+    </MudStack>
     
     @for (int i = 0; i < Filters.Count; i++)
     {
         var index = i;
         var filter = Filters[index];
-        <div class="card mb-2" style="border: 1px solid #dee2e6;">
-            <div class="card-body p-3">
-                <div class="row g-2">
-                    <div class="col-md-3">
-                        <label for="filterField_@index" class="form-label fw-semibold">Filter Field</label>
-                        <select class="form-select form-select-sm" id="filterField_@index" 
-                                value="@filter.Field" 
-                                @onchange="@(async e => { filter.Field = Enum.Parse<FilterField>(e.Value?.ToString() ?? "ApplicationProperty"); await NotifyFiltersChanged(); })">
-                            <option value="@FilterField.ApplicationProperty">Application Property</option>
-                            <option value="@FilterField.EnqueuedTime">Enqueued Time</option>
-                            <option value="@FilterField.DeliveryCount">Delivery Count</option>
-                            <option value="@FilterField.SequenceNumber">Sequence Number</option>
-                        </select>
-                    </div>
+        <MudCard Class="mb-2" Elevation="1">
+            <MudCardContent>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="3">
+                        <MudSelect T="FilterField" Value="filter.Field" 
+                                   Label="Filter Field" 
+                                   Variant="Variant.Outlined" 
+                                   Margin="Margin.Dense"
+                                   ValueChanged="@(async (FilterField val) => { filter.Field = val; await NotifyFiltersChanged(); })">
+                            <MudSelectItem T="FilterField" Value="@FilterField.ApplicationProperty">Application Property</MudSelectItem>
+                            <MudSelectItem T="FilterField" Value="@FilterField.EnqueuedTime">Enqueued Time</MudSelectItem>
+                            <MudSelectItem T="FilterField" Value="@FilterField.DeliveryCount">Delivery Count</MudSelectItem>
+                            <MudSelectItem T="FilterField" Value="@FilterField.SequenceNumber">Sequence Number</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
                     
                     @if (filter.Field == FilterField.ApplicationProperty)
                     {
-                        <div class="col-md-3">
-                            <label for="filterAttributeName_@index" class="form-label fw-semibold">Attribute Name</label>
-                            <input type="text" class="form-control form-control-sm" id="filterAttributeName_@index" 
-                                   value="@filter.AttributeName" 
-                                   @oninput="@(async e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
-                                   placeholder="e.g., customerId, orderId" />
-                        </div>
+                        <MudItem xs="12" md="3">
+                            <MudTextField T="string" Value="filter.AttributeName" 
+                                          Label="Attribute Name" 
+                                          Variant="Variant.Outlined" 
+                                          Margin="Margin.Dense"
+                                          Placeholder="e.g., customerId, orderId"
+                                          ValueChanged="@(async (string val) => { filter.AttributeName = val; await NotifyFiltersChanged(); })" />
+                        </MudItem>
                     }
                     
-                    <div class="col-md-@(filter.Field == FilterField.ApplicationProperty ? "2" : "3")">
-                        <label for="filterOperator_@index" class="form-label fw-semibold">Operator</label>
-                        <select class="form-select form-select-sm" id="filterOperator_@index" 
-                                value="@filter.Operator" 
-                                @onchange="@(async e => { filter.Operator = Enum.Parse<DomainFilterOperator>(e.Value?.ToString() ?? "Contains"); await NotifyFiltersChanged(); })">
+                    <MudItem xs="12" md="@(filter.Field == FilterField.ApplicationProperty ? 2 : 3)">
+                        <MudSelect T="DomainFilterOperator" Value="filter.Operator" 
+                                   Label="Operator" 
+                                   Variant="Variant.Outlined" 
+                                   Margin="Margin.Dense"
+                                   ValueChanged="@(async (DomainFilterOperator val) => { filter.Operator = val; await NotifyFiltersChanged(); })">
                             @foreach (var op in GetAvailableOperators(filter.Field))
                             {
-                                <option value="@op">@GetOperatorDisplayName(op)</option>
+                                <MudSelectItem T="DomainFilterOperator" Value="@op">@GetOperatorDisplayName(op)</MudSelectItem>
                             }
-                        </select>
-                    </div>
+                        </MudSelect>
+                    </MudItem>
                     
-                    <div class="col-md-@(filter.Field == FilterField.ApplicationProperty ? "3" : "4")">
-                        <label for="filterAttributeValue_@index" class="form-label fw-semibold">Value</label>
-                        <input type="@GetInputType(filter.Field)" class="form-control form-control-sm" id="filterAttributeValue_@index" 
-                               value="@filter.AttributeValue" 
-                               @oninput="@(async e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
-                               placeholder="@GetPlaceholder(filter.Field, filter.Operator)" />
-                    </div>
+                    <MudItem xs="12" md="@(filter.Field == FilterField.ApplicationProperty ? 3 : 4)">
+                        <MudTextField T="string" Value="filter.AttributeValue" 
+                                      Label="Value" 
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense"
+                                      InputType="@GetMudInputType(filter.Field)"
+                                      Placeholder="@GetPlaceholder(filter.Field, filter.Operator)"
+                                      ValueChanged="@(async (string val) => { filter.AttributeValue = val; await NotifyFiltersChanged(); })" />
+                    </MudItem>
                     
-                    <div class="col-md-1 d-flex align-items-end">
+                    <MudItem xs="12" md="1" Class="d-flex align-end">
                         @if (Filters.Count > 1)
                         {
-                            <button class="btn btn-sm btn-outline-danger w-100" @onclick="() => RemoveFilterAtIndex(index)" title="Remove this filter">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                           Color="Color.Error" 
+                                           Variant="Variant.Outlined" 
+                                           OnClick="() => RemoveFilterAtIndex(index)" />
                         }
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
     }
     
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <button class="btn btn-sm btn-outline-primary" @onclick="AddNewFilter">
-            <i class="bi bi-plus-circle"></i> Add Filter
-        </button>
-        <div class="text-muted">
-            <i class="bi bi-info-circle"></i>
-            <small>
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-3">
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="AddNewFilter" StartIcon="@Icons.Material.Filled.Add">
+            Add Filter
+        </MudButton>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Color="Color.Default">
                 Showing <strong>@FilteredCount</strong> of <strong>@TotalCount</strong> messages
-            </small>
-        </div>
-    </div>
-</div>
+            </MudText>
+        </MudStack>
+    </MudStack>
+</MudPaper>
 
 @code {
     [Parameter]
@@ -190,6 +197,16 @@
             FilterField.EnqueuedTime => "datetime-local",
             FilterField.DeliveryCount or FilterField.SequenceNumber => "number",
             _ => "text"
+        };
+    }
+
+    private InputType GetMudInputType(FilterField field)
+    {
+        return field switch
+        {
+            FilterField.EnqueuedTime => InputType.DateTimeLocal,
+            FilterField.DeliveryCount or FilterField.SequenceNumber => InputType.Number,
+            _ => InputType.Text
         };
     }
 
