@@ -3,12 +3,16 @@ using SBInspector.Core.Interfaces;
 using SBInspector.Infrastructure.ServiceBus;
 using SBInspector.Infrastructure.Storage;
 using SBInspector.Application.Services;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add MudBlazor services
+builder.Services.AddMudServices();
 
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
