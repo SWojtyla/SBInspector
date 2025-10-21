@@ -5,6 +5,11 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 ## Features
 
 - Connect to Azure Service Bus using a connection string
+- **Refresh Functionality**:
+  - Refresh button to reload all queues, topics, and subscriptions with updated counts
+  - Refresh button on messages panel to reload current messages
+  - Auto-reload entities after browser page refresh (fixes disappearing entities bug)
+  - See [REFRESH_FUNCTIONALITY.md](REFRESH_FUNCTIONALITY.md) for detailed documentation
 - **Tree View Navigation**:
   - Hierarchical tree view showing all queues, topics, and subscriptions
   - Split-panel layout with tree on left and details on right
