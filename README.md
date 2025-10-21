@@ -19,13 +19,14 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
   - See [ENABLE_DISABLE.md](ENABLE_DISABLE.md) for detailed documentation
 - Inspect messages in queues:
   - Active messages
-  - Scheduled messages
+  - Scheduled messages (with count)
   - Dead-letter messages
 - View topic subscriptions
 - Inspect messages in topic subscriptions:
   - Active messages
-  - Scheduled messages
+  - **Scheduled messages** (view and reschedule messages scheduled for future delivery)
   - Dead-letter messages
+  - See [SCHEDULED_MESSAGES.md](SCHEDULED_MESSAGES.md) for detailed documentation
 - View detailed message information including:
   - Message ID, Subject, Content Type
   - Enqueued time and scheduled enqueue time
