@@ -473,7 +473,7 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
-    public async Task<int> PurgeMessagesAsync(string entityName, string messageType, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<int> PurgeMessagesAsync(string entityName, string messageType, bool isSubscription = false, string? topicName = null, string? subscriptionName = null, CancellationToken cancellationToken = default, IProgress<int>? progress = null)
     {
         if (_client == null) return 0;
 
@@ -506,6 +506,9 @@ public class ServiceBusService : IServiceBusService
             // Keep receiving and deleting messages in batches until no more messages
             while (true)
             {
+                // Check for cancellation
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
                 
                 if (messages.Count == 0)
@@ -515,14 +518,22 @@ public class ServiceBusService : IServiceBusService
 
                 totalDeleted += messages.Count;
                 
+                // Report progress
+                progress?.Report(totalDeleted);
+                
                 // Messages are automatically deleted when using ReceiveAndDelete mode
                 // Add a small delay to avoid overwhelming the service
                 if (messages.Count == 100)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(100, cancellationToken);
                 }
             }
 
+            return totalDeleted;
+        }
+        catch (OperationCanceledException)
+        {
+            // Return partial count if cancelled
             return totalDeleted;
         }
         catch

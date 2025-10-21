@@ -136,6 +136,13 @@
             </div>
         }
 
+        <BackgroundOperationPanel
+            IsVisible="@isPurgeInProgress"
+            Title="Purging Messages"
+            Message="@purgeProgressMessage"
+            Progress="@purgeProgress"
+            OnCancel="@CancelPurge" />
+
         <OperationLoadingOverlay 
             IsVisible="@isOperationInProgress"
             Title="@operationLoadingTitle"
@@ -445,6 +452,12 @@
     private bool isOperationInProgress = false;
     private string operationLoadingTitle = string.Empty;
     private string operationLoadingMessage = string.Empty;
+    
+    // Purge operation state
+    private bool isPurgeInProgress = false;
+    private string purgeProgressMessage = string.Empty;
+    private int purgeProgress = 0;
+    private CancellationTokenSource? purgeCancellationTokenSource = null;
 
     private void HandleDeleteMessage(MessageInfo message)
     {
@@ -743,67 +756,139 @@
         operationErrorMessage = string.Empty;
         successMessage = string.Empty;
 
-        isOperationInProgress = true;
-        operationLoadingTitle = "Purging Messages";
-        operationLoadingMessage = "Please wait while all messages are being deleted. This may take a while...";
+        isPurgeInProgress = true;
+        purgeProgress = 0;
+        purgeCancellationTokenSource = new CancellationTokenSource();
 
-        try
+        var messageTypeDisplay = selectedMessageType switch
         {
-            int deletedCount;
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+        
+        purgeProgressMessage = $"Deleting {messageTypeDisplay} messages from '{selectedEntity}'...";
 
-            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+        // Run purge in background
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                // It's a subscription
-                deletedCount = await ServiceBusService.PurgeMessagesAsync(
-                    selectedEntity,
-                    selectedMessageType,
-                    isSubscription: true,
-                    topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
-            }
-            else
-            {
-                // It's a queue
-                deletedCount = await ServiceBusService.PurgeMessagesAsync(
-                    selectedEntity,
-                    selectedMessageType);
-            }
+                var progress = new Progress<int>(count =>
+                {
+                    purgeProgress = count;
+                    InvokeAsync(StateHasChanged);
+                });
 
-            if (deletedCount > 0)
+                int deletedCount;
+
+                if (!string.IsNullOrEmpty(selectedSubscriptionName))
+                {
+                    // It's a subscription
+                    deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                        selectedEntity,
+                        selectedMessageType,
+                        isSubscription: true,
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName,
+                        cancellationToken: purgeCancellationTokenSource.Token,
+                        progress: progress);
+                }
+                else
+                {
+                    // It's a queue
+                    deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                        selectedEntity,
+                        selectedMessageType,
+                        cancellationToken: purgeCancellationTokenSource.Token,
+                        progress: progress);
+                }
+
+                await InvokeAsync(async () =>
+                {
+                    isPurgeInProgress = false;
+                    
+                    if (purgeCancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        successMessage = $"Purge cancelled. Deleted {deletedCount} message(s) before cancellation.";
+                    }
+                    else if (deletedCount > 0)
+                    {
+                        // Clear the messages list
+                        messages.Clear();
+                        hasMoreMessages = false;
+                        
+                        // Refresh entity counts to update the tree
+                        await RefreshEntityCounts();
+                        
+                        successMessage = $"Successfully purged {deletedCount} message(s).";
+                    }
+                    else
+                    {
+                        operationErrorMessage = "No messages were found to purge.";
+                    }
+                    
+                    StateHasChanged();
+                    
+                    await Task.Delay(3000);
+                    successMessage = string.Empty;
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException)
             {
-                // Clear the messages list
-                messages.Clear();
-                hasMoreMessages = false;
+                await InvokeAsync(() =>
+                {
+                    isPurgeInProgress = false;
+                    successMessage = $"Purge cancelled. Deleted {purgeProgress} message(s) before cancellation.";
+                    StateHasChanged();
+                });
                 
-                // Refresh entity counts to update the tree
-                await RefreshEntityCounts();
-                
-                successMessage = $"Successfully purged {deletedCount} message(s).";
                 await Task.Delay(3000);
-                successMessage = string.Empty;
+                await InvokeAsync(() =>
+                {
+                    successMessage = string.Empty;
+                    StateHasChanged();
+                });
             }
-            else
+            catch (Exception ex)
             {
-                operationErrorMessage = "No messages were found to purge.";
+                await InvokeAsync(() =>
+                {
+                    isPurgeInProgress = false;
+                    operationErrorMessage = $"Error purging messages: {ex.Message}";
+                    StateHasChanged();
+                });
+                
                 await Task.Delay(5000);
-                operationErrorMessage = string.Empty;
+                await InvokeAsync(() =>
+                {
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
             }
-        }
-        catch (Exception ex)
-        {
-            operationErrorMessage = $"Error purging messages: {ex.Message}";
-            await Task.Delay(5000);
-            operationErrorMessage = string.Empty;
-        }
-        finally
-        {
-            isOperationInProgress = false;
-        }
+            finally
+            {
+                purgeCancellationTokenSource?.Dispose();
+                purgeCancellationTokenSource = null;
+            }
+        });
     }
 
     private void CancelPurge()
     {
-        showPurgeConfirmation = false;
+        if (showPurgeConfirmation)
+        {
+            // Cancel the confirmation dialog
+            showPurgeConfirmation = false;
+        }
+        else if (isPurgeInProgress)
+        {
+            // Cancel the running purge operation
+            purgeCancellationTokenSource?.Cancel();
+        }
     }
 
     private async Task HandleToggleQueueStatus(string queueName)
