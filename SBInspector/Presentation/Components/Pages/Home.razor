@@ -6,22 +6,21 @@
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
-<div class="container-fluid mt-4">
-    <h1 class="mb-4">Azure Service Bus Inspector</h1>
+<MudText Typo="Typo.h3" Class="mb-4">Azure Service Bus Inspector</MudText>
 
-    @if (!ServiceBusService.IsConnected)
-    {
-        <ConnectionForm 
-            @bind-ConnectionString="@connectionString"
-            @bind-ErrorMessage="@errorMessage"
-            @bind-IsConnecting="@isConnecting"
-            OnConnected="@HandleConnected" />
-    }
-    else
-    {
-        <div class="mb-3">
-            <button class="btn btn-danger" @onclick="Disconnect">Disconnect</button>
-        </div>
+@if (!ServiceBusService.IsConnected)
+{
+    <ConnectionForm 
+        @bind-ConnectionString="@connectionString"
+        @bind-ErrorMessage="@errorMessage"
+        @bind-IsConnecting="@isConnecting"
+        OnConnected="@HandleConnected" />
+}
+else
+{
+    <div class="mb-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Disconnect" StartIcon="@Icons.Material.Filled.PowerSettingsNew">Disconnect</MudButton>
+    </div>
 
         <div class="split-panel-container">
             <div class="split-panel-left">
@@ -124,17 +123,19 @@
 
         @if (!string.IsNullOrEmpty(successMessage))
         {
-            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
-                <i class="bi bi-check-circle"></i> @successMessage
-                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+            <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;">
+                <MudAlert Severity="Severity.Success" CloseIconClicked="() => successMessage = string.Empty" ShowCloseIcon="true">
+                    @successMessage
+                </MudAlert>
             </div>
         }
 
         @if (!string.IsNullOrEmpty(operationErrorMessage))
         {
-            <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
-                <i class="bi bi-exclamation-triangle"></i> @operationErrorMessage
-                <button type="button" class="btn-close" @onclick="() => operationErrorMessage = string.Empty"></button>
+            <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;">
+                <MudAlert Severity="Severity.Error" CloseIconClicked="() => operationErrorMessage = string.Empty" ShowCloseIcon="true">
+                    @operationErrorMessage
+                </MudAlert>
             </div>
         }
 
@@ -150,7 +151,6 @@
             Title="@operationLoadingTitle"
             Message="@operationLoadingMessage" />
     }
-</div>
 
 @code {
     private string connectionString = string.Empty;
