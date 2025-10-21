@@ -1,6 +1,7 @@
 using SBInspector.Presentation.Components;
 using SBInspector.Core.Interfaces;
 using SBInspector.Infrastructure.ServiceBus;
+using SBInspector.Infrastructure.Storage;
 using SBInspector.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ builder.Services.AddRazorComponents()
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
+builder.Services.AddScoped<IStorageService, LocalStorageService>();
 
 var app = builder.Build();
 
