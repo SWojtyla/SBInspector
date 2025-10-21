@@ -1,7 +1,6 @@
 @rendermode InteractiveServer
 @inject ThemeService ThemeService
 @inject IJSRuntime JSRuntime
-@implements IDisposable
 
 <button class="btn btn-outline-secondary btn-sm theme-toggle" @onclick="ToggleThemeAsync" title="@GetThemeTooltip()">
     @if (ThemeService.IsDarkMode)
@@ -15,27 +14,37 @@
 </button>
 
 @code {
-    protected override void OnInitialized()
-    {
-        ThemeService.OnThemeChanged += StateHasChanged;
-    }
+    private bool _isProcessing = false;
 
     private async Task ToggleThemeAsync()
     {
-        ThemeService.ToggleTheme();
-        var isDarkMode = ThemeService.IsDarkMode;
-        
+        // Prevent multiple simultaneous clicks
+        if (_isProcessing)
+            return;
+
         try
         {
+            _isProcessing = true;
+            ThemeService.ToggleTheme();
+            var isDarkMode = ThemeService.IsDarkMode;
+            
             var script = isDarkMode 
                 ? "document.body.classList.remove('light-theme'); document.body.classList.add('dark-theme');"
                 : "document.body.classList.remove('dark-theme'); document.body.classList.add('light-theme');";
             
             await JSRuntime.InvokeVoidAsync("eval", script);
+            
+            // Update the UI to reflect the new theme state
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error toggling theme: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            _isProcessing = false;
         }
     }
 
@@ -43,9 +52,5 @@
     {
         return ThemeService.IsDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
     }
-
-    public void Dispose()
-    {
-        ThemeService.OnThemeChanged -= StateHasChanged;
-    }
 }
+

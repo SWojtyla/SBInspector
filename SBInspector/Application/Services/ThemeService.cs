@@ -4,19 +4,10 @@ public class ThemeService
 {
     private bool _isDarkMode;
 
-    public event Action? OnThemeChanged;
-
     public bool IsDarkMode
     {
         get => _isDarkMode;
-        private set
-        {
-            if (_isDarkMode != value)
-            {
-                _isDarkMode = value;
-                OnThemeChanged?.Invoke();
-            }
-        }
+        private set => _isDarkMode = value;
     }
 
     public void ToggleTheme()
