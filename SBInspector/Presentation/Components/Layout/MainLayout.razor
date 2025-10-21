@@ -1,23 +1,62 @@
 ﻿@inherits LayoutComponentBase
+@inject ISnackbar Snackbar
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<MudThemeProvider @ref="@_mudThemeProvider" @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h6" Class="ml-3">SBInspector</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Href="/" title="Home" />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                       Color="Color.Inherit" 
+                       OnClick="@ToggleDarkMode" 
+                       title="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")" />
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
             @Body
-        </article>
-    </main>
-</div>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+@code {
+    private bool _isDarkMode = true;
+    private MudThemeProvider? _mudThemeProvider;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#1b6ec2",
+            Secondary = "#006bb7",
+            AppbarBackground = "#1b6ec2",
+            Background = "#ffffff",
+            Surface = "#ffffff",
+            DrawerBackground = "#ffffff",
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#3a8bd8",
+            Secondary = "#2d9cdb",
+            AppbarBackground = "#1e1e1e",
+            Background = "#1e1e1e",
+            Surface = "#252525",
+            DrawerBackground = "#1e1e1e",
+        }
+    };
+
+    private void ToggleDrawer()
+    {
+        // No drawer to toggle anymore, but keeping the button for potential future use
+    }
+
+    private void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+}

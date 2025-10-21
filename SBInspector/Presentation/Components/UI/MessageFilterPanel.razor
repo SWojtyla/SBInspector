@@ -1,4 +1,5 @@
 @using SBInspector.Core.Domain
+@using DomainFilterOperator = SBInspector.Core.Domain.FilterOperator
 
 <div class="filter-panel mb-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -47,7 +48,7 @@
                         <label for="filterOperator_@index" class="form-label fw-semibold">Operator</label>
                         <select class="form-select form-select-sm" id="filterOperator_@index" 
                                 value="@filter.Operator" 
-                                @onchange="@(async e => { filter.Operator = Enum.Parse<FilterOperator>(e.Value?.ToString() ?? "Contains"); await NotifyFiltersChanged(); })">
+                                @onchange="@(async e => { filter.Operator = Enum.Parse<DomainFilterOperator>(e.Value?.ToString() ?? "Contains"); await NotifyFiltersChanged(); })">
                             @foreach (var op in GetAvailableOperators(filter.Field))
                             {
                                 <option value="@op">@GetOperatorDisplayName(op)</option>
@@ -129,55 +130,55 @@
         await FiltersChanged.InvokeAsync(Filters);
     }
 
-    private List<FilterOperator> GetAvailableOperators(FilterField field)
+    private List<DomainFilterOperator> GetAvailableOperators(FilterField field)
     {
         return field switch
         {
-            FilterField.ApplicationProperty => new List<FilterOperator>
+            FilterField.ApplicationProperty => new List<DomainFilterOperator>
             {
-                FilterOperator.Contains,
-                FilterOperator.Equals,
-                FilterOperator.NotEquals,
-                FilterOperator.Regex,
-                FilterOperator.GreaterThan,
-                FilterOperator.LessThan,
-                FilterOperator.GreaterThanOrEqual,
-                FilterOperator.LessThanOrEqual
+                DomainFilterOperator.Contains,
+                DomainFilterOperator.Equals,
+                DomainFilterOperator.NotEquals,
+                DomainFilterOperator.Regex,
+                DomainFilterOperator.GreaterThan,
+                DomainFilterOperator.LessThan,
+                DomainFilterOperator.GreaterThanOrEqual,
+                DomainFilterOperator.LessThanOrEqual
             },
-            FilterField.EnqueuedTime => new List<FilterOperator>
+            FilterField.EnqueuedTime => new List<DomainFilterOperator>
             {
-                FilterOperator.Equals,
-                FilterOperator.NotEquals,
-                FilterOperator.GreaterThan,
-                FilterOperator.LessThan,
-                FilterOperator.GreaterThanOrEqual,
-                FilterOperator.LessThanOrEqual
+                DomainFilterOperator.Equals,
+                DomainFilterOperator.NotEquals,
+                DomainFilterOperator.GreaterThan,
+                DomainFilterOperator.LessThan,
+                DomainFilterOperator.GreaterThanOrEqual,
+                DomainFilterOperator.LessThanOrEqual
             },
-            FilterField.DeliveryCount or FilterField.SequenceNumber => new List<FilterOperator>
+            FilterField.DeliveryCount or FilterField.SequenceNumber => new List<DomainFilterOperator>
             {
-                FilterOperator.Equals,
-                FilterOperator.NotEquals,
-                FilterOperator.GreaterThan,
-                FilterOperator.LessThan,
-                FilterOperator.GreaterThanOrEqual,
-                FilterOperator.LessThanOrEqual
+                DomainFilterOperator.Equals,
+                DomainFilterOperator.NotEquals,
+                DomainFilterOperator.GreaterThan,
+                DomainFilterOperator.LessThan,
+                DomainFilterOperator.GreaterThanOrEqual,
+                DomainFilterOperator.LessThanOrEqual
             },
-            _ => new List<FilterOperator> { FilterOperator.Contains }
+            _ => new List<DomainFilterOperator> { DomainFilterOperator.Contains }
         };
     }
 
-    private string GetOperatorDisplayName(FilterOperator op)
+    private string GetOperatorDisplayName(DomainFilterOperator op)
     {
         return op switch
         {
-            FilterOperator.Contains => "Contains",
-            FilterOperator.Equals => "Equals",
-            FilterOperator.NotEquals => "Not Equals",
-            FilterOperator.GreaterThan => "Greater Than",
-            FilterOperator.LessThan => "Less Than",
-            FilterOperator.GreaterThanOrEqual => "Greater Than or Equal",
-            FilterOperator.LessThanOrEqual => "Less Than or Equal",
-            FilterOperator.Regex => "Regex",
+            DomainFilterOperator.Contains => "Contains",
+            DomainFilterOperator.Equals => "Equals",
+            DomainFilterOperator.NotEquals => "Not Equals",
+            DomainFilterOperator.GreaterThan => "Greater Than",
+            DomainFilterOperator.LessThan => "Less Than",
+            DomainFilterOperator.GreaterThanOrEqual => "Greater Than or Equal",
+            DomainFilterOperator.LessThanOrEqual => "Less Than or Equal",
+            DomainFilterOperator.Regex => "Regex",
             _ => op.ToString()
         };
     }
@@ -192,14 +193,14 @@
         };
     }
 
-    private string GetPlaceholder(FilterField field, FilterOperator op)
+    private string GetPlaceholder(FilterField field, DomainFilterOperator op)
     {
         return field switch
         {
             FilterField.EnqueuedTime => "Select date and time",
             FilterField.DeliveryCount => "e.g., 5",
             FilterField.SequenceNumber => "e.g., 12345",
-            FilterField.ApplicationProperty when op == FilterOperator.Regex => "e.g., ^ABC.*",
+            FilterField.ApplicationProperty when op == DomainFilterOperator.Regex => "e.g., ^ABC.*",
             FilterField.ApplicationProperty => "e.g., 12345, ABC",
             _ => ""
         };
