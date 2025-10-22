@@ -11,11 +11,18 @@
 
     @if (!ServiceBusService.IsConnected)
     {
-        <ConnectionForm 
-            @bind-ConnectionString="@connectionString"
-            @bind-ErrorMessage="@errorMessage"
-            @bind-IsConnecting="@isConnecting"
-            OnConnected="@HandleConnected" />
+        <div class="row">
+            <div class="col-md-8">
+                <ConnectionForm 
+                    @bind-ConnectionString="@connectionString"
+                    @bind-ErrorMessage="@errorMessage"
+                    @bind-IsConnecting="@isConnecting"
+                    OnConnected="@HandleConnected" />
+            </div>
+            <div class="col-md-4">
+                <StorageSettings />
+            </div>
+        </div>
     }
     else
     {

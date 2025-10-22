@@ -3,6 +3,7 @@ using SBInspector.Core.Interfaces;
 using SBInspector.Infrastructure.ServiceBus;
 using SBInspector.Infrastructure.Storage;
 using SBInspector.Application.Services;
+using SBInspector.Core.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +14,19 @@ builder.Services.AddRazorComponents()
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
-builder.Services.AddScoped<IStorageService, LocalStorageService>();
+
+// Register storage configuration service
+builder.Services.AddSingleton<StorageConfigurationService>();
+
+// Register storage service with factory pattern
+builder.Services.AddScoped<IStorageService>(sp =>
+{
+    var jsRuntime = sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
+    var configService = sp.GetRequiredService<StorageConfigurationService>();
+    var configuration = configService.GetConfiguration();
+    var factory = new StorageServiceFactory(jsRuntime, configuration);
+    return factory.CreateStorageService();
+});
 
 var app = builder.Build();
 
