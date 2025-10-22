@@ -64,10 +64,13 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 
 ## Prerequisites
 
-- .NET 9.0 SDK or later
+- .NET 9.0 SDK or later (for local development)
+- Docker (for containerized deployment)
 - Azure Service Bus namespace
 
 ## Getting Started
+
+### Running Locally with .NET
 
 1. Clone the repository
 2. Navigate to the SBInspector directory
@@ -79,6 +82,22 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 4. Open your browser and navigate to the URL shown in the console (typically https://localhost:5001 or http://localhost:5000)
 5. Enter your Azure Service Bus connection string and click "Connect"
 6. Browse queues, topics, and inspect messages
+
+### Running with Docker
+
+1. Clone the repository
+2. Build the Docker image:
+   ```bash
+   docker build -t sbinspector:latest .
+   ```
+3. Run the container:
+   ```bash
+   docker run -d -p 8080:8080 --name sbinspector sbinspector:latest
+   ```
+4. Open your browser and navigate to `http://localhost:8080`
+5. Enter your Azure Service Bus connection string and click "Connect"
+
+For detailed Docker deployment instructions, see [DOCKER.md](DOCKER.md).
 
 ## Azure Service Bus Connection String
 
