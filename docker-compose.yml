@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  sbinspector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env  # Optional: create .env file from .env.example
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    restart: unless-stopped
+    container_name: sbinspector
