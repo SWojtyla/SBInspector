@@ -85,7 +85,29 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 4. Open your browser and navigate to the URL shown in the console (typically https://localhost:5001 or http://localhost:5000)
 5. Enter your Azure Service Bus connection string and click "Connect"
 6. Browse queues, topics, and inspect messages
-7. To run the app with Tauri: npx tauri dev and if needed npm install -g @tauri-apps/cli
+
+## Running as a Desktop App with Tauri
+
+This application can run as a native desktop application using Tauri. See the [Tauri Configuration Guide](TAURI_BLAZOR_SETUP.md) for details.
+
+### Development Mode
+```bash
+npm install
+npm run tauri dev
+```
+
+### Build MSI Installer
+```bash
+npm run tauri build
+```
+
+The MSI installer will be created in `src-tauri/target/release/bundle/msi/`.
+
+For detailed information about the Tauri setup, including how it works with Blazor Server, see:
+- [TAURI_BLAZOR_SETUP.md](TAURI_BLAZOR_SETUP.md) - Complete technical guide
+- [TAURI_FIX_SUMMARY.md](TAURI_FIX_SUMMARY.md) - Quick reference
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture diagrams
+
 ## Azure Service Bus Connection String
 
 You can find your connection string in the Azure Portal:
