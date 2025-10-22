@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "SBInspector",
   "build": {
-    "frontendDist": "../dist/wwwroot",
+    "frontendDist": "../SBInspector/bin/Release/net9.0/publish/wwwroot",
     "devUrl": "https://localhost:5000",
     "beforeDevCommand": "dotnet watch run --project SBInspector",
-    "beforeBuildCommand": "dotnet publish -c release SBInspector/SBInspector.csproj -o dist"   
+    "beforeBuildCommand": "dotnet publish SBInspector/SBInspector.csproj -c Release"   
   },
   "app": {
     "windows": [
@@ -32,9 +32,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "resources": [
-      "../dist/*"
     ]
   }
 }

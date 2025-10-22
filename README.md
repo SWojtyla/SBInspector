@@ -88,7 +88,7 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 
 ## Running as a Desktop App with Tauri
 
-This application can run as a native desktop application using Tauri. See the [Tauri Configuration Guide](TAURI_BLAZOR_SETUP.md) for details.
+This application uses Blazor WebAssembly to run as a native desktop application with Tauri.
 
 ### Development Mode
 ```bash
@@ -102,11 +102,6 @@ npm run tauri build
 ```
 
 The MSI installer will be created in `src-tauri/target/release/bundle/msi/`.
-
-For detailed information about the Tauri setup, including how it works with Blazor Server, see:
-- [TAURI_BLAZOR_SETUP.md](TAURI_BLAZOR_SETUP.md) - Complete technical guide
-- [TAURI_FIX_SUMMARY.md](TAURI_FIX_SUMMARY.md) - Quick reference
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture diagrams
 
 ## Azure Service Bus Connection String
 

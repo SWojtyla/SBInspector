@@ -1,15 +1,10 @@
-using SBInspector.Presentation.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using SBInspector.Core.Interfaces;
 using SBInspector.Infrastructure.ServiceBus;
 using SBInspector.Infrastructure.Storage;
 using SBInspector.Application.Services;
-using SBInspector.Core.Domain;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
@@ -28,23 +23,4 @@ builder.Services.AddScoped<IStorageService>(sp =>
     return factory.CreateStorageService();
 });
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-
-
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();
+await builder.Build().RunAsync();
