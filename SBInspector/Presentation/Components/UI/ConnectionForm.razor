@@ -12,7 +12,9 @@
             <div class="mb-3">
                 <MudText Typo="Typo.body2" Class="mb-2">Saved Connections</MudText>
                 <MudStack Row="true" Spacing="2">
-                    <MudSelect T="string" @bind-Value="selectedConnectionName" Label="Select a saved connection" Variant="Variant.Outlined" Style="flex: 1">
+                    <MudSelect T="string" Value="@selectedConnectionName" 
+                               ValueChanged="@((string value) => selectedConnectionName = value)"
+                               Label="Select a saved connection" Variant="Variant.Outlined" Style="flex: 1">
                         <MudSelectItem T="string" Value="@string.Empty">-- Select a saved connection --</MudSelectItem>
                         @foreach (var conn in savedConnections)
                         {
@@ -29,7 +31,8 @@
             </div>
         }
         
-        <MudTextField @bind-Value="ConnectionString" 
+        <MudTextField Value="@ConnectionString" 
+                      ValueChanged="@(async (string value) => { ConnectionString = value; await ConnectionStringChanged.InvokeAsync(value); })"
                       Label="Connection String" 
                       Variant="Variant.Outlined" 
                       InputType="InputType.Password" 
@@ -37,12 +40,15 @@
                       Class="mb-3" />
         
         <div class="mb-3">
-            <MudCheckBox @bind-Value="shouldSaveConnection" Color="Color.Primary">
+            <MudCheckBox Value="@shouldSaveConnection" 
+                         ValueChanged="@((bool value) => shouldSaveConnection = value)" 
+                         Color="Color.Primary">
                 Save this connection for later use
             </MudCheckBox>
             @if (shouldSaveConnection)
             {
-                <MudTextField @bind-Value="connectionName" 
+                <MudTextField Value="@connectionName" 
+                              ValueChanged="@((string value) => connectionName = value)"
                               Label="Connection Name" 
                               Variant="Variant.Outlined" 
                               Placeholder="Enter a name for this connection" 
