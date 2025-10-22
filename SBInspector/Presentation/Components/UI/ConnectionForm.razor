@@ -12,16 +12,13 @@
             <div class="mb-3">
                 <label class="form-label">Saved Connections</label>
                 <div class="d-flex gap-2">
-                    <select class="form-select" @bind="selectedConnectionName">
+                    <select class="form-select" @bind="selectedConnectionName" @bind:after="LoadSelectedConnection">
                         <option value="">-- Select a saved connection --</option>
                         @foreach (var conn in savedConnections)
                         {
                             <option value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</option>
                         }
                     </select>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="LoadSelectedConnection" disabled="@string.IsNullOrEmpty(selectedConnectionName)">
-                        <i class="bi bi-arrow-down-circle"></i> Load
-                    </button>
                     <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedConnection" disabled="@string.IsNullOrEmpty(selectedConnectionName)">
                         <i class="bi bi-trash"></i>
                     </button>
