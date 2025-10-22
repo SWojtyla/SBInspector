@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using SBInspector.Core.Interfaces;
 using SBInspector.Infrastructure.ServiceBus;
 using SBInspector.Infrastructure.Storage;
 using SBInspector.Application.Services;
+using SBInspector.Presentation.Components;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
