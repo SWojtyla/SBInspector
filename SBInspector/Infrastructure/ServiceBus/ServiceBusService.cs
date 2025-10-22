@@ -478,6 +478,8 @@ public class ServiceBusService : IServiceBusService
         if (_client == null) return 0;
 
         ServiceBusReceiver? receiver = null;
+        ServiceBusReceiver? peekReceiver = null;
+        ServiceBusSender? sender = null;
         int totalDeleted = 0;
 
         try
@@ -529,6 +531,71 @@ public class ServiceBusService : IServiceBusService
                 }
             }
 
+            // For "Active" or "Scheduled" message types, also purge scheduled messages
+            // Scheduled messages won't be returned by ReceiveMessagesAsync until their scheduled time
+            if (messageType == "Active" || messageType == "Scheduled")
+            {
+                // Create a peek receiver to see scheduled messages
+                var peekOptions = new ServiceBusReceiverOptions
+                {
+                    ReceiveMode = ServiceBusReceiveMode.PeekLock
+                };
+
+                // Create appropriate peek receiver and sender
+                if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+                {
+                    peekReceiver = _client.CreateReceiver(topicName, subscriptionName, peekOptions);
+                    sender = _client.CreateSender(topicName);
+                }
+                else
+                {
+                    peekReceiver = _client.CreateReceiver(entityName, peekOptions);
+                    sender = _client.CreateSender(entityName);
+                }
+
+                // Peek for scheduled messages and cancel them
+                long? fromSequenceNumber = null;
+                while (true)
+                {
+                    // Check for cancellation
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var peekedMessages = await peekReceiver.PeekMessagesAsync(maxMessages: 100, fromSequenceNumber: fromSequenceNumber);
+                    
+                    if (peekedMessages.Count == 0)
+                    {
+                        break; // No more messages to peek
+                    }
+
+                    // Filter for scheduled messages (those with future ScheduledEnqueueTime)
+                    var scheduledMessages = peekedMessages
+                        .Where(m => m.ScheduledEnqueueTime > DateTimeOffset.UtcNow)
+                        .ToList();
+
+                    if (scheduledMessages.Count > 0)
+                    {
+                        // Cancel scheduled messages in batches
+                        var sequenceNumbers = scheduledMessages.Select(m => m.SequenceNumber).ToList();
+                        await sender.CancelScheduledMessagesAsync(sequenceNumbers, cancellationToken);
+                        
+                        totalDeleted += scheduledMessages.Count;
+                        progress?.Report(totalDeleted);
+                    }
+
+                    // Update fromSequenceNumber to continue peeking from the last message
+                    fromSequenceNumber = peekedMessages.Last().SequenceNumber + 1;
+
+                    // If we didn't find any scheduled messages in this batch, we might be done
+                    // But continue peeking to make sure we check all messages
+                    if (peekedMessages.Count < 100)
+                    {
+                        break; // We've reached the end of messages
+                    }
+
+                    await Task.Delay(100, cancellationToken);
+                }
+            }
+
             return totalDeleted;
         }
         catch (OperationCanceledException)
@@ -545,6 +612,14 @@ public class ServiceBusService : IServiceBusService
             if (receiver != null)
             {
                 await receiver.DisposeAsync();
+            }
+            if (peekReceiver != null)
+            {
+                await peekReceiver.DisposeAsync();
+            }
+            if (sender != null)
+            {
+                await sender.DisposeAsync();
             }
         }
     }
