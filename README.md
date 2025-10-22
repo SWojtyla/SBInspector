@@ -5,6 +5,12 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 ## Features
 
 - Connect to Azure Service Bus using a connection string
+- **Storage Configuration**:
+  - Choose between Browser Local Storage or File System storage
+  - Save connection strings and message templates persistently
+  - File System storage saves to Desktop folder (recommended for Tauri desktop app)
+  - Browser storage for web deployments
+  - See [STORAGE_CONFIGURATION.md](Features/STORAGE_CONFIGURATION.md) for detailed documentation
 - **Refresh Functionality**:
   - Refresh button to reload all queues, topics, and subscriptions with updated counts
   - Refresh button on messages panel to reload current messages
