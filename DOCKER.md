@@ -197,6 +197,61 @@ For corporate environments with SSL inspection:
 - Configure NuGet to use your corporate certificate
 - Add your corporate CA certificate to the Docker build
 
+Example for adding custom CA certificate:
+
+```dockerfile
+# Add this after the FROM line in the build stage
+RUN apt-get update && apt-get install -y ca-certificates
+COPY your-ca-cert.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+```
+
+## Continuous Integration/Deployment
+
+### GitHub Actions Example
+
+Create `.github/workflows/docker-build.yml`:
+
+```yaml
+name: Docker Build and Push
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker image
+      run: docker build -t sbinspector:${{ github.sha }} .
+    
+    - name: Test Docker image
+      run: |
+        docker run -d --name test-container -p 8080:8080 sbinspector:${{ github.sha }}
+        sleep 10
+        curl -f http://localhost:8080 || exit 1
+        docker stop test-container
+    
+    - name: Login to Docker Hub
+      if: github.event_name == 'push'
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Tag and Push
+      if: github.event_name == 'push'
+      run: |
+        docker tag sbinspector:${{ github.sha }} yourusername/sbinspector:latest
+        docker push yourusername/sbinspector:latest
+```
+
 ## Advanced Deployment
 
 ### Deploying to Azure Container Instances
