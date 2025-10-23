@@ -9,6 +9,35 @@ The Tauri desktop application installer was not working. When installing the app
 3. There was no mechanism to launch and manage the Blazor server executable
 4. The build configuration was incomplete
 
+## Recent Update: Crash on Launch Fix
+
+After the initial implementation, users reported that the app installed successfully but **crashed immediately after launch**.
+
+### Root Causes
+
+1. **No production logging**: Logging was only enabled in debug mode, making crashes invisible
+2. **Panic instead of error handling**: Used `panic!()` which crashes the app without user-friendly error messages
+3. **Incorrect resource path**: The path to find the server executable might have been wrong for bundled resources
+
+### Fixes Applied
+
+1. **Enabled logging in production**: Now logs are written to disk in production mode
+   - Windows: `%APPDATA%/SBInspector/logs/`
+   - macOS: `~/Library/Application Support/SBInspector/logs/`
+   - Linux: `~/.local/share/SBInspector/logs/`
+
+2. **Graceful error handling**: Replaced `panic!()` with proper error returns
+   - Errors are logged instead of crashing
+   - Users can check logs to diagnose issues
+
+3. **Improved path detection**: Multiple fallback paths for finding the executable
+   - First tries: `{resource_dir}/SBInspector.exe`
+   - Falls back to: `{resource_dir}/dist/SBInspector.exe`
+   - Logs all files in resource directory if executable not found
+
+4. **Better working directory**: Sets the current directory to resource path
+   - Ensures the server can find its dependencies and configuration files
+
 ## Solution Implemented
 
 The Tauri configuration has been completely updated to properly launch and manage the Blazor Server application as a background process, creating a fully functional desktop application.
