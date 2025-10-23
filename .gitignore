@@ -417,3 +417,8 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /dist
+
+# Tauri build artifacts
+dist/
+src-tauri/target/
+src-tauri/binaries/
