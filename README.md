@@ -1,16 +1,18 @@
 # SBInspector
 
-Azure Service Bus Inspector - A Blazor web application for inspecting Azure Service Bus queues, topics, and messages.
+Azure Service Bus Inspector - A .NET MAUI Blazor Hybrid cross-platform desktop application for inspecting Azure Service Bus queues, topics, and messages.
 
 ## Features
 
 - Connect to Azure Service Bus using a connection string
-- **Storage Configuration**:
-  - Choose between Browser Local Storage or File System storage
-  - Save connection strings and message templates persistently
-  - File System storage saves to Desktop folder (recommended for Tauri desktop app)
-  - Browser storage for web deployments
-  - See [STORAGE_CONFIGURATION.md](Features/STORAGE_CONFIGURATION.md) for detailed documentation
+## Storage Configuration
+
+SBInspector uses file-based storage on the local device by default. Connection strings and message templates are stored in the application's data directory:
+- **Desktop folder**: Data is saved to `Desktop/SBInspector/` for easy access
+- Connections are stored in `connections.json`
+- Templates are stored in `templates.json`
+
+For detailed information, see [STORAGE_CONFIGURATION.md](Features/STORAGE_CONFIGURATION.md).
 - **Refresh Functionality**:
   - Refresh button to reload all queues, topics, and subscriptions with updated counts
   - Refresh button on messages panel to reload current messages
@@ -72,20 +74,66 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 
 - .NET 9.0 SDK or later
 - Azure Service Bus namespace
+- For Android: Android SDK
+- For Windows: Windows 10 version 1809 or higher
+- For iOS/macOS: Xcode (macOS only)
+
+## Platform Support
+
+SBInspector runs on:
+- **Windows** (Windows 10 1809+)
+- **Android** (API 24+)
+- **iOS** (iOS 14.2+)
+- **macOS** (macOS 11+)
 
 ## Getting Started
 
+### Installing .NET MAUI Workloads
+
+First, ensure you have the required .NET MAUI workloads installed:
+
+```bash
+# Install MAUI workloads for your platform
+dotnet workload install maui-android    # For Android
+dotnet workload install maui-windows    # For Windows (Windows only)
+```
+
+### Building and Running
+
 1. Clone the repository
 2. Navigate to the SBInspector directory
-3. Run the application:
+3. Build and run the application for your platform:
+
+   **For Android:**
    ```bash
    cd SBInspector
-   dotnet run
+   dotnet build -f net9.0-android
+   dotnet run -f net9.0-android
    ```
-4. Open your browser and navigate to the URL shown in the console (typically https://localhost:5001 or http://localhost:5000)
-5. Enter your Azure Service Bus connection string and click "Connect"
-6. Browse queues, topics, and inspect messages
-7. To run the app with Tauri: npx tauri dev and if needed npm install -g @tauri-apps/cli
+
+   **For Windows:**
+   ```bash
+   cd SBInspector
+   dotnet build -f net9.0-windows10.0.19041.0
+   dotnet run -f net9.0-windows10.0.19041.0
+   ```
+
+   **For iOS (macOS only):**
+   ```bash
+   cd SBInspector
+   dotnet build -f net9.0-ios
+   dotnet run -f net9.0-ios
+   ```
+
+   **For macOS (macOS only):**
+   ```bash
+   cd SBInspector
+   dotnet build -f net9.0-maccatalyst
+   dotnet run -f net9.0-maccatalyst
+   ```
+
+4. Enter your Azure Service Bus connection string and click "Connect"
+5. Browse queues, topics, and inspect messages
 ## Azure Service Bus Connection String
 
 You can find your connection string in the Azure Portal:
@@ -115,11 +163,19 @@ For detailed information about the UI component structure, see [UI_COMPONENTS.md
 
 ## Dependencies
 
-- Azure.Messaging.ServiceBus - Azure Service Bus SDK for .NET
+- **Azure.Messaging.ServiceBus** - Azure Service Bus SDK for .NET
+- **Microsoft.Maui.Controls** - .NET MAUI UI framework
+- **Microsoft.AspNetCore.Components.WebView.Maui** - Blazor integration for MAUI
 
 ## Message Filtering
 
 The application supports filtering messages by their application properties (attributes). See [FILTERING.md](FILTERING.md) for detailed documentation on how to use this feature.
+
+## Migration from Tauri
+
+Previous versions of SBInspector used Tauri for desktop deployment. The application has been refactored to use .NET MAUI, which provides better integration with .NET and cross-platform capabilities. The Tauri configuration (`src-tauri/`, `package.json`) is no longer used but kept for reference.
+
+For the MAUI version, use the build instructions above. The old Tauri-based version can be found in earlier commits.
 
 ## License
 
