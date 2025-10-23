@@ -72,8 +72,14 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 
 - .NET 9.0 SDK or later
 - Azure Service Bus namespace
+- For Tauri desktop app:
+  - Node.js and npm
+  - Rust toolchain
+  - Tauri CLI: `npm install`
 
 ## Getting Started
+
+### Running as Web Application
 
 1. Clone the repository
 2. Navigate to the SBInspector directory
@@ -82,10 +88,33 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
    cd SBInspector
    dotnet run
    ```
-4. Open your browser and navigate to the URL shown in the console (typically https://localhost:5001 or http://localhost:5000)
+4. Open your browser and navigate to the URL shown in the console (typically https://localhost:5000)
 5. Enter your Azure Service Bus connection string and click "Connect"
 6. Browse queues, topics, and inspect messages
-7. To run the app with Tauri: npx tauri dev and if needed npm install -g @tauri-apps/cli
+
+### Running as Desktop Application (Tauri)
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run in development mode:
+   ```bash
+   npm run tauri dev
+   # or
+   npx tauri dev
+   ```
+4. Build installer:
+   ```bash
+   npm run tauri build
+   # or
+   npx tauri build
+   ```
+   The installer will be created in `src-tauri/target/release/bundle/`
+
+For detailed information about the Tauri configuration, see [TAURI_CONFIGURATION.md](Features/TAURI_CONFIGURATION.md).
+
 ## Azure Service Bus Connection String
 
 You can find your connection string in the Azure Portal:

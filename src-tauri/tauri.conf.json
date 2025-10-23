@@ -6,7 +6,7 @@
   "build": {
     "devUrl": "https://localhost:5000",
     "beforeDevCommand": "dotnet watch run --project SBInspector --no-launch-profile",
-    "beforeBuildCommand": "dotnet publish -c Release SBInspector/SBInspector.csproj -o dist --self-contained false"   
+    "beforeBuildCommand": "dotnet publish -c Release SBInspector/SBInspector.csproj -o dist -r win-x64 --self-contained true"   
   },
   "app": {
     "windows": [
