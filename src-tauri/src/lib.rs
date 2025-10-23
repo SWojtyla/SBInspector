@@ -1,11 +1,16 @@
 #[cfg(not(debug_assertions))]
 use tauri::Manager;
 #[cfg(not(debug_assertions))]
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 #[cfg(not(debug_assertions))]
 use std::time::Duration;
 #[cfg(not(debug_assertions))]
 use std::thread;
+#[cfg(not(debug_assertions))]
+use std::sync::Mutex;
+
+#[cfg(not(debug_assertions))]
+struct ServerProcess(Mutex<Option<Child>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -31,7 +36,7 @@ pub fn run() {
         log::info!("Starting Blazor server from: {:?}", server_path);
 
         // Start the server process
-        Command::new(server_path)
+        let child = Command::new(server_path)
            .env("ASPNETCORE_ENVIRONMENT", "Production")
            .env("ASPNETCORE_URLS", "https://localhost:5000")
            .stdout(Stdio::null())
@@ -39,11 +44,34 @@ pub fn run() {
            .spawn()
            .expect("Failed to start Blazor server");
 
+        // Store the server process handle
+        app.manage(ServerProcess(Mutex::new(Some(child))));
+
         // Give the server time to start
         thread::sleep(Duration::from_secs(3));
       }
 
       Ok(())
+    })
+    .on_window_event(|window, event| {
+      #[cfg(not(debug_assertions))]
+      {
+        if let tauri::WindowEvent::Destroyed = event {
+          // Kill the server process when the window closes
+          if let Some(server) = window.app_handle().try_state::<ServerProcess>() {
+            if let Ok(mut child_opt) = server.0.lock() {
+              if let Some(mut child) = child_opt.take() {
+                let _ = child.kill();
+                log::info!("Blazor server process terminated");
+              }
+            }
+          }
+        }
+      }
+      #[cfg(debug_assertions)]
+      {
+        let _ = (window, event); // Suppress unused variable warnings
+      }
     })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
