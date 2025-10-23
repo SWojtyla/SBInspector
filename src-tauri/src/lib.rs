@@ -35,20 +35,34 @@ pub fn run() {
 
         log::info!("Starting Blazor server from: {:?}", server_path);
 
+        // Check if the server executable exists
+        if !server_path.exists() {
+          log::error!("Blazor server executable not found at: {:?}", server_path);
+          panic!("Failed to find Blazor server executable. Please ensure the app was built correctly.");
+        }
+
         // Start the server process
-        let child = Command::new(server_path)
+        match Command::new(&server_path)
            .env("ASPNETCORE_ENVIRONMENT", "Production")
            .env("ASPNETCORE_URLS", "https://localhost:5000")
            .stdout(Stdio::null())
            .stderr(Stdio::null())
-           .spawn()
-           .expect("Failed to start Blazor server");
+           .spawn() {
+          Ok(child) => {
+            log::info!("Blazor server started successfully with PID: {}", child.id());
+            // Store the server process handle
+            app.manage(ServerProcess(Mutex::new(Some(child))));
 
-        // Store the server process handle
-        app.manage(ServerProcess(Mutex::new(Some(child))));
-
-        // Give the server time to start
-        thread::sleep(Duration::from_secs(3));
+            // Give the server time to start
+            log::info!("Waiting for server to initialize...");
+            thread::sleep(Duration::from_secs(3));
+            log::info!("Server should be ready at https://localhost:5000");
+          }
+          Err(e) => {
+            log::error!("Failed to start Blazor server: {}", e);
+            panic!("Failed to start Blazor server: {}", e);
+          }
+        }
       }
 
       Ok(())
