@@ -22,7 +22,8 @@ After the initial implementation, users reported that the app installed successf
 ### Fixes Applied
 
 1. **Enabled logging in production**: Now logs are written to disk in production mode
-   - Windows: `%APPDATA%/SBInspector/logs/`
+   - Windows: `%LOCALAPPDATA%/SBInspector/logs/` (AppData\Local, not Roaming)
+   - Typical path: `C:\Users\<YourUsername>\AppData\Local\SBInspector\logs\`
    - macOS: `~/Library/Application Support/SBInspector/logs/`
    - Linux: `~/.local/share/SBInspector/logs/`
 
