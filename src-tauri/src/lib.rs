@@ -15,34 +15,51 @@ struct ServerProcess(Mutex<Option<Child>>);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(
+      tauri_plugin_log::Builder::default()
+        .level(log::LevelFilter::Info)
+        .build(),
+    )
     .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
-
       // Start the Blazor server as a background process in production
       #[cfg(not(debug_assertions))]
       {
         let resource_path = app.path().resource_dir().expect("Failed to get resource dir");
-        let server_path = resource_path.join("dist").join("SBInspector");
         
+        // Try multiple possible paths for the server executable
+        let mut server_path = resource_path.join("SBInspector");
         #[cfg(target_os = "windows")]
-        let server_path = server_path.with_extension("exe");
+        {
+          server_path = server_path.with_extension("exe");
+        }
+        
+        // If not found, try in the dist subdirectory
+        if !server_path.exists() {
+          server_path = resource_path.join("dist").join("SBInspector");
+          #[cfg(target_os = "windows")]
+          {
+            server_path = server_path.with_extension("exe");
+          }
+        }
 
-        log::info!("Starting Blazor server from: {:?}", server_path);
+        log::info!("Resource directory: {:?}", resource_path);
+        log::info!("Looking for Blazor server at: {:?}", server_path);
 
         // Check if the server executable exists
         if !server_path.exists() {
           log::error!("Blazor server executable not found at: {:?}", server_path);
-          panic!("Failed to find Blazor server executable. Please ensure the app was built correctly.");
+          log::error!("Resource directory contents:");
+          if let Ok(entries) = std::fs::read_dir(&resource_path) {
+            for entry in entries.flatten() {
+              log::error!("  - {:?}", entry.path());
+            }
+          }
+          return Err("Failed to find Blazor server executable. Please ensure the app was built correctly.".into());
         }
 
         // Start the server process
         match Command::new(&server_path)
+           .current_dir(&resource_path)
            .env("ASPNETCORE_ENVIRONMENT", "Production")
            .env("ASPNETCORE_URLS", "https://localhost:5000")
            .stdout(Stdio::null())
@@ -60,9 +77,14 @@ pub fn run() {
           }
           Err(e) => {
             log::error!("Failed to start Blazor server: {}", e);
-            panic!("Failed to start Blazor server: {}", e);
+            return Err(format!("Failed to start Blazor server: {}", e).into());
           }
         }
+      }
+
+      #[cfg(debug_assertions)]
+      {
+        let _ = app; // Suppress unused variable warning in debug mode
       }
 
       Ok(())
