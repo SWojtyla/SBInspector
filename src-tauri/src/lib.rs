@@ -1,4 +1,3 @@
-#[cfg(not(debug_assertions))]
 use tauri::Manager;
 #[cfg(not(debug_assertions))]
 use std::process::{Child, Command, Stdio};
@@ -18,9 +17,18 @@ pub fn run() {
     .plugin(
       tauri_plugin_log::Builder::default()
         .level(log::LevelFilter::Info)
+        .targets([
+          tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+          tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: None }),
+          tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+        ])
         .build(),
     )
     .setup(|app| {
+      log::info!("SBInspector starting up...");
+      log::info!("App data dir: {:?}", app.path().app_data_dir());
+      log::info!("App log dir: {:?}", app.path().app_log_dir());
+      
       // Start the Blazor server as a background process in production
       #[cfg(not(debug_assertions))]
       {
@@ -57,6 +65,8 @@ pub fn run() {
           return Err("Failed to find Blazor server executable. Please ensure the app was built correctly.".into());
         }
 
+        log::info!("Server executable found, attempting to start...");
+        
         // Start the server process
         match Command::new(&server_path)
            .current_dir(&resource_path)
@@ -87,6 +97,7 @@ pub fn run() {
         let _ = app; // Suppress unused variable warning in debug mode
       }
 
+      log::info!("Setup complete");
       Ok(())
     })
     .on_window_event(|window, event| {
