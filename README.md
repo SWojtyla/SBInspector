@@ -1,6 +1,13 @@
 # SBInspector
 
-Azure Service Bus Inspector - A Blazor web application for inspecting Azure Service Bus queues, topics, and messages.
+Azure Service Bus Inspector - Available as both a **Blazor web application** and a **.NET MAUI cross-platform desktop/mobile app** for inspecting Azure Service Bus queues, topics, and messages.
+
+## Available Applications
+
+1. **Blazor Server Web App** (`SBInspector`) - Run in a web browser
+2. **.NET MAUI App** (`SEBInspector.Maui`) - Cross-platform desktop and mobile application
+
+Both applications share the same codebase and features through a shared Razor Class Library. See [MAUI_IMPLEMENTATION.md](Features/MAUI_IMPLEMENTATION.md) for details on the MAUI version.
 
 ## Features
 
@@ -72,8 +79,11 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 
 - .NET 9.0 SDK or later
 - Azure Service Bus namespace
+- For MAUI development: MAUI workload (`dotnet workload install maui`)
 
 ## Getting Started
+
+### Blazor Server Web App
 
 1. Clone the repository
 2. Navigate to the SBInspector directory
@@ -85,7 +95,48 @@ Azure Service Bus Inspector - A Blazor web application for inspecting Azure Serv
 4. Open your browser and navigate to the URL shown in the console (typically https://localhost:5001 or http://localhost:5000)
 5. Enter your Azure Service Bus connection string and click "Connect"
 6. Browse queues, topics, and inspect messages
-7. To run the app with Tauri: npx tauri dev and if needed npm install -g @tauri-apps/cli
+
+### .NET MAUI App
+
+1. Clone the repository
+2. Install MAUI workload (if not already installed):
+   ```bash
+   dotnet workload install maui
+   ```
+3. Navigate to the MAUI project:
+   ```bash
+   cd SEBInspector.Maui
+   ```
+4. Run for your target platform:
+   ```bash
+   # Windows
+   dotnet run -f net9.0-windows10.0.19041.0
+   
+   # Android (requires emulator or device)
+   dotnet build -f net9.0-android
+   
+   # iOS (requires Mac)
+   dotnet build -f net9.0-ios
+   
+   # macOS
+   dotnet build -f net9.0-maccatalyst
+   ```
+
+Alternatively, open `SBInspector.sln` in Visual Studio 2022 and run the `SEBInspector.Maui` project.
+
+For more details on the MAUI implementation, see [MAUI_IMPLEMENTATION.md](Features/MAUI_IMPLEMENTATION.md).
+
+### Tauri Desktop App
+
+To run the app with Tauri:
+```bash
+npx tauri dev
+```
+If needed: `npm install -g @tauri-apps/cli`
+5. Enter your Azure Service Bus connection string and click "Connect"
+6. Browse queues, topics, and inspect messages
+7. To run the Tauri desktop app: `npx tauri dev` (if needed: `npm install -g @tauri-apps/cli`)
+
 ## Azure Service Bus Connection String
 
 You can find your connection string in the Azure Portal:
@@ -101,21 +152,42 @@ Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=<keyname>;
 
 ## Project Structure
 
-The project follows Clean Architecture principles:
+The solution consists of three projects following Clean Architecture principles:
+
+### SBInspector (Blazor Server Web App)
+- `Program.cs` - Application startup and DI configuration
+- `wwwroot/` - Web-specific static assets
+
+### SEBInspector.Maui (.NET MAUI App)
+- `App.xaml` / `App.xaml.cs` - MAUI application definition
+- `MainPage.xaml` - Main page with BlazorWebView
+- `MauiProgram.cs` - MAUI startup and DI configuration
+- `Platforms/` - Platform-specific code
+- `Resources/` - App icons, fonts, and resources
+- `wwwroot/index.html` - Blazor WebView HTML host
+
+### SBInspector.Shared (Razor Class Library)
+Shared code used by both Blazor Server and MAUI:
 
 - `Core/Domain/` - Domain models (EntityInfo, MessageInfo, MessageFilter)
-- `Core/Interfaces/` - Service interfaces
-- `Application/Services/` - Application services (MessageFilterService)
-- `Infrastructure/ServiceBus/` - Service Bus implementation
+- `Core/Interfaces/` - Service interfaces (IServiceBusService, IStorageService)
+- `Application/Services/` - Application services (MessageFilterService, StorageConfigurationService)
+- `Infrastructure/ServiceBus/` - Azure Service Bus implementation
+- `Infrastructure/Storage/` - Storage implementations (LocalStorage, FileSystem)
 - `Presentation/Components/Pages/` - Blazor UI pages
 - `Presentation/Components/Layout/` - Layout components
 - `Presentation/Components/UI/` - Reusable UI components
+- `wwwroot/` - Shared static assets (CSS, JavaScript, Bootstrap)
 
 For detailed information about the UI component structure, see [UI_COMPONENTS.md](UI_COMPONENTS.md).
+For details on the MAUI implementation, see [MAUI_IMPLEMENTATION.md](Features/MAUI_IMPLEMENTATION.md).
 
 ## Dependencies
 
-- Azure.Messaging.ServiceBus - Azure Service Bus SDK for .NET
+- **Azure.Messaging.ServiceBus** - Azure Service Bus SDK for .NET
+- **Microsoft.AspNetCore.Components.Web** - Blazor components
+- **Microsoft.AspNetCore.Components.WebView.Maui** - Blazor WebView for MAUI (MAUI project only)
+- **Microsoft.Maui.Controls** - MAUI UI framework (MAUI project only)
 
 ## Message Filtering
 
