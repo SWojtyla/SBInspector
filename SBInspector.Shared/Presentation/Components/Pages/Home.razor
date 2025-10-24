@@ -267,9 +267,13 @@
                 purgeCancellationTokenSource = null;
             }
         }
-        catch
+        catch (ObjectDisposedException)
         {
-            // Ignore errors during cleanup
+            // Token was already disposed, ignore
+        }
+        catch (AggregateException)
+        {
+            // Cancellation may throw AggregateException, ignore
         }
     }
 

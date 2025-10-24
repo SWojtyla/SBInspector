@@ -77,7 +77,7 @@ public void Disconnect()
 }
 ```
 
-**Note**: The synchronous `Disconnect()` method uses `.Wait()` for backward compatibility. New code should use `DisconnectAsync()` to avoid potential deadlocks. The `.Wait()` call is acceptable here because the disposal operation is fast and doesn't involve complex async state machines.
+**Note**: The synchronous `Disconnect()` method uses `.Wait()` for backward compatibility. New code should use `DisconnectAsync()` to avoid potential deadlocks in certain contexts (e.g., ASP.NET synchronization contexts). The `.Wait()` call is used here for simple scenarios where the ServiceBusClient disposal is straightforward, but it's safer to use the async version in production code.
 
 **File**: `SBInspector.Shared/Presentation/Components/Pages/Home.razor`
 
@@ -137,14 +137,18 @@ private async Task Disconnect()
             purgeCancellationTokenSource = null;
         }
     }
-    catch
+    catch (ObjectDisposedException)
     {
-        // Ignore errors during cleanup
+        // Token was already disposed, ignore
+    }
+    catch (AggregateException)
+    {
+        // Cancellation may throw AggregateException, ignore
     }
 }
 ```
 
-**Note**: The cancellation token cleanup is wrapped in a try-catch to ensure that any errors during cleanup don't prevent the disconnect operation from completing.
+**Note**: The cancellation token cleanup uses specific exception handling to gracefully handle cases where the token is already disposed or cancellation throws an exception. This ensures the disconnect operation always completes successfully.
 
 ## Benefits
 
