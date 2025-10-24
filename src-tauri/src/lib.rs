@@ -24,6 +24,49 @@ fn find_available_port() -> Option<u16> {
   None
 }
 
+#[cfg(not(debug_assertions))]
+fn wait_for_server(url: &str, max_attempts: u32) -> bool {
+  use std::net::TcpStream;
+  use std::time::Duration;
+  
+  // Extract host and port from URL
+  let url_parts: Vec<&str> = url.split("://").collect();
+  if url_parts.len() < 2 {
+    return false;
+  }
+  
+  let host_port: Vec<&str> = url_parts[1].split('/').next().unwrap_or("").split(':').collect();
+  if host_port.len() < 2 {
+    return false;
+  }
+  
+  let host = host_port[0];
+  let port: u16 = host_port[1].parse().unwrap_or(0);
+  
+  if port == 0 {
+    return false;
+  }
+  
+  let addr = format!("{}:{}", host, port);
+  
+  for attempt in 1..=max_attempts {
+    log::info!("Checking if server is ready (attempt {}/{})", attempt, max_attempts);
+    
+    match TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_millis(500)) {
+      Ok(_) => {
+        log::info!("Server is responding!");
+        return true;
+      }
+      Err(e) => {
+        log::info!("Server not ready yet: {}", e);
+        thread::sleep(Duration::from_millis(500));
+      }
+    }
+  }
+  
+  false
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -115,20 +158,25 @@ pub fn run() {
             // Store the server process handle
             app.manage(ServerProcess(Mutex::new(Some(child))));
 
-            // Give the server time to start
-            log::info!("Waiting for server to initialize...");
-            thread::sleep(Duration::from_secs(3));
-            log::info!("Server should be ready at {}", server_url);
-            
-            // Navigate the window to the server URL
-            if let Some(window) = app.get_webview_window("main") {
-              log::info!("Navigating window to server URL...");
-              match window.navigate(server_url.parse().expect("Invalid URL")) {
-                Ok(_) => log::info!("Window navigation successful"),
-                Err(e) => log::error!("Failed to navigate window: {}", e),
+            // Wait for the server to actually be ready
+            log::info!("Waiting for server to be ready...");
+            if wait_for_server(&server_url, 20) {
+              log::info!("Server is ready at {}", server_url);
+              
+              // Navigate the window to the server URL
+              if let Some(window) = app.get_webview_window("main") {
+                log::info!("Navigating window to server URL...");
+                match window.navigate(server_url.parse().expect("Invalid URL")) {
+                  Ok(_) => log::info!("Window navigation successful"),
+                  Err(e) => log::error!("Failed to navigate window: {}", e),
+                }
+              } else {
+                log::error!("Could not find main window");
               }
             } else {
-              log::error!("Could not find main window");
+              log::error!("Server failed to start or is not responding after 10 seconds");
+              log::error!("Please check if port {} is accessible", port);
+              return Err("Server did not start in time".into());
             }
           }
           Err(e) => {
