@@ -5,21 +5,35 @@ namespace SBInspector.Application.Services;
 
 public class StorageConfigurationService
 {
-    private readonly string _configFilePath;
     private StorageConfiguration _configuration;
+    private readonly bool _isFileSystemAvailable;
 
     public StorageConfigurationService()
     {
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var configDirectory = Path.Combine(appDataPath, "SBInspector");
-        
-        if (!Directory.Exists(configDirectory))
-        {
-            Directory.CreateDirectory(configDirectory);
-        }
-        
-        _configFilePath = Path.Combine(configDirectory, "storage-config.json");
+        // Check if file system is available (won't be in browser WASM)
+        _isFileSystemAvailable = TryInitializeFileSystem();
         _configuration = LoadConfiguration();
+    }
+
+    private bool TryInitializeFileSystem()
+    {
+        try
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var configDirectory = Path.Combine(appDataPath, "SBInspector");
+            
+            if (!Directory.Exists(configDirectory))
+            {
+                Directory.CreateDirectory(configDirectory);
+            }
+            
+            return true;
+        }
+        catch
+        {
+            // File system not available (browser WASM)
+            return false;
+        }
     }
 
     public StorageConfiguration GetConfiguration()
@@ -29,18 +43,41 @@ public class StorageConfigurationService
 
     public async Task SetStorageTypeAsync(StorageType storageType)
     {
+        // Don't allow FileSystem storage if file system is not available
+        if (storageType == StorageType.FileSystem && !_isFileSystemAvailable)
+        {
+            storageType = StorageType.LocalStorage;
+        }
+        
         _configuration.StorageType = storageType;
         await SaveConfigurationAsync();
     }
 
     private StorageConfiguration LoadConfiguration()
     {
+        if (!_isFileSystemAvailable)
+        {
+            // In browser WASM, always use LocalStorage
+            return new StorageConfiguration { StorageType = StorageType.LocalStorage };
+        }
+        
         try
         {
-            if (File.Exists(_configFilePath))
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var configFilePath = Path.Combine(appDataPath, "SBInspector", "storage-config.json");
+            
+            if (File.Exists(configFilePath))
             {
-                var json = File.ReadAllText(_configFilePath);
-                return JsonSerializer.Deserialize<StorageConfiguration>(json) ?? new StorageConfiguration();
+                var json = File.ReadAllText(configFilePath);
+                var config = JsonSerializer.Deserialize<StorageConfiguration>(json) ?? new StorageConfiguration();
+                
+                // Ensure FileSystem type is not used if file system is not available
+                if (config.StorageType == StorageType.FileSystem && !_isFileSystemAvailable)
+                {
+                    config.StorageType = StorageType.LocalStorage;
+                }
+                
+                return config;
             }
         }
         catch
@@ -53,10 +90,18 @@ public class StorageConfigurationService
 
     private async Task SaveConfigurationAsync()
     {
+        if (!_isFileSystemAvailable)
+        {
+            // Can't save to file system in browser WASM
+            return;
+        }
+        
         try
         {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var configFilePath = Path.Combine(appDataPath, "SBInspector", "storage-config.json");
             var json = JsonSerializer.Serialize(_configuration, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(_configFilePath, json);
+            await File.WriteAllTextAsync(configFilePath, json);
         }
         catch
         {

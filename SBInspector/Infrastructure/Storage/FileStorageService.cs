@@ -6,26 +6,43 @@ namespace SBInspector.Infrastructure.Storage;
 
 public class FileStorageService : IStorageService
 {
-    private readonly string _storageDirectory;
+    private readonly string? _storageDirectory;
+    private readonly bool _isAvailable;
     private const string ConnectionsFileName = "connections.json";
     private const string TemplatesFileName = "templates.json";
 
     public FileStorageService()
     {
-        // Store in user's Desktop folder for easy access
-        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        _storageDirectory = Path.Combine(desktopPath, "SBInspector");
-        
-        // Ensure directory exists
-        if (!Directory.Exists(_storageDirectory))
+        try
         {
-            Directory.CreateDirectory(_storageDirectory);
+            // Store in user's Desktop folder for easy access
+            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            _storageDirectory = Path.Combine(desktopPath, "SBInspector");
+            
+            // Ensure directory exists
+            if (!Directory.Exists(_storageDirectory))
+            {
+                Directory.CreateDirectory(_storageDirectory);
+            }
+            
+            _isAvailable = true;
+        }
+        catch
+        {
+            // File system not available (browser WASM without Tauri)
+            _isAvailable = false;
+            _storageDirectory = null;
         }
     }
 
     // Connection management
     public async Task<List<SavedConnection>> GetSavedConnectionsAsync()
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return new List<SavedConnection>();
+        }
+        
         try
         {
             var filePath = Path.Combine(_storageDirectory, ConnectionsFileName);
@@ -45,6 +62,11 @@ public class FileStorageService : IStorageService
 
     public async Task SaveConnectionAsync(SavedConnection connection)
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return;
+        }
+        
         var connections = await GetSavedConnectionsAsync();
         
         // Remove existing connection with same name
@@ -61,6 +83,11 @@ public class FileStorageService : IStorageService
 
     public async Task DeleteConnectionAsync(string name)
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return;
+        }
+        
         var connections = await GetSavedConnectionsAsync();
         connections.RemoveAll(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         
@@ -71,6 +98,11 @@ public class FileStorageService : IStorageService
 
     public async Task UpdateLastUsedAsync(string name)
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return;
+        }
+        
         var connections = await GetSavedConnectionsAsync();
         var connection = connections.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         
@@ -86,6 +118,11 @@ public class FileStorageService : IStorageService
     // Template management
     public async Task<List<MessageTemplate>> GetMessageTemplatesAsync()
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return new List<MessageTemplate>();
+        }
+        
         try
         {
             var filePath = Path.Combine(_storageDirectory, TemplatesFileName);
@@ -105,6 +142,11 @@ public class FileStorageService : IStorageService
 
     public async Task SaveMessageTemplateAsync(MessageTemplate template)
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return;
+        }
+        
         var templates = await GetMessageTemplatesAsync();
         
         // Remove existing template with same id
@@ -121,6 +163,11 @@ public class FileStorageService : IStorageService
 
     public async Task DeleteMessageTemplateAsync(string id)
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return;
+        }
+        
         var templates = await GetMessageTemplatesAsync();
         templates.RemoveAll(t => t.Id == id);
         
@@ -131,6 +178,11 @@ public class FileStorageService : IStorageService
 
     public async Task UpdateTemplateLastUsedAsync(string id)
     {
+        if (!_isAvailable || _storageDirectory == null)
+        {
+            return;
+        }
+        
         var templates = await GetMessageTemplatesAsync();
         var template = templates.FirstOrDefault(t => t.Id == id);
         
