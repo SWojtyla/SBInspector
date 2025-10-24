@@ -7,6 +7,7 @@ public interface IServiceBusService
     bool IsConnected { get; }
     Task<bool> ConnectAsync(string connectionString);
     void Disconnect();
+    Task DisconnectAsync();
     Task<List<EntityInfo>> GetQueuesAsync();
     Task<List<EntityInfo>> GetTopicsAsync();
     Task<List<MessageInfo>> GetMessagesAsync(string entityName, string messageType, int maxMessages = 100, long? fromSequenceNumber = null);

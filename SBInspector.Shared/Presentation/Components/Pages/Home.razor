@@ -216,9 +216,9 @@
         }
     }
 
-    private void Disconnect()
+    private async Task Disconnect()
     {
-        ServiceBusService.Disconnect();
+        await ServiceBusService.DisconnectAsync();
         queues.Clear();
         topics.Clear();
         messages.Clear();
@@ -232,6 +232,49 @@
         selectedTopicInfo = null;
         selectedSubscriptionInfo = null;
         selectedTopicForSubscription = null;
+        selectedSubscriptionName = string.Empty;
+        
+        // Reset message viewing state
+        messageFilters.Clear();
+        messageFilters.Add(new MessageFilter());
+        messageSortColumn = nameof(MessageInfo.EnqueuedTime);
+        messageSortAscending = false;
+        hasMoreMessages = false;
+        isLoadingMoreMessages = false;
+        
+        // Reset operation state
+        selectedMessage = null;
+        messageForOperation = null;
+        showDeleteConfirmation = false;
+        showRequeueConfirmation = false;
+        showPurgeConfirmation = false;
+        showSendModal = false;
+        isRescheduleMode = false;
+        sendModalTitle = "Send Message";
+        successMessage = string.Empty;
+        operationErrorMessage = string.Empty;
+        isOperationInProgress = false;
+        isPurgeInProgress = false;
+        isDeleteFiltered = false;
+        
+        // Cancel any ongoing purge operation
+        try
+        {
+            if (purgeCancellationTokenSource != null)
+            {
+                purgeCancellationTokenSource.Cancel();
+                purgeCancellationTokenSource.Dispose();
+                purgeCancellationTokenSource = null;
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Token was already disposed, ignore
+        }
+        catch (AggregateException)
+        {
+            // Cancellation may throw AggregateException, ignore
+        }
     }
 
     private async Task LoadAllEntitiesAsync()
@@ -783,6 +826,9 @@
                 {
                     messages.Remove(messageForOperation);
                     successMessage = $"Message rescheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
+                    
+                    // Refresh entity counts to update the sidebar
+                    await RefreshEntityCounts();
                 }
                 else
                 {
@@ -812,6 +858,9 @@
                     {
                         successMessage = "Message sent successfully.";
                     }
+                    
+                    // Refresh the message list to show the new message
+                    await HandleRefreshMessages();
                 }
                 else
                 {
