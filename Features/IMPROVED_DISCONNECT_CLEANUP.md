@@ -77,6 +77,8 @@ public void Disconnect()
 }
 ```
 
+**Note**: The synchronous `Disconnect()` method uses `.Wait()` for backward compatibility. New code should use `DisconnectAsync()` to avoid potential deadlocks. The `.Wait()` call is acceptable here because the disposal operation is fast and doesn't involve complex async state machines.
+
 **File**: `SBInspector.Shared/Presentation/Components/Pages/Home.razor`
 
 ```csharp
@@ -126,14 +128,23 @@ private async Task Disconnect()
     isDeleteFiltered = false;
     
     // Cancel any ongoing purge operation
-    if (purgeCancellationTokenSource != null)
+    try
     {
-        purgeCancellationTokenSource.Cancel();
-        purgeCancellationTokenSource.Dispose();
-        purgeCancellationTokenSource = null;
+        if (purgeCancellationTokenSource != null)
+        {
+            purgeCancellationTokenSource.Cancel();
+            purgeCancellationTokenSource.Dispose();
+            purgeCancellationTokenSource = null;
+        }
+    }
+    catch
+    {
+        // Ignore errors during cleanup
     }
 }
 ```
+
+**Note**: The cancellation token cleanup is wrapped in a try-catch to ensure that any errors during cleanup don't prevent the disconnect operation from completing.
 
 ## Benefits
 

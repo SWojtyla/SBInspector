@@ -258,11 +258,18 @@
         isDeleteFiltered = false;
         
         // Cancel any ongoing purge operation
-        if (purgeCancellationTokenSource != null)
+        try
         {
-            purgeCancellationTokenSource.Cancel();
-            purgeCancellationTokenSource.Dispose();
-            purgeCancellationTokenSource = null;
+            if (purgeCancellationTokenSource != null)
+            {
+                purgeCancellationTokenSource.Cancel();
+                purgeCancellationTokenSource.Dispose();
+                purgeCancellationTokenSource = null;
+            }
+        }
+        catch
+        {
+            // Ignore errors during cleanup
         }
     }
 
