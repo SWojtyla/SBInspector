@@ -1,9 +1,9 @@
-using SBInspector.Presentation.Components;
-using SBInspector.Core.Interfaces;
-using SBInspector.Infrastructure.ServiceBus;
-using SBInspector.Infrastructure.Storage;
-using SBInspector.Application.Services;
-using SBInspector.Core.Domain;
+using SBInspector.Shared.Presentation.Components;
+using SBInspector.Shared.Core.Interfaces;
+using SBInspector.Shared.Infrastructure.ServiceBus;
+using SBInspector.Shared.Infrastructure.Storage;
+using SBInspector.Shared.Application.Services;
+using SBInspector.Shared.Core.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,0 +1,199 @@
+@using SBInspector.Shared.Core.Domain
+
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Queues (@FilteredQueues.Count())</h3>
+        @if (Queues.Any())
+        {
+            <div class="search-box">
+                <input type="text" class="form-control" placeholder="Search queues..." 
+                       @bind="searchTerm" @bind:event="oninput" />
+            </div>
+        }
+    </div>
+    
+    @if (Queues.Any())
+    {
+        <div class="table-responsive scrollable-content">
+            <table class="table table-striped table-hover table-enhanced">
+                <thead>
+                    <tr>
+                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.Name))" class="sortable-header">
+                            Name @GetSortIcon(nameof(EntityInfo.Name))
+                        </th>
+                        <th class="text-center">Status</th>
+                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ActiveMessageCount))" class="sortable-header text-center">
+                            Active @GetSortIcon(nameof(EntityInfo.ActiveMessageCount))
+                        </th>
+                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ScheduledMessageCount))" class="sortable-header text-center">
+                            Scheduled @GetSortIcon(nameof(EntityInfo.ScheduledMessageCount))
+                        </th>
+                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.DeadLetterMessageCount))" class="sortable-header text-center">
+                            Dead Letter @GetSortIcon(nameof(EntityInfo.DeadLetterMessageCount))
+                        </th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var queue in FilteredQueues)
+                    {
+                        <tr>
+                            <td><strong>@queue.Name</strong></td>
+                            <td class="text-center">
+                                <span class="badge @(queue.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                    @queue.Status
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="message-badge @(queue.ActiveMessageCount > 0 ? "active" : "zero")">
+                                    @queue.ActiveMessageCount
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="message-badge @(queue.ScheduledMessageCount > 0 ? "scheduled" : "zero")">
+                                    @queue.ScheduledMessageCount
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="message-badge @(queue.DeadLetterMessageCount > 0 ? "deadletter" : "zero")">
+                                    @queue.DeadLetterMessageCount
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons justify-content-center">
+                                    @if (queue.Status == "Active")
+                                    {
+                                        <button class="btn btn-sm btn-secondary" @onclick="@(() => OnToggleStatus.InvokeAsync(queue.Name))" title="Disable Queue">
+                                            <i class="bi bi-pause-circle"></i> <span class="d-none d-md-inline">Disable</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-success" @onclick="@(() => OnToggleStatus.InvokeAsync(queue.Name))" title="Enable Queue">
+                                            <i class="bi bi-play-circle"></i> <span class="d-none d-md-inline">Enable</span>
+                                        </button>
+                                    }
+                                    @if (queue.ActiveMessageCount > 0)
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Active")))" title="View Active Messages">
+                                            <span class="d-none d-md-inline">View </span>Active
+                                        </button>
+                                    }
+                                    @if (queue.ScheduledMessageCount > 0)
+                                    {
+                                        <button class="btn btn-sm btn-warning" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Scheduled")))" title="View Scheduled Messages">
+                                            <span class="d-none d-md-inline">View </span>Scheduled
+                                        </button>
+                                    }
+                                    @if (queue.DeadLetterMessageCount > 0)
+                                    {
+                                        <button class="btn btn-sm btn-danger" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "DeadLetter")))" title="View Dead Letter Messages">
+                                            <span class="d-none d-md-inline">View </span>DLQ
+                                        </button>
+                                    }
+                                    @if (queue.ActiveMessageCount == 0 && queue.ScheduledMessageCount == 0 && queue.DeadLetterMessageCount == 0)
+                                    {
+                                        <small class="text-muted">No messages</small>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        @if (!FilteredQueues.Any())
+        {
+            <div class="alert alert-info mt-3">
+                No queues match your search criteria.
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-info-circle"></i> No queues found in this namespace.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<EntityInfo> Queues { get; set; } = new();
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(EntityInfo.Name);
+
+    [Parameter]
+    public EventCallback<string> SortColumnChanged { get; set; }
+
+    [Parameter]
+    public bool SortAscending { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> SortAscendingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<(string QueueName, string MessageType)> OnViewMessages { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnToggleStatus { get; set; }
+
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<EntityInfo> FilteredQueues
+    {
+        get
+        {
+            var filtered = Queues.AsEnumerable();
+            
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                filtered = filtered.Where(q => q.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            }
+            
+            filtered = SortColumn switch
+            {
+                nameof(EntityInfo.Name) => SortAscending 
+                    ? filtered.OrderBy(q => q.Name) 
+                    : filtered.OrderByDescending(q => q.Name),
+                nameof(EntityInfo.ActiveMessageCount) => SortAscending 
+                    ? filtered.OrderBy(q => q.ActiveMessageCount) 
+                    : filtered.OrderByDescending(q => q.ActiveMessageCount),
+                nameof(EntityInfo.ScheduledMessageCount) => SortAscending 
+                    ? filtered.OrderBy(q => q.ScheduledMessageCount) 
+                    : filtered.OrderByDescending(q => q.ScheduledMessageCount),
+                nameof(EntityInfo.DeadLetterMessageCount) => SortAscending 
+                    ? filtered.OrderBy(q => q.DeadLetterMessageCount) 
+                    : filtered.OrderByDescending(q => q.DeadLetterMessageCount),
+                _ => filtered
+            };
+            
+            return filtered;
+        }
+    }
+
+    private string GetSortIcon(string columnName)
+    {
+        if (SortColumn != columnName)
+        {
+            return "⇅";
+        }
+        
+        return SortAscending ? "▲" : "▼";
+    }
+
+    private async Task HandleSortColumn(string columnName)
+    {
+        if (SortColumn == columnName)
+        {
+            await SortAscendingChanged.InvokeAsync(!SortAscending);
+        }
+        else
+        {
+            await SortColumnChanged.InvokeAsync(columnName);
+            await SortAscendingChanged.InvokeAsync(true);
+        }
+    }
+}

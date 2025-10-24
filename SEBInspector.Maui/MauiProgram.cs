@@ -1,4 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
+using SBInspector.Shared.Core.Interfaces;
+using SBInspector.Shared.Infrastructure.ServiceBus;
+using SBInspector.Shared.Infrastructure.Storage;
+using SBInspector.Shared.Application.Services;
+using SBInspector.Shared.Core.Domain;
 
 namespace SEBInspector.Maui
 {
@@ -20,6 +25,23 @@ namespace SEBInspector.Maui
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
+
+            // Register services following clean architecture
+            builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
+            builder.Services.AddSingleton<MessageFilterService>();
+
+            // Register storage configuration service
+            builder.Services.AddSingleton<StorageConfigurationService>();
+
+            // Register storage service with factory pattern
+            builder.Services.AddScoped<IStorageService>(sp =>
+            {
+                var jsRuntime = sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
+                var configService = sp.GetRequiredService<StorageConfigurationService>();
+                var configuration = configService.GetConfiguration();
+                var factory = new StorageServiceFactory(jsRuntime, configuration);
+                return factory.CreateStorageService();
+            });
 
             return builder.Build();
         }

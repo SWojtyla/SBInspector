@@ -1,0 +1,153 @@
+@using SBInspector.Shared.Core.Domain
+
+<div class="card card-enhanced mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">
+                <i class="bi bi-folder"></i> @TopicName
+            </h4>
+            <small class="text-muted">Subscriptions (@Subscriptions.Count)</small>
+        </div>
+        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
+            <i class="bi bi-x-lg"></i> Close
+        </button>
+    </div>
+    <div class="card-body">
+        @if (IsLoading)
+        {
+            <div class="loading-container">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading subscriptions...</span>
+                </div>
+                <div class="loading-text">Loading subscriptions...</div>
+            </div>
+        }
+        else if (Subscriptions.Any())
+        {
+            <div class="mb-3">
+                <div class="search-box">
+                    <input type="text" class="form-control" placeholder="Search subscriptions..." 
+                           @bind="searchTerm" @bind:event="oninput" />
+                </div>
+            </div>
+            
+            <div class="scrollable-content">
+                @foreach (var subscription in FilteredSubscriptions)
+                {
+                    <div class="subscription-card">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                            <div class="flex-grow-1 mb-2 mb-md-0">
+                                <h5 class="mb-2">
+                                    <i class="bi bi-envelope"></i> @subscription.Name
+                                    <span class="badge @(subscription.Status == "Active" ? "bg-success" : "bg-secondary") ms-2">
+                                        @subscription.Status
+                                    </span>
+                                </h5>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <span class="message-count">
+                                        <i class="bi bi-inbox"></i> Active: 
+                                        <span class="message-badge @(subscription.ActiveMessageCount > 0 ? "active" : "zero")">
+                                            @subscription.ActiveMessageCount
+                                        </span>
+                                    </span>
+                                    <span class="message-count">
+                                        <i class="bi bi-exclamation-triangle"></i> Dead Letter: 
+                                        <span class="message-badge @(subscription.DeadLetterMessageCount > 0 ? "deadletter" : "zero")">
+                                            @subscription.DeadLetterMessageCount
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="action-buttons">
+                                @if (subscription.Status == "Active")
+                                {
+                                    <button class="btn btn-sm btn-secondary" 
+                                            @onclick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))"
+                                            title="Disable Subscription">
+                                        <i class="bi bi-pause-circle"></i> <span class="d-none d-lg-inline">Disable</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-success" 
+                                            @onclick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))"
+                                            title="Enable Subscription">
+                                        <i class="bi bi-play-circle"></i> <span class="d-none d-lg-inline">Enable</span>
+                                    </button>
+                                }
+                                <button class="btn btn-sm btn-primary" 
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Active")))"
+                                        title="View Active Messages">
+                                    <i class="bi bi-inbox"></i> <span class="d-none d-lg-inline">View </span>Active
+                                </button>
+                                <button class="btn btn-sm btn-warning" 
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Scheduled")))"
+                                        title="View Scheduled Messages">
+                                    <i class="bi bi-clock"></i> <span class="d-none d-lg-inline">View </span>Scheduled
+                                </button>
+                                <button class="btn btn-sm btn-danger" 
+                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "DeadLetter")))"
+                                        title="View Dead Letter Messages">
+                                    <i class="bi bi-exclamation-triangle"></i> <span class="d-none d-lg-inline">View </span>DLQ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            @if (!FilteredSubscriptions.Any())
+            {
+                <div class="alert alert-info mt-3">
+                    No subscriptions match your search criteria.
+                </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-info-circle"></i> No subscriptions found for this topic.
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string TopicName { get; set; } = string.Empty;
+
+    [Parameter]
+    public List<SubscriptionInfo> Subscriptions { get; set; } = new();
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<(string TopicName, string SubscriptionName, string MessageType)> OnViewMessages { get; set; }
+
+    [Parameter]
+    public EventCallback<(string TopicName, string SubscriptionName)> OnToggleStatus { get; set; }
+
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<SubscriptionInfo> FilteredSubscriptions
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Subscriptions;
+            }
+            
+            return Subscriptions.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private async Task HandleClose()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

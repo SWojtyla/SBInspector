@@ -1,0 +1,19 @@
+﻿@using System.Reflection
+
+<Router AppAssembly="@AppAssembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>
+
+@code {
+    [Parameter]
+    public Assembly? AppAssembly { get; set; }
+    
+    protected override void OnInitialized()
+    {
+        // Use the current assembly if not provided
+        AppAssembly ??= GetType().Assembly;
+    }
+}
