@@ -1,0 +1,207 @@
+@using SBInspector.Shared.Core.Domain
+
+<div class="filter-panel mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-funnel"></i> Filter Messages
+        </h5>
+        @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
+        {
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAllFilters">
+                <i class="bi bi-x-circle"></i> Clear All
+            </button>
+        }
+    </div>
+    
+    @for (int i = 0; i < Filters.Count; i++)
+    {
+        var index = i;
+        var filter = Filters[index];
+        <div class="card mb-2" style="border: 1px solid #dee2e6;">
+            <div class="card-body p-3">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label for="filterField_@index" class="form-label fw-semibold">Filter Field</label>
+                        <select class="form-select form-select-sm" id="filterField_@index" 
+                                value="@filter.Field" 
+                                @onchange="@(async e => { filter.Field = Enum.Parse<FilterField>(e.Value?.ToString() ?? "ApplicationProperty"); await NotifyFiltersChanged(); })">
+                            <option value="@FilterField.ApplicationProperty">Application Property</option>
+                            <option value="@FilterField.EnqueuedTime">Enqueued Time</option>
+                            <option value="@FilterField.DeliveryCount">Delivery Count</option>
+                            <option value="@FilterField.SequenceNumber">Sequence Number</option>
+                        </select>
+                    </div>
+                    
+                    @if (filter.Field == FilterField.ApplicationProperty)
+                    {
+                        <div class="col-md-3">
+                            <label for="filterAttributeName_@index" class="form-label fw-semibold">Attribute Name</label>
+                            <input type="text" class="form-control form-control-sm" id="filterAttributeName_@index" 
+                                   value="@filter.AttributeName" 
+                                   @oninput="@(async e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
+                                   placeholder="e.g., customerId, orderId" />
+                        </div>
+                    }
+                    
+                    <div class="col-md-@(filter.Field == FilterField.ApplicationProperty ? "2" : "3")">
+                        <label for="filterOperator_@index" class="form-label fw-semibold">Operator</label>
+                        <select class="form-select form-select-sm" id="filterOperator_@index" 
+                                value="@filter.Operator" 
+                                @onchange="@(async e => { filter.Operator = Enum.Parse<FilterOperator>(e.Value?.ToString() ?? "Contains"); await NotifyFiltersChanged(); })">
+                            @foreach (var op in GetAvailableOperators(filter.Field))
+                            {
+                                <option value="@op">@GetOperatorDisplayName(op)</option>
+                            }
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-@(filter.Field == FilterField.ApplicationProperty ? "3" : "4")">
+                        <label for="filterAttributeValue_@index" class="form-label fw-semibold">Value</label>
+                        <input type="@GetInputType(filter.Field)" class="form-control form-control-sm" id="filterAttributeValue_@index" 
+                               value="@filter.AttributeValue" 
+                               @oninput="@(async e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
+                               placeholder="@GetPlaceholder(filter.Field, filter.Operator)" />
+                    </div>
+                    
+                    <div class="col-md-1 d-flex align-items-end">
+                        @if (Filters.Count > 1)
+                        {
+                            <button class="btn btn-sm btn-outline-danger w-100" @onclick="() => RemoveFilterAtIndex(index)" title="Remove this filter">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <button class="btn btn-sm btn-outline-primary" @onclick="AddNewFilter">
+            <i class="bi bi-plus-circle"></i> Add Filter
+        </button>
+        <div class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            <small>
+                Showing <strong>@FilteredCount</strong> of <strong>@TotalCount</strong> messages
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<MessageFilter> Filters { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<MessageFilter>> FiltersChanged { get; set; }
+
+    [Parameter]
+    public int FilteredCount { get; set; }
+
+    [Parameter]
+    public int TotalCount { get; set; }
+
+    private async Task NotifyFiltersChanged()
+    {
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private async Task AddNewFilter()
+    {
+        Filters.Add(new MessageFilter());
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private async Task RemoveFilterAtIndex(int index)
+    {
+        if (Filters.Count > 1)
+        {
+            Filters.RemoveAt(index);
+            await FiltersChanged.InvokeAsync(Filters);
+        }
+    }
+
+    private async Task ClearAllFilters()
+    {
+        Filters.Clear();
+        Filters.Add(new MessageFilter());
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private List<FilterOperator> GetAvailableOperators(FilterField field)
+    {
+        return field switch
+        {
+            FilterField.ApplicationProperty => new List<FilterOperator>
+            {
+                FilterOperator.Contains,
+                FilterOperator.Equals,
+                FilterOperator.NotEquals,
+                FilterOperator.Regex,
+                FilterOperator.GreaterThan,
+                FilterOperator.LessThan,
+                FilterOperator.GreaterThanOrEqual,
+                FilterOperator.LessThanOrEqual
+            },
+            FilterField.EnqueuedTime => new List<FilterOperator>
+            {
+                FilterOperator.Equals,
+                FilterOperator.NotEquals,
+                FilterOperator.GreaterThan,
+                FilterOperator.LessThan,
+                FilterOperator.GreaterThanOrEqual,
+                FilterOperator.LessThanOrEqual
+            },
+            FilterField.DeliveryCount or FilterField.SequenceNumber => new List<FilterOperator>
+            {
+                FilterOperator.Equals,
+                FilterOperator.NotEquals,
+                FilterOperator.GreaterThan,
+                FilterOperator.LessThan,
+                FilterOperator.GreaterThanOrEqual,
+                FilterOperator.LessThanOrEqual
+            },
+            _ => new List<FilterOperator> { FilterOperator.Contains }
+        };
+    }
+
+    private string GetOperatorDisplayName(FilterOperator op)
+    {
+        return op switch
+        {
+            FilterOperator.Contains => "Contains",
+            FilterOperator.Equals => "Equals",
+            FilterOperator.NotEquals => "Not Equals",
+            FilterOperator.GreaterThan => "Greater Than",
+            FilterOperator.LessThan => "Less Than",
+            FilterOperator.GreaterThanOrEqual => "Greater Than or Equal",
+            FilterOperator.LessThanOrEqual => "Less Than or Equal",
+            FilterOperator.Regex => "Regex",
+            _ => op.ToString()
+        };
+    }
+
+    private string GetInputType(FilterField field)
+    {
+        return field switch
+        {
+            FilterField.EnqueuedTime => "datetime-local",
+            FilterField.DeliveryCount or FilterField.SequenceNumber => "number",
+            _ => "text"
+        };
+    }
+
+    private string GetPlaceholder(FilterField field, FilterOperator op)
+    {
+        return field switch
+        {
+            FilterField.EnqueuedTime => "Select date and time",
+            FilterField.DeliveryCount => "e.g., 5",
+            FilterField.SequenceNumber => "e.g., 12345",
+            FilterField.ApplicationProperty when op == FilterOperator.Regex => "e.g., ^ABC.*",
+            FilterField.ApplicationProperty => "e.g., 12345, ABC",
+            _ => ""
+        };
+    }
+}

@@ -1,0 +1,186 @@
+@using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Core.Domain
+@inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
+@inject IStorageService StorageService
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Connect to Service Bus</h5>
+        
+        @if (savedConnections.Any())
+        {
+            <div class="mb-3">
+                <label class="form-label">Saved Connections</label>
+                <div class="d-flex gap-2">
+                    <select class="form-select" @bind="selectedConnectionName" @bind:after="LoadSelectedConnection">
+                        <option value="">-- Select a saved connection --</option>
+                        @foreach (var conn in savedConnections)
+                        {
+                            <option value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</option>
+                        }
+                    </select>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedConnection" disabled="@string.IsNullOrEmpty(selectedConnectionName)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        }
+        
+        <div class="mb-3">
+            <label for="connectionString" class="form-label">Connection String</label>
+            <input type="password" class="form-control" id="connectionString" @bind="ConnectionString" placeholder="Endpoint=sb://..." />
+        </div>
+        
+        <div class="mb-3">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="saveConnection" @bind="shouldSaveConnection" />
+                <label class="form-check-label" for="saveConnection">
+                    Save this connection for later use
+                </label>
+            </div>
+            @if (shouldSaveConnection)
+            {
+                <div class="mt-2">
+                    <input type="text" class="form-control" @bind="connectionName" placeholder="Enter a name for this connection" />
+                </div>
+            }
+        </div>
+        
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                @ErrorMessage
+            </div>
+        }
+        
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> @successMessage
+                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+            </div>
+        }
+        
+        <button class="btn btn-primary" @onclick="HandleConnectAsync" disabled="@IsConnecting">
+            @if (IsConnecting)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span> Connecting...</span>
+            }
+            else
+            {
+                <span>Connect</span>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string ConnectionString { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ConnectionStringChanged { get; set; }
+
+    [Parameter]
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ErrorMessageChanged { get; set; }
+
+    [Parameter]
+    public bool IsConnecting { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsConnectingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnConnected { get; set; }
+
+    private List<SavedConnection> savedConnections = new();
+    private string selectedConnectionName = string.Empty;
+    private bool shouldSaveConnection = false;
+    private string connectionName = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSavedConnectionsAsync();
+    }
+
+    private async Task LoadSavedConnectionsAsync()
+    {
+        savedConnections = await StorageService.GetSavedConnectionsAsync();
+    }
+
+    private async Task LoadSelectedConnection()
+    {
+        var connection = savedConnections.FirstOrDefault(c => c.Name == selectedConnectionName);
+        if (connection != null)
+        {
+            ConnectionString = connection.ConnectionString;
+            await ConnectionStringChanged.InvokeAsync(ConnectionString);
+            connectionName = connection.Name;
+            successMessage = $"Loaded connection '{connection.Name}'";
+        }
+    }
+
+    private async Task DeleteSelectedConnection()
+    {
+        if (!string.IsNullOrEmpty(selectedConnectionName))
+        {
+            await StorageService.DeleteConnectionAsync(selectedConnectionName);
+            await LoadSavedConnectionsAsync();
+            selectedConnectionName = string.Empty;
+            successMessage = "Connection deleted successfully";
+        }
+    }
+
+    private async Task HandleConnectAsync()
+    {
+        await IsConnectingChanged.InvokeAsync(true);
+        await ErrorMessageChanged.InvokeAsync(string.Empty);
+        successMessage = string.Empty;
+        
+        try
+        {
+            var success = await ServiceBusService.ConnectAsync(ConnectionString);
+            if (success)
+            {
+                // Save connection if requested
+                if (shouldSaveConnection && !string.IsNullOrWhiteSpace(connectionName))
+                {
+                    var savedConnection = new SavedConnection
+                    {
+                        Name = connectionName.Trim(),
+                        ConnectionString = ConnectionString,
+                        LastUsedAt = DateTime.UtcNow
+                    };
+                    await StorageService.SaveConnectionAsync(savedConnection);
+                    await LoadSavedConnectionsAsync();
+                    successMessage = $"Connection saved as '{connectionName}'";
+                }
+                else if (!string.IsNullOrEmpty(selectedConnectionName))
+                {
+                    // Update last used time for loaded connection
+                    await StorageService.UpdateLastUsedAsync(selectedConnectionName);
+                    await LoadSavedConnectionsAsync();
+                }
+                
+                await OnConnected.InvokeAsync();
+            }
+            else
+            {
+                await ErrorMessageChanged.InvokeAsync("Failed to connect. Please check your connection string.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ErrorMessageChanged.InvokeAsync($"Error: {ex.Message}");
+        }
+        finally
+        {
+            await IsConnectingChanged.InvokeAsync(false);
+        }
+    }
+}
