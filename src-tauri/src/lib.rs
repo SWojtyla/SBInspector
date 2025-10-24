@@ -120,9 +120,15 @@ pub fn run() {
             thread::sleep(Duration::from_secs(3));
             log::info!("Server should be ready at {}", server_url);
             
-            // Update the window URL to point to the correct port
+            // Navigate the window to the server URL
             if let Some(window) = app.get_webview_window("main") {
-              let _ = window.eval(&format!("window.location.href = '{}'", server_url));
+              log::info!("Navigating window to server URL...");
+              match window.navigate(server_url.parse().expect("Invalid URL")) {
+                Ok(_) => log::info!("Window navigation successful"),
+                Err(e) => log::error!("Failed to navigate window: {}", e),
+              }
+            } else {
+              log::error!("Could not find main window");
             }
           }
           Err(e) => {
