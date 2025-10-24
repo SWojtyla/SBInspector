@@ -124,9 +124,24 @@ Download messages that match your current filters as a JSON file for backup, ana
 ### How to Use
 
 1. Apply one or more filters to select the messages you want to export
-2. Click the **"Export Filtered"** button (blue/info color)
-3. The filtered messages will be downloaded as a JSON file
-4. The filename will be: `{entity}_{messagetype}_messages_{timestamp}.json`
+2. Click the **"Export Filtered"** button (blue/primary color)
+3. **For Web**: The file downloads automatically to your browser's download folder
+4. **For MAUI Desktop App**: The file is saved to your Downloads folder (or Documents if Downloads is not available), and you'll see a dialog showing the exact location
+5. The filename will be: `{entity}_{messagetype}_messages_{timestamp}.json`
+
+### Platform-Specific Behavior
+
+#### Web Browser
+- Files download to the browser's configured download location
+- No additional prompts or dialogs
+- Works like any other file download
+
+#### MAUI Desktop App (Windows, macOS)
+- Files are automatically saved to:
+  - **Windows**: `C:\Users\[YourName]\Downloads\`
+  - **macOS**: `/Users/[YourName]/Downloads/`
+- An alert dialog shows the exact file location after successful export
+- If a file with the same name exists, a number is appended (e.g., `filename_1.json`)
 
 ### Example Filenames
 

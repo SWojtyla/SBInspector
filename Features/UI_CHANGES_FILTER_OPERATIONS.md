@@ -12,24 +12,26 @@ The Messages Panel (displayed when viewing messages from a queue or subscription
 ┌─────────────────────────────────────────────────────────────────┐
 │ Queue/Subscription Messages Panel                               │
 ├─────────────────────────────────────────────────────────────────┤
-│ [🔄 Refresh] [➕ Send New] [🗑️ Delete Filtered]              │
-│              [💾 Export Filtered] [🗑️🗑️ Purge All] [✖️ Close]  │
+│ [🔄 Refresh] [➕ Send New] [💾 Export Filtered]              │
+│              [🗑️ Delete Filtered] [🗑️🗑️ Purge All] [✖️ Close]  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Button Colors and Icons
 
-1. **Delete Filtered** (Warning/Yellow button)
+1. **Export Filtered** (Primary/Blue button - more visible!)
+   - Icon: 💾 (download icon)
+   - Color: Primary (bright blue)
+   - Tooltip: "Download messages matching current filters to Downloads folder"
+   - Action: 
+     - **Web**: Immediately downloads JSON file
+     - **MAUI**: Saves to Downloads folder and shows location in dialog
+
+2. **Delete Filtered** (Warning/Yellow button)
    - Icon: 🗑️ (single trash icon)
    - Color: Warning (yellow/orange)
    - Tooltip: "Delete messages matching current filters"
    - Action: Opens confirmation dialog for filtered deletion
-
-2. **Export Filtered** (Info/Blue button)
-   - Icon: 💾 (download icon)
-   - Color: Info (blue)
-   - Tooltip: "Download messages matching current filters"
-   - Action: Immediately downloads JSON file of filtered messages
 
 3. **Purge All** (Danger/Red button - existing)
    - Icon: 🗑️🗑️ (double trash icon)
@@ -108,6 +110,25 @@ When clicking "Delete Filtered", a confirmation dialog appears:
 
 **Note**: User must type "PURGE" (case-insensitive) to enable the confirmation button.
 
+## Export Success Dialog (MAUI App Only)
+
+When exporting in the MAUI desktop app, a success dialog shows the file location:
+
+```
+┌────────────────────────────────────────────────────┐
+│  ✅  Export Successful                             │
+├────────────────────────────────────────────────────┤
+│                                                    │
+│  File saved to:                                    │
+│  C:\Users\YourName\Downloads\                      │
+│  myqueue_active_messages_20241024_153045.json      │
+│                                                    │
+│                     [OK]                           │
+└────────────────────────────────────────────────────┘
+```
+
+**Note**: This dialog only appears in the MAUI desktop app. In the web version, files download normally through the browser.
+
 ## Progress Overlay
 
 When deleting filtered messages, a progress overlay is shown:
@@ -136,11 +157,12 @@ When deleting filtered messages, a progress overlay is shown:
 
 ### Success Messages (Top of page, green alert)
 
-- **Export**: "Successfully exported 25 message(s) to myqueue_active_messages_20241024_153045.json."
+- **Export (Web)**: "Successfully exported 25 message(s) to myqueue_active_messages_20241024_153045.json."
+- **Export (MAUI)**: File location shown in dialog box (see above)
 - **Delete**: "Successfully deleted 42 filtered message(s)."
 - **Cancel**: "Delete cancelled. Deleted 10 message(s) before cancellation."
 
-Auto-dismisses after 3 seconds.
+Auto-dismisses after 3 seconds (web only).
 
 ### Error Messages (Top of page, red alert)
 
@@ -157,9 +179,10 @@ Auto-dismisses after 5 seconds.
 
 1. Apply one or more filters to narrow down messages
 2. Verify filtered message count at bottom of filter panel
-3. Click "Export Filtered" button (blue)
-4. File downloads automatically to browser's download folder
-5. Success message appears briefly
+3. Click "Export Filtered" button (bright blue - now more visible!)
+4. **Web**: File downloads automatically to browser's download folder
+5. **MAUI**: File saves to Downloads folder, dialog shows exact location
+6. Success message appears (web) or dialog with file path (MAUI)
 
 **No confirmation required** - Export is non-destructive.
 
@@ -190,17 +213,17 @@ Auto-dismisses after 5 seconds.
 ### Button Importance (Left to Right)
 
 ```
-Primary Actions: [Refresh] [Send New]
+Primary Actions: [Refresh] [Send New] [Export Filtered]  ← Now more prominent!
 Warning Actions: [Delete Filtered]  ← Destructive but selective
-Info Actions:    [Export Filtered]  ← Non-destructive
 Danger Actions:  [Purge All]        ← Most destructive
 Close Action:    [Close]
 ```
 
 The color coding helps users understand the risk level:
-- **Blue**: Safe, informational
-- **Yellow**: Caution, selective destructive action
-- **Red**: Danger, full destructive action
+- **Bright Blue (Primary)**: Important but safe action (Export)
+- **Green**: Add new items (Send New)
+- **Yellow**: Caution, selective destructive action (Delete Filtered)
+- **Red**: Danger, full destructive action (Purge All)
 
 ## Responsive Design
 

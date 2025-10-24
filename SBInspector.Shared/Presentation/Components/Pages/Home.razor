@@ -4,7 +4,7 @@
 @using System.Text.Json
 @using Microsoft.JSInterop
 @inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
-@inject IJSRuntime JSRuntime
+@inject IFileExportService FileExportService
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
@@ -1200,12 +1200,21 @@
             var messageTypeDisplay = selectedMessageType.ToLower();
             var filename = $"{selectedEntity.Replace("/", "_")}_{messageTypeDisplay}_messages_{timestamp}.json";
             
-            // Download file via JavaScript
-            await JSRuntime.InvokeVoidAsync("downloadFile", filename, json);
+            // Export file using the platform-specific service
+            var success = await FileExportService.ExportToFileAsync(filename, json);
             
-            successMessage = $"Successfully exported {filteredMessages.Count} message(s) to {filename}.";
+            if (success)
+            {
+                successMessage = $"Successfully exported {filteredMessages.Count} message(s) to {filename}.";
+            }
+            else
+            {
+                operationErrorMessage = "Failed to export messages. Please try again.";
+            }
+            
             await Task.Delay(3000);
             successMessage = string.Empty;
+            operationErrorMessage = string.Empty;
             StateHasChanged();
         }
         catch (Exception ex)
