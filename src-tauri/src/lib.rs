@@ -67,9 +67,24 @@ pub fn run() {
 
         log::info!("Server executable found, attempting to start...");
         
+        // Determine the working directory (where the executable is located)
+        let working_dir = server_path.parent().expect("Failed to get server directory");
+        
         // Start the server process
-        match Command::new(&server_path)
-           .current_dir(&resource_path)
+        #[cfg(target_os = "windows")]
+        let mut cmd = {
+          use std::os::windows::process::CommandExt;
+          const CREATE_NO_WINDOW: u32 = 0x08000000;
+          let mut cmd = Command::new(&server_path);
+          cmd.creation_flags(CREATE_NO_WINDOW);
+          cmd
+        };
+        
+        #[cfg(not(target_os = "windows"))]
+        let mut cmd = Command::new(&server_path);
+        
+        match cmd
+           .current_dir(working_dir)
            .env("ASPNETCORE_ENVIRONMENT", "Production")
            .env("ASPNETCORE_URLS", "https://localhost:5000")
            .stdout(Stdio::null())
