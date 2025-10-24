@@ -553,44 +553,34 @@ public class ServiceBusService : IServiceBusService
     {
         if (_client == null) return 0;
 
-        ServiceBusReceiver? peekReceiver = null;
-        ServiceBusReceiver? deleteReceiver = null;
+        ServiceBusReceiver? receiver = null;
         int totalDeleted = 0;
 
         try
         {
-            var peekOptions = new ServiceBusReceiverOptions
+            var options = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
-            };
-
-            var deleteOptions = new ServiceBusReceiverOptions
-            {
-                ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete
             };
 
             // Handle dead-letter queue
             if (messageType == "DeadLetter")
             {
-                peekOptions.SubQueue = SubQueue.DeadLetter;
-                deleteOptions.SubQueue = SubQueue.DeadLetter;
+                options.SubQueue = SubQueue.DeadLetter;
             }
 
-            // Create the appropriate receivers
+            // Create the appropriate receiver
             if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
             {
-                peekReceiver = _client.CreateReceiver(topicName, subscriptionName, peekOptions);
-                deleteReceiver = _client.CreateReceiver(topicName, subscriptionName, deleteOptions);
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
             }
             else
             {
-                peekReceiver = _client.CreateReceiver(entityName, peekOptions);
-                deleteReceiver = _client.CreateReceiver(entityName, deleteOptions);
+                receiver = _client.CreateReceiver(entityName, options);
             }
 
             // Create a filter service to check messages
             var filterService = new Application.Services.MessageFilterService();
-            long? fromSequenceNumber = null;
 
             // Keep receiving and filtering messages in batches
             while (true)
@@ -598,17 +588,19 @@ public class ServiceBusService : IServiceBusService
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                // Peek at messages to check which ones match the filter
-                var peekedMessages = await peekReceiver.PeekMessagesAsync(maxMessages: 100, fromSequenceNumber);
+                // Receive messages with PeekLock mode
+                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
                 
-                if (peekedMessages.Count == 0)
+                if (receivedMessages.Count == 0)
                 {
                     break; // No more messages to process
                 }
 
                 // Convert to MessageInfo for filtering
                 var messageInfos = new List<MessageInfo>();
-                foreach (var msg in peekedMessages)
+                var messageMap = new Dictionary<long, ServiceBusReceivedMessage>();
+                
+                foreach (var msg in receivedMessages)
                 {
                     var messageInfo = new MessageInfo
                     {
@@ -630,30 +622,33 @@ public class ServiceBusService : IServiceBusService
                     }
 
                     messageInfos.Add(messageInfo);
+                    messageMap[msg.SequenceNumber] = msg;
                 }
 
                 // Apply filters to find matching messages
                 var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
-                var matchingSequenceNumbers = matchingMessages.Select(m => m.SequenceNumber).ToHashSet();
-
-                // Now receive and delete matching messages
-                // We need to receive messages in order to delete them
-                var receivedMessages = await deleteReceiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
                 
-                if (receivedMessages.Count == 0)
+                // Delete (complete) only the matching messages, abandon the rest
+                foreach (var matchingMsg in matchingMessages)
                 {
-                    break;
+                    if (messageMap.TryGetValue(matchingMsg.SequenceNumber, out var serviceBusMessage))
+                    {
+                        await receiver.CompleteMessageAsync(serviceBusMessage);
+                        totalDeleted++;
+                        
+                        // Report progress after each deletion
+                        progress?.Report(totalDeleted);
+                    }
                 }
-
-                // Count how many of the received messages matched our filter
-                int deletedInBatch = receivedMessages.Count(m => matchingSequenceNumbers.Contains(m.SequenceNumber));
-                totalDeleted += deletedInBatch;
                 
-                // Report progress
-                progress?.Report(totalDeleted);
-                
-                // Update the sequence number for next peek
-                fromSequenceNumber = peekedMessages.Max(m => m.SequenceNumber) + 1;
+                // Abandon non-matching messages so they can be received again
+                foreach (var msg in receivedMessages)
+                {
+                    if (!matchingMessages.Any(m => m.SequenceNumber == msg.SequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                }
                 
                 // Add a small delay to avoid overwhelming the service
                 if (receivedMessages.Count == 100)
@@ -675,13 +670,9 @@ public class ServiceBusService : IServiceBusService
         }
         finally
         {
-            if (peekReceiver != null)
+            if (receiver != null)
             {
-                await peekReceiver.DisposeAsync();
-            }
-            if (deleteReceiver != null)
-            {
-                await deleteReceiver.DisposeAsync();
+                await receiver.DisposeAsync();
             }
         }
     }
