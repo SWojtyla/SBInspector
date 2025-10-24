@@ -1,0 +1,1205 @@
+@page "/"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Presentation.Components.UI
+@inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
+
+<PageTitle>Service Bus Inspector</PageTitle>
+
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Azure Service Bus Inspector</h1>
+
+    @if (!ServiceBusService.IsConnected)
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <SBInspector.Components.UI.ConnectionForm 
+                    @bind-ConnectionString="@connectionString"
+                    @bind-ErrorMessage="@errorMessage"
+                    @bind-IsConnecting="@isConnecting"
+                    OnConnected="@HandleConnected" />
+            </div>
+            <div class="col-md-4">
+                <SBInspector.Components.UI.StorageSettings />
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-3">
+            <button class="btn btn-danger" @onclick="Disconnect">Disconnect</button>
+        </div>
+
+        <div class="split-panel-container">
+            <div class="split-panel-left">
+                <EntityTreeView 
+                    Queues="@queues"
+                    Topics="@topics"
+                    TopicSubscriptions="@topicSubscriptions"
+                    LoadingTopics="@loadingTopics"
+                    IsLoading="@isLoadingEntities"
+                    SelectedEntityType="@selectedEntityType"
+                    SelectedEntityName="@selectedEntityName"
+                    OnQueueSelected="@HandleQueueSelected"
+                    OnTopicSelected="@HandleTopicSelected"
+                    OnSubscriptionSelected="@HandleSubscriptionSelected"
+                    OnLoadSubscriptions="@LoadSubscriptionsForTopic"
+                    OnRefresh="@HandleRefreshEntities" />
+            </div>
+
+            <div class="split-panel-right">
+                @if (!string.IsNullOrEmpty(selectedEntity))
+                {
+                    <MessagesPanel 
+                        EntityName="@selectedEntity"
+                        MessageType="@selectedMessageType"
+                        Messages="@messages"
+                        IsLoading="@isLoadingMessages"
+                        @bind-Filters="@messageFilters"
+                        @bind-SortColumn="@messageSortColumn"
+                        @bind-SortAscending="@messageSortAscending"
+                        @bind-PageSize="@pageSize"
+                        HasMoreMessages="@hasMoreMessages"
+                        IsLoadingMore="@isLoadingMoreMessages"
+                        OnClose="@CloseMessages"
+                        OnViewMessageDetails="@ViewMessageDetails"
+                        OnDeleteMessage="@HandleDeleteMessage"
+                        OnRequeueMessage="@HandleRequeueMessage"
+                        OnRescheduleMessage="@HandleRescheduleMessage"
+                        OnSendNew="@HandleSendNewMessage"
+                        OnPurge="@HandlePurgeMessages"
+                        OnLoadMore="@LoadMoreMessages"
+                        OnRefresh="@HandleRefreshMessages" />
+                }
+                else
+                {
+                    <EntityDetailsPanel 
+                        EntityType="@selectedEntityType"
+                        QueueInfo="@selectedQueueInfo"
+                        TopicInfo="@selectedTopicInfo"
+                        SubscriptionInfo="@selectedSubscriptionInfo"
+                        TopicName="@selectedTopicForSubscription"
+                        OnViewMessages="@HandleViewMessagesFromDetails"
+                        OnToggleStatus="@HandleToggleStatusFromDetails" />
+                }
+            </div>
+        </div>
+
+        <MessageDetailsModal 
+            Message="@selectedMessage"
+            OnClose="@CloseMessageDetails" />
+
+        <ConfirmationModal 
+            IsVisible="@showDeleteConfirmation"
+            Title="Delete Message"
+            Message="@deleteConfirmationMessage"
+            IconClass="bi-exclamation-triangle"
+            ConfirmIconClass="bi-trash"
+            ConfirmButtonClass="btn-danger"
+            ConfirmText="Delete"
+            OnConfirm="@ConfirmDelete"
+            OnCancel="@CancelDelete" />
+
+        <ConfirmationModal 
+            IsVisible="@showRequeueConfirmation"
+            Title="Requeue Message"
+            Message="Are you sure you want to requeue this message from the dead-letter queue to the active queue?"
+            IconClass="bi-arrow-counterclockwise"
+            ConfirmIconClass="bi-check-lg"
+            ConfirmButtonClass="btn-success"
+            ConfirmText="Requeue"
+            OnConfirm="@ConfirmRequeue"
+            OnCancel="@CancelRequeue" />
+
+        <ConfirmationModal 
+            IsVisible="@showPurgeConfirmation"
+            Title="Purge All Messages"
+            Message="@purgeConfirmationMessage"
+            IconClass="bi-exclamation-triangle-fill"
+            ConfirmIconClass="bi-trash-fill"
+            ConfirmButtonClass="btn-danger"
+            ConfirmText="Purge All"
+            OnConfirm="@ConfirmPurge"
+            OnCancel="@CancelPurge" />
+
+        <SendMessageModal
+            IsVisible="@showSendModal"
+            Title="@sendModalTitle"
+            IsReschedule="@isRescheduleMode"
+            OnClose="@CloseSendModal"
+            OnSend="@HandleSendMessage" />
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+                <i class="bi bi-check-circle"></i> @successMessage
+                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(operationErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> @operationErrorMessage
+                <button type="button" class="btn-close" @onclick="() => operationErrorMessage = string.Empty"></button>
+            </div>
+        }
+
+        <BackgroundOperationPanel
+            IsVisible="@isPurgeInProgress"
+            Title="Purging Messages"
+            Message="@purgeProgressMessage"
+            Progress="@purgeProgress"
+            OnCancel="@CancelPurge" />
+
+        <OperationLoadingOverlay 
+            IsVisible="@isOperationInProgress"
+            Title="@operationLoadingTitle"
+            Message="@operationLoadingMessage" />
+    }
+</div>
+
+@code {
+    private string connectionString = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isConnecting = false;
+    private bool isLoadingEntities = false;
+    private bool isLoadingMessages = false;
+    
+    private List<EntityInfo> queues = new();
+    private List<EntityInfo> topics = new();
+    private List<MessageInfo> messages = new();
+    private Dictionary<string, List<SubscriptionInfo>> topicSubscriptions = new();
+    private HashSet<string> loadingTopics = new();
+    
+    // Tree selection state
+    private string? selectedEntityType = null;
+    private string? selectedEntityName = null;
+    private EntityInfo? selectedQueueInfo = null;
+    private EntityInfo? selectedTopicInfo = null;
+    private SubscriptionInfo? selectedSubscriptionInfo = null;
+    private string? selectedTopicForSubscription = null;
+    
+    // Message viewing state
+    private string selectedEntity = string.Empty;
+    private string selectedMessageType = string.Empty;
+    private string selectedTopic = string.Empty;
+    private string selectedSubscriptionName = string.Empty;
+    private MessageInfo? selectedMessage = null;
+    
+    private List<MessageFilter> messageFilters = new() { new MessageFilter() };
+    
+    // Pagination state
+    private int pageSize = 100;
+    private bool hasMoreMessages = false;
+    private bool isLoadingMoreMessages = false;
+
+    // Sorting state for messages
+    private string messageSortColumn = nameof(MessageInfo.EnqueuedTime);
+    private bool messageSortAscending = false;
+
+    private async Task HandleConnected()
+    {
+        await LoadAllEntitiesAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // If already connected (e.g., after page refresh), reload entities
+        if (ServiceBusService.IsConnected)
+        {
+            await LoadAllEntitiesAsync();
+        }
+    }
+
+    private void Disconnect()
+    {
+        ServiceBusService.Disconnect();
+        queues.Clear();
+        topics.Clear();
+        messages.Clear();
+        topicSubscriptions.Clear();
+        loadingTopics.Clear();
+        selectedEntity = string.Empty;
+        selectedTopic = string.Empty;
+        selectedEntityType = null;
+        selectedEntityName = null;
+        selectedQueueInfo = null;
+        selectedTopicInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
+    }
+
+    private async Task LoadAllEntitiesAsync()
+    {
+        isLoadingEntities = true;
+        selectedEntity = string.Empty;
+        selectedTopic = string.Empty;
+        
+        try
+        {
+            queues = await ServiceBusService.GetQueuesAsync();
+            topics = await ServiceBusService.GetTopicsAsync();
+        }
+        finally
+        {
+            isLoadingEntities = false;
+        }
+    }
+
+    private async Task HandleRefreshEntities()
+    {
+        isLoadingEntities = true;
+        
+        try
+        {
+            // Reload all queues and topics
+            queues = await ServiceBusService.GetQueuesAsync();
+            topics = await ServiceBusService.GetTopicsAsync();
+            
+            // Reload subscriptions for expanded topics
+            var expandedTopicsList = topicSubscriptions.Keys.ToList();
+            foreach (var topicName in expandedTopicsList)
+            {
+                loadingTopics.Add(topicName);
+                try
+                {
+                    var subs = await ServiceBusService.GetSubscriptionsAsync(topicName);
+                    topicSubscriptions[topicName] = subs;
+                }
+                finally
+                {
+                    loadingTopics.Remove(topicName);
+                }
+            }
+            
+            // Update selected entity info if applicable
+            if (selectedEntityType == "queue" && !string.IsNullOrEmpty(selectedEntityName))
+            {
+                selectedQueueInfo = queues.FirstOrDefault(q => q.Name == selectedEntityName);
+            }
+            else if (selectedEntityType == "topic" && !string.IsNullOrEmpty(selectedEntityName))
+            {
+                selectedTopicInfo = topics.FirstOrDefault(t => t.Name == selectedEntityName);
+            }
+            else if (selectedEntityType == "subscription" && !string.IsNullOrEmpty(selectedTopicForSubscription))
+            {
+                var parts = selectedEntityName?.Split('/');
+                if (parts?.Length == 2 && topicSubscriptions.ContainsKey(parts[0]))
+                {
+                    selectedSubscriptionInfo = topicSubscriptions[parts[0]].FirstOrDefault(s => s.Name == parts[1]);
+                }
+            }
+        }
+        finally
+        {
+            isLoadingEntities = false;
+        }
+    }
+
+    private void HandleQueueSelected(string queueName)
+    {
+        selectedEntityType = "queue";
+        selectedEntityName = queueName;
+        selectedQueueInfo = queues.FirstOrDefault(q => q.Name == queueName);
+        selectedTopicInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
+        
+        // Clear messages panel
+        selectedEntity = string.Empty;
+        messages.Clear();
+    }
+
+    private void HandleTopicSelected(string topicName)
+    {
+        selectedEntityType = "topic";
+        selectedEntityName = topicName;
+        selectedTopicInfo = topics.FirstOrDefault(t => t.Name == topicName);
+        selectedQueueInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
+        
+        // Clear messages panel
+        selectedEntity = string.Empty;
+        messages.Clear();
+    }
+
+    private void HandleSubscriptionSelected((string TopicName, string SubscriptionName) args)
+    {
+        selectedEntityType = "subscription";
+        selectedEntityName = $"{args.TopicName}/{args.SubscriptionName}";
+        selectedTopicForSubscription = args.TopicName;
+        
+        if (topicSubscriptions.ContainsKey(args.TopicName))
+        {
+            selectedSubscriptionInfo = topicSubscriptions[args.TopicName].FirstOrDefault(s => s.Name == args.SubscriptionName);
+        }
+        
+        selectedQueueInfo = null;
+        selectedTopicInfo = null;
+        
+        // Clear messages panel
+        selectedEntity = string.Empty;
+        messages.Clear();
+    }
+
+    private async Task LoadSubscriptionsForTopic(string topicName)
+    {
+        if (topicSubscriptions.ContainsKey(topicName))
+        {
+            return; // Already loaded
+        }
+
+        loadingTopics.Add(topicName);
+        
+        try
+        {
+            var subs = await ServiceBusService.GetSubscriptionsAsync(topicName);
+            topicSubscriptions[topicName] = subs;
+        }
+        finally
+        {
+            loadingTopics.Remove(topicName);
+        }
+    }
+
+    private async Task HandleViewMessagesFromDetails(string messageType)
+    {
+        if (selectedEntityType == "queue" && selectedQueueInfo != null)
+        {
+            await HandleViewQueueMessages((selectedQueueInfo.Name, messageType));
+        }
+        else if (selectedEntityType == "subscription" && selectedSubscriptionInfo != null && !string.IsNullOrEmpty(selectedTopicForSubscription))
+        {
+            await HandleViewSubscriptionMessages((selectedTopicForSubscription, selectedSubscriptionInfo.Name, messageType));
+        }
+    }
+
+    private async Task HandleToggleStatusFromDetails()
+    {
+        if (selectedEntityType == "queue" && selectedQueueInfo != null)
+        {
+            await HandleToggleQueueStatus(selectedQueueInfo.Name);
+        }
+        else if (selectedEntityType == "topic" && selectedTopicInfo != null)
+        {
+            await HandleToggleTopicStatus(selectedTopicInfo.Name);
+        }
+        else if (selectedEntityType == "subscription" && selectedSubscriptionInfo != null && !string.IsNullOrEmpty(selectedTopicForSubscription))
+        {
+            await HandleToggleSubscriptionStatus((selectedTopicForSubscription, selectedSubscriptionInfo.Name));
+        }
+    }
+
+    private async Task HandleViewQueueMessages((string QueueName, string MessageType) args)
+    {
+        selectedEntity = args.QueueName;
+        selectedMessageType = args.MessageType;
+        selectedTopic = string.Empty;
+        selectedSubscriptionName = string.Empty;
+        isLoadingMessages = true;
+        
+        try
+        {
+            messages = await ServiceBusService.GetMessagesAsync(args.QueueName, args.MessageType, pageSize);
+            hasMoreMessages = messages.Count == pageSize;
+        }
+        finally
+        {
+            isLoadingMessages = false;
+        }
+    }
+
+    private void CloseMessages()
+    {
+        selectedEntity = string.Empty;
+        selectedMessageType = string.Empty;
+        selectedSubscriptionName = string.Empty;
+        messages.Clear();
+        messageFilters.Clear();
+        messageFilters.Add(new MessageFilter());
+        hasMoreMessages = false;
+    }
+
+    private void ViewMessageDetails(MessageInfo message)
+    {
+        selectedMessage = message;
+    }
+
+    private void CloseMessageDetails()
+    {
+        selectedMessage = null;
+    }
+
+
+
+    private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)
+    {
+        selectedEntity = $"{args.TopicName}/{args.SubscriptionName}";
+        selectedMessageType = args.MessageType;
+        selectedSubscriptionName = args.SubscriptionName;
+        selectedTopic = args.TopicName;
+        isLoadingMessages = true;
+        
+        try
+        {
+            messages = await ServiceBusService.GetSubscriptionMessagesAsync(args.TopicName, args.SubscriptionName, args.MessageType, pageSize);
+            hasMoreMessages = messages.Count == pageSize;
+        }
+        finally
+        {
+            isLoadingMessages = false;
+        }
+    }
+    
+    private async Task LoadMoreMessages()
+    {
+        if (!hasMoreMessages || isLoadingMoreMessages || messages.Count == 0) return;
+        
+        isLoadingMoreMessages = true;
+        
+        try
+        {
+            // Get the last message's sequence number to continue from the next one
+            var lastSequenceNumber = messages.Max(m => m.SequenceNumber) + 1;
+            
+            List<MessageInfo> newMessages;
+            
+            // Determine if we're loading from a queue or subscription
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                newMessages = await ServiceBusService.GetSubscriptionMessagesAsync(
+                    selectedTopic, 
+                    selectedSubscriptionName, 
+                    selectedMessageType, 
+                    pageSize, 
+                    lastSequenceNumber);
+            }
+            else
+            {
+                // It's a queue
+                newMessages = await ServiceBusService.GetMessagesAsync(
+                    selectedEntity, 
+                    selectedMessageType, 
+                    pageSize, 
+                    lastSequenceNumber);
+            }
+            
+            if (newMessages.Count > 0)
+            {
+                messages.AddRange(newMessages);
+                hasMoreMessages = newMessages.Count == pageSize;
+            }
+            else
+            {
+                hasMoreMessages = false;
+            }
+        }
+        finally
+        {
+            isLoadingMoreMessages = false;
+        }
+    }
+
+    private async Task HandleRefreshMessages()
+    {
+        if (string.IsNullOrEmpty(selectedEntity)) return;
+        
+        isLoadingMessages = true;
+        
+        try
+        {
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                messages = await ServiceBusService.GetSubscriptionMessagesAsync(
+                    selectedTopic, 
+                    selectedSubscriptionName, 
+                    selectedMessageType, 
+                    pageSize);
+            }
+            else
+            {
+                // It's a queue
+                messages = await ServiceBusService.GetMessagesAsync(
+                    selectedEntity, 
+                    selectedMessageType, 
+                    pageSize);
+            }
+            
+            hasMoreMessages = messages.Count == pageSize;
+            
+            // Also refresh entity counts
+            await RefreshEntityCounts();
+        }
+        finally
+        {
+            isLoadingMessages = false;
+        }
+    }
+
+    // CRUD operation state
+    private bool showDeleteConfirmation = false;
+    private bool showRequeueConfirmation = false;
+    private bool showPurgeConfirmation = false;
+    private bool showSendModal = false;
+    private bool isRescheduleMode = false;
+    private string sendModalTitle = "Send Message";
+    private MessageInfo? messageForOperation = null;
+    private string deleteConfirmationMessage = string.Empty;
+    private string purgeConfirmationMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private string operationErrorMessage = string.Empty;
+    
+    // Operation loading state
+    private bool isOperationInProgress = false;
+    private string operationLoadingTitle = string.Empty;
+    private string operationLoadingMessage = string.Empty;
+    
+    // Purge operation state
+    private bool isPurgeInProgress = false;
+    private string purgeProgressMessage = string.Empty;
+    private int purgeProgress = 0;
+    private CancellationTokenSource? purgeCancellationTokenSource = null;
+
+    private void HandleDeleteMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        deleteConfirmationMessage = $"Are you sure you want to delete message '{message.MessageId}'? This action cannot be undone.";
+        showDeleteConfirmation = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showDeleteConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        if (messageForOperation == null) return;
+
+        isOperationInProgress = true;
+        operationLoadingTitle = "Deleting Message";
+        operationLoadingMessage = "Please wait while the message is being deleted...";
+
+        try
+        {
+            bool success;
+            
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                success = await ServiceBusService.DeleteMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                success = await ServiceBusService.DeleteMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber);
+            }
+
+            if (success)
+            {
+                messages.Remove(messageForOperation);
+                successMessage = "Message deleted successfully.";
+                
+                // Refresh entity counts to update the tree
+                await RefreshEntityCounts();
+                
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "Failed to delete message. It may have already been processed.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error deleting message: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            isOperationInProgress = false;
+            messageForOperation = null;
+        }
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+        messageForOperation = null;
+    }
+
+    private void HandleRequeueMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        showRequeueConfirmation = true;
+    }
+
+    private async Task ConfirmRequeue()
+    {
+        showRequeueConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        if (messageForOperation == null) return;
+
+        isOperationInProgress = true;
+        operationLoadingTitle = "Requeuing Message";
+        operationLoadingMessage = "Please wait while the message is being moved back to the active queue...";
+
+        try
+        {
+            bool success;
+            
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber);
+            }
+
+            if (success)
+            {
+                messages.Remove(messageForOperation);
+                successMessage = "Message requeued successfully.";
+                
+                // Refresh entity counts to update the tree
+                await RefreshEntityCounts();
+                
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "Failed to requeue message. It may have already been processed.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error requeuing message: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            isOperationInProgress = false;
+            messageForOperation = null;
+        }
+    }
+
+    private void CancelRequeue()
+    {
+        showRequeueConfirmation = false;
+        messageForOperation = null;
+    }
+
+    private void HandleRescheduleMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        isRescheduleMode = true;
+        sendModalTitle = "Reschedule Message";
+        showSendModal = true;
+    }
+
+    private void HandleSendNewMessage()
+    {
+        messageForOperation = null;
+        isRescheduleMode = false;
+        sendModalTitle = "Send New Message";
+        showSendModal = true;
+    }
+
+    private async Task HandleSendMessage(SendMessageModal.MessageData data)
+    {
+        showSendModal = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            bool success;
+
+            if (isRescheduleMode && messageForOperation != null)
+            {
+                // Reschedule existing message
+                if (!data.ScheduledTime.HasValue)
+                {
+                    operationErrorMessage = "Scheduled time is required for rescheduling.";
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(selectedSubscriptionName))
+                {
+                    // It's a subscription
+                    success = await ServiceBusService.RescheduleMessageAsync(
+                        selectedEntity,
+                        messageForOperation.SequenceNumber,
+                        data.ScheduledTime.Value,
+                        isSubscription: true,
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName);
+                }
+                else
+                {
+                    // It's a queue
+                    success = await ServiceBusService.RescheduleMessageAsync(
+                        selectedEntity,
+                        messageForOperation.SequenceNumber,
+                        data.ScheduledTime.Value);
+                }
+
+                if (success)
+                {
+                    messages.Remove(messageForOperation);
+                    successMessage = $"Message rescheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to reschedule message. It may have already been processed.";
+                }
+            }
+            else
+            {
+                // Send new message
+                var entityToSendTo = !string.IsNullOrEmpty(selectedSubscriptionName) ? selectedTopic : selectedEntity;
+                
+                success = await ServiceBusService.SendMessageAsync(
+                    entityToSendTo,
+                    data.Body,
+                    data.Subject,
+                    data.ContentType,
+                    data.Properties,
+                    data.ScheduledTime);
+
+                if (success)
+                {
+                    if (data.ScheduledTime.HasValue)
+                    {
+                        successMessage = $"Message scheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
+                    }
+                    else
+                    {
+                        successMessage = "Message sent successfully.";
+                    }
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to send message.";
+                }
+            }
+
+            await Task.Delay(3000);
+            successMessage = string.Empty;
+            operationErrorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            messageForOperation = null;
+            isRescheduleMode = false;
+            sendModalTitle = "Send Message";
+        }
+    }
+
+    private void CloseSendModal()
+    {
+        showSendModal = false;
+        messageForOperation = null;
+        isRescheduleMode = false;
+        sendModalTitle = "Send Message";
+    }
+
+    private void HandlePurgeMessages()
+    {
+        var messageTypeDisplay = selectedMessageType switch
+        {
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+
+        purgeConfirmationMessage = $"Are you sure you want to PURGE ALL {messageTypeDisplay} messages from '{selectedEntity}'? " +
+            $"This will permanently delete ALL messages and cannot be undone. Type 'PURGE' to confirm.";
+        showPurgeConfirmation = true;
+    }
+
+    private async Task ConfirmPurge()
+    {
+        showPurgeConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        isPurgeInProgress = true;
+        purgeProgress = 0;
+        purgeCancellationTokenSource = new CancellationTokenSource();
+
+        var messageTypeDisplay = selectedMessageType switch
+        {
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+        
+        purgeProgressMessage = $"Deleting {messageTypeDisplay} messages from '{selectedEntity}'...";
+
+        // Run purge in background
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var progress = new Progress<int>(count =>
+                {
+                    purgeProgress = count;
+                    InvokeAsync(StateHasChanged);
+                });
+
+                int deletedCount;
+
+                if (!string.IsNullOrEmpty(selectedSubscriptionName))
+                {
+                    // It's a subscription
+                    deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                        selectedEntity,
+                        selectedMessageType,
+                        isSubscription: true,
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName,
+                        cancellationToken: purgeCancellationTokenSource.Token,
+                        progress: progress);
+                }
+                else
+                {
+                    // It's a queue
+                    deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                        selectedEntity,
+                        selectedMessageType,
+                        cancellationToken: purgeCancellationTokenSource.Token,
+                        progress: progress);
+                }
+
+                await InvokeAsync(async () =>
+                {
+                    isPurgeInProgress = false;
+                    
+                    if (purgeCancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        successMessage = $"Purge cancelled. Deleted {deletedCount} message(s) before cancellation.";
+                    }
+                    else if (deletedCount > 0)
+                    {
+                        // Clear the messages list
+                        messages.Clear();
+                        hasMoreMessages = false;
+                        
+                        // Refresh entity counts to update the tree
+                        await RefreshEntityCounts();
+                        
+                        successMessage = $"Successfully purged {deletedCount} message(s).";
+                    }
+                    else
+                    {
+                        operationErrorMessage = "No messages were found to purge.";
+                    }
+                    
+                    StateHasChanged();
+                    
+                    await Task.Delay(3000);
+                    successMessage = string.Empty;
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                await InvokeAsync(() =>
+                {
+                    isPurgeInProgress = false;
+                    successMessage = $"Purge cancelled. Deleted {purgeProgress} message(s) before cancellation.";
+                    StateHasChanged();
+                });
+                
+                await Task.Delay(3000);
+                await InvokeAsync(() =>
+                {
+                    successMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            catch (Exception ex)
+            {
+                await InvokeAsync(() =>
+                {
+                    isPurgeInProgress = false;
+                    operationErrorMessage = $"Error purging messages: {ex.Message}";
+                    StateHasChanged();
+                });
+                
+                await Task.Delay(5000);
+                await InvokeAsync(() =>
+                {
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            finally
+            {
+                purgeCancellationTokenSource?.Dispose();
+                purgeCancellationTokenSource = null;
+            }
+        });
+    }
+
+    private void CancelPurge()
+    {
+        if (showPurgeConfirmation)
+        {
+            // Cancel the confirmation dialog
+            showPurgeConfirmation = false;
+        }
+        else if (isPurgeInProgress)
+        {
+            // Cancel the running purge operation
+            purgeCancellationTokenSource?.Cancel();
+        }
+    }
+
+    private async Task HandleToggleQueueStatus(string queueName)
+    {
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Find the queue to toggle its status
+            var queue = queues.FirstOrDefault(q => q.Name == queueName);
+            if (queue == null) return;
+
+            bool newStatus = queue.Status != "Active";
+            bool success = await ServiceBusService.SetQueueStatusAsync(queueName, newStatus);
+
+            if (success)
+            {
+                // Refresh the queue info to get the updated status
+                var updatedQueue = await ServiceBusService.GetQueueInfoAsync(queueName);
+                if (updatedQueue != null)
+                {
+                    var index = queues.FindIndex(q => q.Name == queueName);
+                    if (index >= 0)
+                    {
+                        queues[index] = updatedQueue;
+                    }
+                    
+                    // Update selected queue info if this is the selected queue
+                    if (selectedEntityType == "queue" && selectedEntityName == queueName)
+                    {
+                        selectedQueueInfo = updatedQueue;
+                    }
+                }
+
+                successMessage = $"Queue '{queueName}' has been {(newStatus ? "enabled" : "disabled")}.";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = $"Failed to {(newStatus ? "enable" : "disable")} queue '{queueName}'.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+    }
+
+    private async Task HandleToggleTopicStatus(string topicName)
+    {
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Find the topic to toggle its status
+            var topic = topics.FirstOrDefault(t => t.Name == topicName);
+            if (topic == null) return;
+
+            bool newStatus = topic.Status != "Active";
+            bool success = await ServiceBusService.SetTopicStatusAsync(topicName, newStatus);
+
+            if (success)
+            {
+                // Refresh the topic info to get the updated status
+                var updatedTopic = await ServiceBusService.GetTopicInfoAsync(topicName);
+                if (updatedTopic != null)
+                {
+                    var index = topics.FindIndex(t => t.Name == topicName);
+                    if (index >= 0)
+                    {
+                        topics[index] = updatedTopic;
+                    }
+                    
+                    // Update selected topic info if this is the selected topic
+                    if (selectedEntityType == "topic" && selectedEntityName == topicName)
+                    {
+                        selectedTopicInfo = updatedTopic;
+                    }
+                }
+
+                successMessage = $"Topic '{topicName}' has been {(newStatus ? "enabled" : "disabled")}.";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = $"Failed to {(newStatus ? "enable" : "disable")} topic '{topicName}'.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+    }
+
+    private async Task HandleToggleSubscriptionStatus((string TopicName, string SubscriptionName) args)
+    {
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Find the subscription to toggle its status
+            SubscriptionInfo? subscription = null;
+            if (topicSubscriptions.ContainsKey(args.TopicName))
+            {
+                subscription = topicSubscriptions[args.TopicName].FirstOrDefault(s => s.Name == args.SubscriptionName);
+            }
+            
+            if (subscription == null) return;
+
+            bool newStatus = subscription.Status != "Active";
+            bool success = await ServiceBusService.SetSubscriptionStatusAsync(args.TopicName, args.SubscriptionName, newStatus);
+
+            if (success)
+            {
+                // Refresh the subscription info to get the updated status
+                var updatedSubscription = await ServiceBusService.GetSubscriptionInfoAsync(args.TopicName, args.SubscriptionName);
+                if (updatedSubscription != null && topicSubscriptions.ContainsKey(args.TopicName))
+                {
+                    var index = topicSubscriptions[args.TopicName].FindIndex(s => s.Name == args.SubscriptionName);
+                    if (index >= 0)
+                    {
+                        topicSubscriptions[args.TopicName][index] = updatedSubscription;
+                    }
+                    
+                    // Update selected subscription info if this is the selected subscription
+                    if (selectedEntityType == "subscription" && selectedEntityName == $"{args.TopicName}/{args.SubscriptionName}")
+                    {
+                        selectedSubscriptionInfo = updatedSubscription;
+                    }
+                }
+
+                successMessage = $"Subscription '{args.SubscriptionName}' has been {(newStatus ? "enabled" : "disabled")}.";
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = $"Failed to {(newStatus ? "enable" : "disable")} subscription '{args.SubscriptionName}'.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+    }
+
+    private async Task RefreshEntityCounts()
+    {
+        // Refresh queue or topic counts after message operations
+        if (!string.IsNullOrEmpty(selectedEntity) && string.IsNullOrEmpty(selectedSubscriptionName))
+        {
+            // It's a queue
+            var updatedQueue = await ServiceBusService.GetQueueInfoAsync(selectedEntity);
+            if (updatedQueue != null)
+            {
+                var index = queues.FindIndex(q => q.Name == selectedEntity);
+                if (index >= 0)
+                {
+                    queues[index] = updatedQueue;
+                }
+                
+                // Update selected queue info in details panel
+                if (selectedEntityType == "queue" && selectedEntityName == selectedEntity)
+                {
+                    selectedQueueInfo = updatedQueue;
+                }
+            }
+        }
+        else if (!string.IsNullOrEmpty(selectedSubscriptionName))
+        {
+            // It's a subscription
+            var updatedSubscription = await ServiceBusService.GetSubscriptionInfoAsync(selectedTopic, selectedSubscriptionName);
+            if (updatedSubscription != null && topicSubscriptions.ContainsKey(selectedTopic))
+            {
+                var index = topicSubscriptions[selectedTopic].FindIndex(s => s.Name == selectedSubscriptionName);
+                if (index >= 0)
+                {
+                    topicSubscriptions[selectedTopic][index] = updatedSubscription;
+                }
+                
+                // Update selected subscription info in details panel
+                if (selectedEntityType == "subscription" && selectedEntityName == $"{selectedTopic}/{selectedSubscriptionName}")
+                {
+                    selectedSubscriptionInfo = updatedSubscription;
+                }
+            }
+        }
+    }
+}
