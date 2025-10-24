@@ -19,6 +19,12 @@
             <button class="btn btn-sm btn-success" @onclick="HandleSendNew">
                 <i class="bi bi-plus-circle"></i> Send New
             </button>
+            <button class="btn btn-sm btn-primary" @onclick="HandleExportFiltered" title="Download messages matching current filters to Downloads folder">
+                <i class="bi bi-download"></i> Export Filtered
+            </button>
+            <button class="btn btn-sm btn-warning" @onclick="HandleDeleteFiltered" title="Delete messages matching current filters">
+                <i class="bi bi-trash"></i> Delete Filtered
+            </button>
             <button class="btn btn-sm btn-danger" @onclick="HandlePurge" title="Delete all messages">
                 <i class="bi bi-trash-fill"></i> Purge All
             </button>
@@ -174,6 +180,12 @@
     public EventCallback OnPurge { get; set; }
 
     [Parameter]
+    public EventCallback OnDeleteFiltered { get; set; }
+
+    [Parameter]
+    public EventCallback OnExportFiltered { get; set; }
+
+    [Parameter]
     public EventCallback OnRefresh { get; set; }
 
     private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(Messages, Filters);
@@ -196,6 +208,16 @@
     private async Task HandlePurge()
     {
         await OnPurge.InvokeAsync();
+    }
+
+    private async Task HandleDeleteFiltered()
+    {
+        await OnDeleteFiltered.InvokeAsync();
+    }
+
+    private async Task HandleExportFiltered()
+    {
+        await OnExportFiltered.InvokeAsync();
     }
 
     private async Task HandleRefresh()

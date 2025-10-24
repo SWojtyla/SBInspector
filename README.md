@@ -60,11 +60,14 @@ Both applications share the same codebase and features through a shared Razor Cl
   - Automatic refresh of message counts after operations
   - **Visual Operation Feedback**: Full-screen loading overlay during delete/purge operations
   - See [MESSAGE_CRUD.md](MESSAGE_CRUD.md) for detailed documentation
-- Filter messages by application properties (attributes):
+- **Advanced Message Filtering**:
+  - Filter by application properties, enqueued time, delivery count, or sequence number
+  - Multiple operators: Contains, Not Contains, Equals, Not Equals, Greater Than, Less Than, Regex, etc.
   - Add multiple filters with AND logic
-  - Filter by attribute name and/or value
-  - Support for literal (case-insensitive) or regex pattern matching
   - Real-time filtering with message count display
+  - **Delete Filtered**: Delete only messages that match your filters
+  - **Export Filtered**: Download filtered messages as JSON for backup or analysis
+  - See [FILTERING.md](FILTERING.md) and [FILTER_BASED_OPERATIONS.md](FILTER_BASED_OPERATIONS.md) for detailed documentation
 - Sortable tables:
   - Click on column headers to sort queues by name or message counts
   - Click on column headers to sort messages by ID, subject, enqueued time, or delivery count
@@ -191,7 +194,7 @@ For details on the MAUI implementation, see [MAUI_IMPLEMENTATION.md](Features/MA
 
 ## Message Filtering
 
-The application supports filtering messages by their application properties (attributes). See [FILTERING.md](FILTERING.md) for detailed documentation on how to use this feature.
+The application supports advanced filtering of messages by application properties, enqueued time, delivery count, and sequence number. You can also perform bulk operations on filtered messages including delete and export. See [FILTERING.md](FILTERING.md) and [FILTER_BASED_OPERATIONS.md](Features/FILTER_BASED_OPERATIONS.md) for detailed documentation.
 
 ## License
 

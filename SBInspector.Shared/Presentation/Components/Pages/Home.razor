@@ -1,7 +1,10 @@
 @page "/"
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using System.Text.Json
+@using Microsoft.JSInterop
 @inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
+@inject IFileExportService FileExportService
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
@@ -67,6 +70,8 @@
                         OnRescheduleMessage="@HandleRescheduleMessage"
                         OnSendNew="@HandleSendNewMessage"
                         OnPurge="@HandlePurgeMessages"
+                        OnDeleteFiltered="@HandleDeleteFilteredMessages"
+                        OnExportFiltered="@HandleExportFilteredMessages"
                         OnLoadMore="@LoadMoreMessages"
                         OnRefresh="@HandleRefreshMessages" />
                 }
@@ -112,12 +117,12 @@
 
         <ConfirmationModal 
             IsVisible="@showPurgeConfirmation"
-            Title="Purge All Messages"
+            Title="@(isDeleteFiltered ? "Delete Filtered Messages" : "Purge All Messages")"
             Message="@purgeConfirmationMessage"
             IconClass="bi-exclamation-triangle-fill"
             ConfirmIconClass="bi-trash-fill"
             ConfirmButtonClass="btn-danger"
-            ConfirmText="Purge All"
+            ConfirmText="@(isDeleteFiltered ? "Delete Filtered" : "Purge All")"
             OnConfirm="@ConfirmPurge"
             OnCancel="@CancelPurge" />
 
@@ -211,9 +216,9 @@
         }
     }
 
-    private void Disconnect()
+    private async Task Disconnect()
     {
-        ServiceBusService.Disconnect();
+        await ServiceBusService.DisconnectAsync();
         queues.Clear();
         topics.Clear();
         messages.Clear();
@@ -227,6 +232,49 @@
         selectedTopicInfo = null;
         selectedSubscriptionInfo = null;
         selectedTopicForSubscription = null;
+        selectedSubscriptionName = string.Empty;
+        
+        // Reset message viewing state
+        messageFilters.Clear();
+        messageFilters.Add(new MessageFilter());
+        messageSortColumn = nameof(MessageInfo.EnqueuedTime);
+        messageSortAscending = false;
+        hasMoreMessages = false;
+        isLoadingMoreMessages = false;
+        
+        // Reset operation state
+        selectedMessage = null;
+        messageForOperation = null;
+        showDeleteConfirmation = false;
+        showRequeueConfirmation = false;
+        showPurgeConfirmation = false;
+        showSendModal = false;
+        isRescheduleMode = false;
+        sendModalTitle = "Send Message";
+        successMessage = string.Empty;
+        operationErrorMessage = string.Empty;
+        isOperationInProgress = false;
+        isPurgeInProgress = false;
+        isDeleteFiltered = false;
+        
+        // Cancel any ongoing purge operation
+        try
+        {
+            if (purgeCancellationTokenSource != null)
+            {
+                purgeCancellationTokenSource.Cancel();
+                purgeCancellationTokenSource.Dispose();
+                purgeCancellationTokenSource = null;
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Token was already disposed, ignore
+        }
+        catch (AggregateException)
+        {
+            // Cancellation may throw AggregateException, ignore
+        }
     }
 
     private async Task LoadAllEntitiesAsync()
@@ -559,6 +607,7 @@
     
     // Purge operation state
     private bool isPurgeInProgress = false;
+    private bool isDeleteFiltered = false;
     private string purgeProgressMessage = string.Empty;
     private int purgeProgress = 0;
     private CancellationTokenSource? purgeCancellationTokenSource = null;
@@ -777,6 +826,9 @@
                 {
                     messages.Remove(messageForOperation);
                     successMessage = $"Message rescheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
+                    
+                    // Refresh entity counts to update the sidebar
+                    await RefreshEntityCounts();
                 }
                 else
                 {
@@ -806,6 +858,9 @@
                     {
                         successMessage = "Message sent successfully.";
                     }
+                    
+                    // Refresh the message list to show the new message
+                    await HandleRefreshMessages();
                 }
                 else
                 {
@@ -856,6 +911,12 @@
 
     private async Task ConfirmPurge()
     {
+        if (isDeleteFiltered)
+        {
+            await ConfirmDeleteFiltered();
+            return;
+        }
+
         showPurgeConfirmation = false;
         operationErrorMessage = string.Empty;
         successMessage = string.Empty;
@@ -987,11 +1048,230 @@
         {
             // Cancel the confirmation dialog
             showPurgeConfirmation = false;
+            isDeleteFiltered = false;
         }
         else if (isPurgeInProgress)
         {
             // Cancel the running purge operation
             purgeCancellationTokenSource?.Cancel();
+        }
+    }
+
+    private void HandleDeleteFilteredMessages()
+    {
+        // Check if there are any active filters
+        var hasActiveFilters = messageFilters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue));
+        
+        if (!hasActiveFilters)
+        {
+            operationErrorMessage = "No filters applied. Use 'Purge All' to delete all messages, or apply filters first.";
+            Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                await InvokeAsync(() =>
+                {
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
+            });
+            return;
+        }
+
+        var messageTypeDisplay = selectedMessageType switch
+        {
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+
+        purgeConfirmationMessage = $"Are you sure you want to DELETE ALL {messageTypeDisplay} messages from '{selectedEntity}' that match the current filters? " +
+            $"This will permanently delete matching messages and cannot be undone. Type 'DELETE' to confirm.";
+        showPurgeConfirmation = true;
+        isDeleteFiltered = true;
+    }
+
+    private async Task ConfirmDeleteFiltered()
+    {
+        showPurgeConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        isPurgeInProgress = true;
+        purgeProgress = 0;
+        purgeCancellationTokenSource = new CancellationTokenSource();
+
+        var messageTypeDisplay = selectedMessageType switch
+        {
+            "Active" => "active",
+            "Scheduled" => "scheduled",
+            "DeadLetter" => "dead-letter",
+            _ => selectedMessageType.ToLower()
+        };
+        
+        purgeProgressMessage = $"Deleting filtered {messageTypeDisplay} messages from '{selectedEntity}'...";
+
+        // Run delete in background
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var progress = new Progress<int>(count =>
+                {
+                    purgeProgress = count;
+                    InvokeAsync(StateHasChanged);
+                });
+
+                int deletedCount;
+
+                if (!string.IsNullOrEmpty(selectedSubscriptionName))
+                {
+                    // It's a subscription
+                    deletedCount = await ServiceBusService.DeleteFilteredMessagesAsync(
+                        selectedEntity,
+                        selectedMessageType,
+                        messageFilters,
+                        isSubscription: true,
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName,
+                        cancellationToken: purgeCancellationTokenSource.Token,
+                        progress: progress);
+                }
+                else
+                {
+                    // It's a queue
+                    deletedCount = await ServiceBusService.DeleteFilteredMessagesAsync(
+                        selectedEntity,
+                        selectedMessageType,
+                        messageFilters,
+                        cancellationToken: purgeCancellationTokenSource.Token,
+                        progress: progress);
+                }
+
+                await InvokeAsync(async () =>
+                {
+                    isPurgeInProgress = false;
+                    isDeleteFiltered = false;
+                    
+                    if (purgeCancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        successMessage = $"Delete cancelled. Deleted {deletedCount} message(s) before cancellation.";
+                    }
+                    else if (deletedCount > 0)
+                    {
+                        // Reload messages to show updated list
+                        await HandleRefreshMessages();
+                        
+                        successMessage = $"Successfully deleted {deletedCount} filtered message(s).";
+                    }
+                    else
+                    {
+                        operationErrorMessage = "No messages matched the filters.";
+                    }
+                    
+                    StateHasChanged();
+                    
+                    await Task.Delay(3000);
+                    successMessage = string.Empty;
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                await InvokeAsync(() =>
+                {
+                    isPurgeInProgress = false;
+                    isDeleteFiltered = false;
+                    successMessage = $"Delete cancelled. Deleted {purgeProgress} message(s) before cancellation.";
+                    StateHasChanged();
+                });
+                
+                await Task.Delay(3000);
+                await InvokeAsync(() =>
+                {
+                    successMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            catch (Exception ex)
+            {
+                await InvokeAsync(() =>
+                {
+                    isPurgeInProgress = false;
+                    isDeleteFiltered = false;
+                    operationErrorMessage = $"Error deleting filtered messages: {ex.Message}";
+                    StateHasChanged();
+                });
+                
+                await Task.Delay(5000);
+                await InvokeAsync(() =>
+                {
+                    operationErrorMessage = string.Empty;
+                    StateHasChanged();
+                });
+            }
+            finally
+            {
+                purgeCancellationTokenSource?.Dispose();
+                purgeCancellationTokenSource = null;
+            }
+        });
+    }
+
+    private async Task HandleExportFilteredMessages()
+    {
+        try
+        {
+            // Apply filters to get the messages to export
+            var filterService = new Application.Services.MessageFilterService();
+            var filteredMessages = filterService.ApplyFilters(messages, messageFilters).ToList();
+            
+            if (!filteredMessages.Any())
+            {
+                operationErrorMessage = "No messages match the current filters.";
+                await Task.Delay(3000);
+                operationErrorMessage = string.Empty;
+                StateHasChanged();
+                return;
+            }
+
+            // Convert to JSON
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            var json = JsonSerializer.Serialize(filteredMessages, options);
+            
+            // Generate filename
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var messageTypeDisplay = selectedMessageType.ToLower();
+            var filename = $"{selectedEntity.Replace("/", "_")}_{messageTypeDisplay}_messages_{timestamp}.json";
+            
+            // Export file using the platform-specific service
+            var success = await FileExportService.ExportToFileAsync(filename, json);
+            
+            if (success)
+            {
+                successMessage = $"Successfully exported {filteredMessages.Count} message(s) to {filename}.";
+            }
+            else
+            {
+                operationErrorMessage = "Failed to export messages. Please try again.";
+            }
+            
+            await Task.Delay(3000);
+            successMessage = string.Empty;
+            operationErrorMessage = string.Empty;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error exporting messages: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+            StateHasChanged();
         }
     }
 

@@ -2,6 +2,7 @@ using SBInspector.Components;
 using SBInspector.Shared.Core.Interfaces;
 using SBInspector.Shared.Infrastructure.ServiceBus;
 using SBInspector.Shared.Infrastructure.Storage;
+using SBInspector.Shared.Infrastructure.Export;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
 
@@ -26,6 +27,13 @@ builder.Services.AddScoped<IStorageService>(sp =>
     var configuration = configService.GetConfiguration();
     var factory = new StorageServiceFactory(jsRuntime, configuration);
     return factory.CreateStorageService();
+});
+
+// Register file export service for web
+builder.Services.AddScoped<IFileExportService>(sp =>
+{
+    var jsRuntime = sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
+    return new WebFileExportService(jsRuntime);
 });
 
 var app = builder.Build();

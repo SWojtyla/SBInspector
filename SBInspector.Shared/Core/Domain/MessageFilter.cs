@@ -3,6 +3,7 @@ namespace SBInspector.Shared.Core.Domain;
 public enum FilterOperator
 {
     Contains,           // For strings (default)
+    NotContains,        // For strings (inverse of Contains)
     Equals,            // For strings, numbers, dates
     NotEquals,         // For strings, numbers, dates
     GreaterThan,       // For numbers, dates

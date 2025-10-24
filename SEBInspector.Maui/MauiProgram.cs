@@ -4,6 +4,7 @@ using SBInspector.Shared.Infrastructure.ServiceBus;
 using SBInspector.Shared.Infrastructure.Storage;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
+using SEBInspector.Maui.Services;
 
 namespace SEBInspector.Maui
 {
@@ -42,6 +43,9 @@ namespace SEBInspector.Maui
                 var factory = new StorageServiceFactory(jsRuntime, configuration);
                 return factory.CreateStorageService();
             });
+
+            // Register file export service for MAUI
+            builder.Services.AddSingleton<IFileExportService, MauiFileExportService>();
 
             return builder.Build();
         }

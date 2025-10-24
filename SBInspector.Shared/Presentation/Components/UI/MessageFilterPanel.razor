@@ -136,6 +136,7 @@
             FilterField.ApplicationProperty => new List<FilterOperator>
             {
                 FilterOperator.Contains,
+                FilterOperator.NotContains,
                 FilterOperator.Equals,
                 FilterOperator.NotEquals,
                 FilterOperator.Regex,
@@ -171,6 +172,7 @@
         return op switch
         {
             FilterOperator.Contains => "Contains",
+            FilterOperator.NotContains => "Not Contains",
             FilterOperator.Equals => "Equals",
             FilterOperator.NotEquals => "Not Equals",
             FilterOperator.GreaterThan => "Greater Than",
