@@ -4,17 +4,17 @@ html, body {
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: #00836b;
 }
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: #00836b;
+    border-color: #006d59;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #00836b;
 }
 
 .content {
@@ -90,12 +90,12 @@ h1:focus {
 }
 
 .message-badge.active {
-    background-color: #0d6efd;
+    background-color: #00836b;
     color: white;
 }
 
 .message-badge.scheduled {
-    background-color: #ffc107;
+    background-color: #ffd17c;
     color: #000;
 }
 
@@ -147,7 +147,7 @@ h1:focus {
 }
 
 .table-enhanced .sortable-header:hover {
-    color: #0d6efd;
+    color: #00836b;
 }
 
 /* Action buttons in tables */
@@ -398,7 +398,7 @@ button:focus-visible,
 .btn:focus-visible,
 input:focus-visible,
 select:focus-visible {
-    outline: 2px solid #0d6efd;
+    outline: 2px solid #00836b;
     outline-offset: 2px;
 }
 
@@ -471,7 +471,7 @@ strong, .fw-semibold {
 
 .tree-header i {
     margin-right: 0.5rem;
-    color: #0d6efd;
+    color: #00836b;
 }
 
 .tree-search-box {
@@ -554,8 +554,8 @@ strong, .fw-semibold {
 }
 
 .tree-node.selected {
-    background-color: #e7f1ff;
-    border-left: 3px solid #0d6efd;
+    background-color: #e6f5f2;
+    border-left: 3px solid #00836b;
     padding-left: calc(0.75rem - 3px);
 }
 
@@ -565,7 +565,7 @@ strong, .fw-semibold {
 }
 
 .tree-node.selected i:first-child {
-    color: #0d6efd;
+    color: #00836b;
 }
 
 .node-name {
@@ -596,12 +596,12 @@ strong, .fw-semibold {
 }
 
 .count-badge.active {
-    background-color: #0d6efd;
+    background-color: #00836b;
     color: white;
 }
 
 .count-badge.scheduled {
-    background-color: #ffc107;
+    background-color: #ffd17c;
     color: #000;
 }
 
@@ -618,7 +618,7 @@ strong, .fw-semibold {
 }
 
 .node-expand:hover {
-    color: #0d6efd;
+    color: #00836b;
 }
 
 .tree-node-children {
@@ -702,7 +702,7 @@ strong, .fw-semibold {
 }
 
 .details-header h4 i {
-    color: #0d6efd;
+    color: #00836b;
 }
 
 .details-content {
@@ -760,8 +760,8 @@ strong, .fw-semibold {
 }
 
 .message-type-card:hover {
-    border-color: #e7f1ff;
-    background: #f1f7ff;
+    border-color: #e6f5f2;
+    background: #e6f5f2;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -777,13 +777,13 @@ strong, .fw-semibold {
 }
 
 .message-type-icon.active {
-    background-color: #e7f1ff;
-    color: #0d6efd;
+    background-color: #e6f5f2;
+    color: #00836b;
 }
 
 .message-type-icon.scheduled {
-    background-color: #fff3cd;
-    color: #ffc107;
+    background-color: #fff8e6;
+    color: #ffd17c;
 }
 
 .message-type-icon.deadletter {
