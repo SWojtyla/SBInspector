@@ -549,6 +549,161 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task<int> DeleteFilteredMessagesAsync(string entityName, string messageType, List<MessageFilter> filters, bool isSubscription = false, string? topicName = null, string? subscriptionName = null, CancellationToken cancellationToken = default, IProgress<int>? progress = null)
+    {
+        if (_client == null) return 0;
+
+        ServiceBusReceiver? receiver = null;
+        int totalDeleted = 0;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Handle dead-letter queue
+            if (messageType == "DeadLetter")
+            {
+                options.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receiver
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+            }
+
+            // Create a filter service to check messages
+            var filterService = new Application.Services.MessageFilterService();
+
+            // Keep track of consecutive batches with no matches
+            int consecutiveBatchesWithNoMatches = 0;
+            const int maxConsecutiveBatchesWithNoMatches = 3;
+
+            // Keep receiving and filtering messages in batches
+            while (true)
+            {
+                // Check for cancellation
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                // Receive messages with PeekLock mode
+                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
+                
+                if (receivedMessages.Count == 0)
+                {
+                    break; // No more messages to process
+                }
+
+                // Convert to MessageInfo for filtering
+                var messageInfos = new List<MessageInfo>();
+                var messageMap = new Dictionary<long, ServiceBusReceivedMessage>();
+                
+                foreach (var msg in receivedMessages)
+                {
+                    var messageInfo = new MessageInfo
+                    {
+                        MessageId = msg.MessageId ?? string.Empty,
+                        Subject = msg.Subject ?? string.Empty,
+                        ContentType = msg.ContentType ?? string.Empty,
+                        Body = msg.Body.ToString(),
+                        EnqueuedTime = msg.EnqueuedTime.DateTime,
+                        ScheduledEnqueueTime = msg.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : msg.ScheduledEnqueueTime.DateTime,
+                        SequenceNumber = msg.SequenceNumber,
+                        DeliveryCount = msg.DeliveryCount,
+                        State = messageType,
+                        Properties = new Dictionary<string, object>()
+                    };
+
+                    foreach (var prop in msg.ApplicationProperties)
+                    {
+                        messageInfo.Properties[prop.Key] = prop.Value;
+                    }
+
+                    messageInfos.Add(messageInfo);
+                    messageMap[msg.SequenceNumber] = msg;
+                }
+
+                // Apply filters to find matching messages
+                var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
+                
+                // Track if we found any matches in this batch
+                if (matchingMessages.Count == 0)
+                {
+                    consecutiveBatchesWithNoMatches++;
+                    
+                    // If we've checked multiple batches with no matches, stop
+                    // This means we've processed all matching messages
+                    if (consecutiveBatchesWithNoMatches >= maxConsecutiveBatchesWithNoMatches)
+                    {
+                        // Abandon all messages and exit
+                        foreach (var msg in receivedMessages)
+                        {
+                            await receiver.AbandonMessageAsync(msg);
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    // Reset counter when we find matches
+                    consecutiveBatchesWithNoMatches = 0;
+                }
+                
+                // Delete (complete) only the matching messages, abandon the rest
+                foreach (var matchingMsg in matchingMessages)
+                {
+                    if (messageMap.TryGetValue(matchingMsg.SequenceNumber, out var serviceBusMessage))
+                    {
+                        await receiver.CompleteMessageAsync(serviceBusMessage);
+                        totalDeleted++;
+                        
+                        // Report progress after each deletion
+                        progress?.Report(totalDeleted);
+                    }
+                }
+                
+                // Abandon non-matching messages so they can be received again
+                foreach (var msg in receivedMessages)
+                {
+                    if (!matchingMessages.Any(m => m.SequenceNumber == msg.SequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                }
+                
+                // Add a small delay to avoid overwhelming the service
+                if (receivedMessages.Count == 100)
+                {
+                    await Task.Delay(100, cancellationToken);
+                }
+            }
+
+            return totalDeleted;
+        }
+        catch (OperationCanceledException)
+        {
+            // Return partial count if cancelled
+            return totalDeleted;
+        }
+        catch
+        {
+            return totalDeleted; // Return partial count if error occurs
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> SetQueueStatusAsync(string queueName, bool enabled)
     {
         if (_adminClient == null) return false;

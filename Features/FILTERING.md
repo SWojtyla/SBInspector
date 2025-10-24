@@ -2,6 +2,11 @@
 
 This feature allows you to filter Service Bus messages using multiple criteria and operators. You can filter both on message attributes (application properties) and on built-in message fields like enqueued time, delivery count, and sequence number.
 
+> **New Features!** You can now perform bulk operations on filtered messages:
+> - **Delete Filtered Messages**: Delete all messages that match your current filters
+> - **Export Filtered Messages**: Download filtered messages as JSON for backup or analysis
+> - See [FILTER_BASED_OPERATIONS.md](FILTER_BASED_OPERATIONS.md) for complete documentation
+
 ## Filter Fields
 
 You can filter messages by:
@@ -24,6 +29,7 @@ Depending on the field type, different operators are available:
 
 ### For String Fields (Application Properties with Contains/Equals/NotEquals)
 - **Contains**: Case-insensitive substring match (default for application properties)
+- **Not Contains**: Case-insensitive substring match - excludes messages that contain the value
 - **Equals**: Exact match (case-insensitive)
 - **Not Equals**: Does not match (case-insensitive)
 - **Regex**: Regular expression pattern matching
