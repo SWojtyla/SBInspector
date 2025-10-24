@@ -7,9 +7,22 @@ use std::time::Duration;
 use std::thread;
 #[cfg(not(debug_assertions))]
 use std::sync::Mutex;
+#[cfg(not(debug_assertions))]
+use std::net::TcpListener;
 
 #[cfg(not(debug_assertions))]
 struct ServerProcess(Mutex<Option<Child>>);
+
+#[cfg(not(debug_assertions))]
+fn find_available_port() -> Option<u16> {
+  // Try ports starting from 5000
+  for port in 5000..5100 {
+    if TcpListener::bind(("127.0.0.1", port)).is_ok() {
+      return Some(port);
+    }
+  }
+  None
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -65,6 +78,13 @@ pub fn run() {
           return Err("Failed to find Blazor server executable. Please ensure the app was built correctly.".into());
         }
 
+        // Find an available port
+        let port = find_available_port().ok_or("Could not find an available port")?;
+        log::info!("Using port: {}", port);
+        
+        let server_url = format!("http://localhost:{}", port);
+        log::info!("Server will be available at: {}", server_url);
+
         log::info!("Server executable found, attempting to start...");
         
         // Determine the working directory (where the executable is located)
@@ -86,7 +106,7 @@ pub fn run() {
         match cmd
            .current_dir(working_dir)
            .env("ASPNETCORE_ENVIRONMENT", "Production")
-           .env("ASPNETCORE_URLS", "https://localhost:5000")
+           .env("ASPNETCORE_URLS", &server_url)
            .stdout(Stdio::null())
            .stderr(Stdio::null())
            .spawn() {
@@ -98,7 +118,12 @@ pub fn run() {
             // Give the server time to start
             log::info!("Waiting for server to initialize...");
             thread::sleep(Duration::from_secs(3));
-            log::info!("Server should be ready at https://localhost:5000");
+            log::info!("Server should be ready at {}", server_url);
+            
+            // Update the window URL to point to the correct port
+            if let Some(window) = app.get_webview_window("main") {
+              let _ = window.eval(&format!("window.location.href = '{}'", server_url));
+            }
           }
           Err(e) => {
             log::error!("Failed to start Blazor server: {}", e);

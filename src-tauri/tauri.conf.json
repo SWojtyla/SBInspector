@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "SBInspector",
   "build": {
-    "devUrl": "https://localhost:5000",
+    "devUrl": "http://localhost:5000",
     "beforeDevCommand": "dotnet watch run --project SBInspector --no-launch-profile",
     "beforeBuildCommand": "dotnet publish -c Release SBInspector/SBInspector.csproj -o dist -r win-x64 --self-contained true"   
   },
@@ -16,7 +16,7 @@
         "height": 600,
         "resizable": true,
         "fullscreen": false,
-        "url": "https://localhost:5000"
+        "url": "about:blank"
       }
     ],
     "security": {
