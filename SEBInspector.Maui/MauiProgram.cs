@@ -31,8 +31,9 @@ namespace SEBInspector.Maui
             builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
             builder.Services.AddSingleton<MessageFilterService>();
 
-            // Register storage configuration service
-            builder.Services.AddSingleton<StorageConfigurationService>();
+            // Register storage configuration service with FileSystem as default for MAUI
+            builder.Services.AddSingleton<StorageConfigurationService>(sp => 
+                new StorageConfigurationService(StorageType.FileSystem));
 
             // Register storage service with factory pattern
             builder.Services.AddScoped<IStorageService>(sp =>
