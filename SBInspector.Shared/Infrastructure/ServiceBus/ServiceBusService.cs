@@ -36,10 +36,23 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task DisconnectAsync()
+    {
+        _adminClient = null;
+        
+        if (_client != null)
+        {
+            await _client.DisposeAsync();
+            _client = null;
+        }
+        
+        _connectionString = null;
+    }
+    
     public void Disconnect()
     {
         _adminClient = null;
-        _client?.DisposeAsync();
+        _client?.DisposeAsync().AsTask().Wait();
         _client = null;
         _connectionString = null;
     }
