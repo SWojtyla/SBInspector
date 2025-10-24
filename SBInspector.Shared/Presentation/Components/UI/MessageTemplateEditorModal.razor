@@ -64,10 +64,19 @@
     public bool IsVisible { get; set; }
 
     [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter]
     public bool IsEditMode { get; set; }
 
     [Parameter]
+    public EventCallback<bool> IsEditModeChanged { get; set; }
+
+    [Parameter]
     public MessageTemplate? Template { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageTemplate?> TemplateChanged { get; set; }
 
     [Parameter]
     public EventCallback OnClose { get; set; }

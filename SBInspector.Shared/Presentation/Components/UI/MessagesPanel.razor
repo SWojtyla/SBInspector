@@ -13,7 +13,11 @@
             </small>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <button class="btn btn-sm btn-primary" @onclick="HandleRefresh" title="Refresh messages">
+            <button class="btn btn-sm btn-primary" @onclick="HandleRefresh" title="Refresh messages" disabled="@IsLoading">
+                @if (IsLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                }
                 <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
             <button class="btn btn-sm btn-success" @onclick="HandleSendNew">

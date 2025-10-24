@@ -101,9 +101,9 @@
 </div>
 
 <MessageTemplateEditorModal
-    IsVisible="@isEditorVisible"
-    IsEditMode="@isEditMode"
-    Template="@selectedTemplate"
+    @bind-IsVisible="@isEditorVisible"
+    @bind-IsEditMode="@isEditMode"
+    @bind-Template="@selectedTemplate"
     OnClose="@HandleEditorClose"
     OnSave="@HandleTemplateSave" />
 

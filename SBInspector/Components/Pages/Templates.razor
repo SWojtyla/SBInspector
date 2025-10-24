@@ -107,6 +107,9 @@
     IsVisible="@isEditorVisible"
     IsEditMode="@isEditMode"
     Template="@selectedTemplate"
+    IsVisibleChanged="@HandleIsVisibleChanged"
+    IsEditModeChanged="@HandleIsEditModeChanged"
+    TemplateChanged="@HandleTemplateChanged"
     OnClose="@HandleEditorClose"
     OnSave="@HandleTemplateSave" />
 
@@ -314,5 +317,20 @@
     {
         templateToDelete = null;
         isDeleteConfirmVisible = false;
+    }
+
+    private void HandleIsVisibleChanged(bool value)
+    {
+        isEditorVisible = value;
+    }
+
+    private void HandleIsEditModeChanged(bool value)
+    {
+        isEditMode = value;
+    }
+
+    private void HandleTemplateChanged(MessageTemplate? value)
+    {
+        selectedTemplate = value;
     }
 }
