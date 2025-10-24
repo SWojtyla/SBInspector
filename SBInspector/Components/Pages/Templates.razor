@@ -4,6 +4,7 @@
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Presentation.Components.UI
 @inject IStorageService StorageService
 
 <PageTitle>Message Templates - SBInspector</PageTitle>
@@ -240,6 +241,7 @@
         selectedTemplate = null;
         isEditMode = false;
         isEditorVisible = true;
+        StateHasChanged();
     }
 
     private void ShowEditModal(MessageTemplate template)
@@ -247,18 +249,21 @@
         selectedTemplate = template;
         isEditMode = true;
         isEditorVisible = true;
+        StateHasChanged();
     }
 
     private void ShowViewModal(MessageTemplate template)
     {
         selectedTemplate = template;
         isViewModalVisible = true;
+        StateHasChanged();
     }
 
     private void CloseViewModal()
     {
         isViewModalVisible = false;
         selectedTemplate = null;
+        StateHasChanged();
     }
 
     private void ShowDeleteConfirmation(MessageTemplate template)
@@ -266,12 +271,14 @@
         templateToDelete = template;
         deleteConfirmMessage = $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone.";
         isDeleteConfirmVisible = true;
+        StateHasChanged();
     }
 
     private Task HandleEditorClose()
     {
         isEditorVisible = false;
         selectedTemplate = null;
+        StateHasChanged();
         return Task.CompletedTask;
     }
 
@@ -317,20 +324,24 @@
     {
         templateToDelete = null;
         isDeleteConfirmVisible = false;
+        StateHasChanged();
     }
 
     private void HandleIsVisibleChanged(bool value)
     {
         isEditorVisible = value;
+        StateHasChanged();
     }
 
     private void HandleIsEditModeChanged(bool value)
     {
         isEditMode = value;
+        StateHasChanged();
     }
 
     private void HandleTemplateChanged(MessageTemplate? value)
     {
         selectedTemplate = value;
+        StateHasChanged();
     }
 }
