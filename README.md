@@ -13,11 +13,12 @@ Both applications share the same codebase and features through a shared Razor Cl
 
 - Connect to Azure Service Bus using a connection string
 - **Storage Configuration**:
-  - Choose between Browser Local Storage or File System storage
-  - Save connection strings and message templates persistently
-  - File System storage saves to Desktop folder (recommended for Tauri desktop app)
-  - Browser storage for web deployments
-  - See [STORAGE_CONFIGURATION.md](Features/STORAGE_CONFIGURATION.md) for detailed documentation
+  - Platform-specific automatic storage selection
+  - Blazor Server: Uses Browser Local Storage automatically
+  - MAUI Desktop: Uses File System storage automatically
+  - Saves connection strings and message templates persistently
+  - No manual configuration required
+  - See [PLATFORM_DEFAULT_STORAGE.md](Features/PLATFORM_DEFAULT_STORAGE.md) for detailed documentation
 - **Refresh Functionality**:
   - Refresh button to reload all queues, topics, and subscriptions with updated counts
   - Refresh button on messages panel to reload current messages
