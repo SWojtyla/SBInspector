@@ -20,23 +20,13 @@ Standardized both refresh buttons to show loading spinners while data is being r
 
 ### EntityTreeView Changes
 ```razor
-@if (!IsLoading)
-{
-    <button class="btn btn-sm btn-primary" @onclick="HandleRefresh" title="Refresh all entities" disabled="@IsLoading">
-        @if (IsLoading)
-        {
-            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-        }
-        <i class="bi bi-arrow-clockwise"></i> Refresh
-    </button>
-}
-else
-{
-    <button class="btn btn-sm btn-primary" disabled title="Refreshing...">
+<button class="btn btn-sm btn-primary" @onclick="HandleRefresh" title="Refresh all entities" disabled="@IsLoading">
+    @if (IsLoading)
+    {
         <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-        <i class="bi bi-arrow-clockwise"></i> Refresh
-    </button>
-}
+    }
+    <i class="bi bi-arrow-clockwise"></i> Refresh
+</button>
 ```
 
 ### MessagesPanel Changes
