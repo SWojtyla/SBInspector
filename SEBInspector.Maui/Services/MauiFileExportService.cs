@@ -14,13 +14,15 @@ public class MauiFileExportService : IFileExportService
             if (filePath != null)
             {
                 // Show alert with file location on main thread
-                await MainThread.InvokeOnMainThreadAsync(async () =>
+                var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+                if (page is not null)
                 {
-                    await Application.Current?.MainPage?.DisplayAlert(
-                        "Export Successful",
-                        $"File saved to:\n{filePath}",
-                        "OK") ?? Task.CompletedTask;
-                });
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                        page.DisplayAlert(
+                            "Export Successful",
+                            $"File saved to:\n{filePath}",
+                            "OK"));
+                }
                 return true;
             }
             
@@ -29,13 +31,15 @@ public class MauiFileExportService : IFileExportService
         catch (Exception ex)
         {
             // Show error on main thread
-            await MainThread.InvokeOnMainThreadAsync(async () =>
+            var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+            if (page is not null)
             {
-                await Application.Current?.MainPage?.DisplayAlert(
-                    "Export Failed",
-                    $"Error saving file: {ex.Message}",
-                    "OK") ?? Task.CompletedTask;
-            });
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                    page.DisplayAlert(
+                        "Export Failed",
+                        $"Error saving file: {ex.Message}",
+                        "OK"));
+            }
             return false;
         }
     }
@@ -77,7 +81,7 @@ public class DefaultFileSaver : IFileSaver
             var filePath = Path.Combine(downloadsPath, filename);
             
             // If file exists, add a number to make it unique
-            int counter = 1;
+            int counter =1;
             var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filename);
             var extension = Path.GetExtension(filename);
             
