@@ -2,12 +2,12 @@
 
 ## Overview
 
-SBInspector has been refactored from a Blazor Server web application to a .NET MAUI Blazor Hybrid cross-platform desktop application. This change enables the application to run as a native desktop and mobile application while maintaining the same Blazor-based UI and business logic.
+SBInspector has been refactored from a Blazor Server web application to a .NET MAUI Blazor Hybrid desktop application for Windows. This change enables the application to run as a native Windows desktop application while maintaining the same Blazor-based UI and business logic.
 
 ## What is .NET MAUI Blazor Hybrid?
 
 .NET MAUI (Multi-platform App UI) Blazor Hybrid combines the best of both worlds:
-- **Native Application**: Runs as a native app on Windows, macOS, iOS, and Android
+- **Native Application**: Runs as a native Windows desktop app
 - **Blazor UI**: Uses the same Blazor components, Razor syntax, and component model
 - **File System Access**: Direct access to the device file system without browser limitations
 - **Native APIs**: Access to platform-specific features and APIs
@@ -23,7 +23,7 @@ SBInspector has been refactored from a Blazor Server web application to a .NET M
 
 **After (.NET MAUI):**
 - SDK: `Microsoft.NET.Sdk.Razor`
-- Target Frameworks: `net9.0-android`, `net9.0-ios`, `net9.0-maccatalyst`, `net9.0-windows`
+- Target Framework: `net9.0-windows10.0.19041.0`
 - Hosting: Native MAUI application
 
 ### 2. Application Entry Point
@@ -40,10 +40,7 @@ SBInspector has been refactored from a Blazor Server web application to a .NET M
 
 ### 3. Platform-Specific Code
 
-Added platform-specific folders:
-- `Platforms/Android/` - Android manifest and activities
-- `Platforms/iOS/` - iOS app delegate and Info.plist
-- `Platforms/MacCatalyst/` - macOS Catalyst configuration
+Added platform-specific folder:
 - `Platforms/Windows/` - Windows app package manifest
 
 ### 4. Resources
@@ -116,12 +113,11 @@ All other layers remained completely unchanged!
 
 ## Benefits of MAUI
 
-1. **Native Performance**: Runs as a native application with better performance
+1. **Native Performance**: Runs as a native Windows application with better performance
 2. **Offline Capability**: No web server required, runs fully offline
 3. **File System Access**: Direct access to device storage without browser restrictions
-4. **Cross-Platform**: Single codebase for Windows, macOS, iOS, and Android
-5. **Distribution**: Can be distributed via app stores or direct installation
-6. **No Browser Required**: Standalone application without browser dependencies
+4. **Distribution**: Can be distributed via Microsoft Store or direct installation
+5. **No Browser Required**: Standalone application without browser dependencies
 
 ## Backward Compatibility
 
@@ -135,12 +131,11 @@ The refactoring maintains:
 
 ## Future Enhancements
 
-Now that SBInspector is a MAUI application, future possibilities include:
+Now that SBInspector is a MAUI Windows application, future possibilities include:
 - Platform-specific features (notifications, system tray)
-- Mobile-optimized layouts for phones and tablets
 - Offline queue browsing with sync capability
 - Biometric authentication for stored connections
-- Share sheet integration for connection strings
+- Additional platform support (Android, iOS, macOS) if needed
 
 ## Technical Notes
 
@@ -159,32 +154,22 @@ Blazor Server used `@rendermode @(new InteractiveServerRenderMode(prerender: fal
 
 ### Build Targets
 
-Different platforms have different requirements:
-- **Android**: Requires Android SDK (API 24+)
-- **iOS**: Requires Xcode (macOS only)
-- **macOS**: Requires Xcode (macOS only)
-- **Windows**: Requires Windows SDK (Windows 10 1809+)
-
-On Linux CI systems, only Android target builds successfully.
+The project targets Windows only:
+- **Windows**: Requires Windows SDK (Windows 10 version 1809+)
 
 ## Migration Summary
 
 This was a **minimal-change refactoring** that converted the hosting model while preserving all application functionality. The well-designed clean architecture made this transition smooth with zero changes to business logic, domain models, or Azure Service Bus integration.
 
-Total lines of code changed: ~2,500 lines
-- Added: Platform configurations, MAUI structure
-- Modified: Entry point, hosting, storage service registration
-- Unchanged: Business logic, services, UI components (except hosting-related markup)
-
 ## Testing Recommendations
 
-To fully test the MAUI application:
-1. Test on each target platform (Windows, Android, iOS, macOS)
-2. Verify file storage works correctly on each platform
+To test the MAUI Windows application:
+1. Test on Windows 10 (version 1809+) or Windows 11
+2. Verify file storage works correctly in Desktop/SBInspector folder
 3. Test all Azure Service Bus operations
-4. Verify UI components render correctly across different screen sizes
-5. Test application lifecycle (suspend, resume, terminate)
+4. Verify UI components render correctly across different window sizes
+5. Test application lifecycle (minimize, restore, close)
 
 ## Conclusion
 
-The refactoring successfully transforms SBInspector from a web application to a cross-platform native application while maintaining all existing functionality and code quality. The clean architecture principles followed in the original design made this transformation straightforward and low-risk.
+The refactoring successfully transforms SBInspector from a web application to a native Windows desktop application while maintaining all existing functionality and code quality. The clean architecture principles followed in the original design made this transformation straightforward and low-risk.

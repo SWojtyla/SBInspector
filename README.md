@@ -1,6 +1,6 @@
 # SBInspector
 
-Azure Service Bus Inspector - A .NET MAUI Blazor Hybrid cross-platform desktop application for inspecting Azure Service Bus queues, topics, and messages.
+Azure Service Bus Inspector - A .NET MAUI Blazor Hybrid desktop application for Windows to inspect Azure Service Bus queues, topics, and messages.
 
 ## Features
 
@@ -74,66 +74,37 @@ For detailed information, see [STORAGE_CONFIGURATION.md](Features/STORAGE_CONFIG
 
 - .NET 9.0 SDK or later
 - Azure Service Bus namespace
-- For Android: Android SDK
-- For Windows: Windows 10 version 1809 or higher
-- For iOS/macOS: Xcode (macOS only)
+- Windows 10 version 1809 or higher
 
 ## Platform Support
 
-SBInspector runs on:
-- **Windows** (Windows 10 1809+)
-- **Android** (API 24+)
-- **iOS** (iOS 14.2+)
-- **macOS** (macOS 11+)
+SBInspector runs on Windows (Windows 10 version 1809 or higher).
 
 ## Getting Started
 
 ### Installing .NET MAUI Workloads
 
-First, ensure you have the required .NET MAUI workloads installed:
+First, ensure you have the required .NET MAUI workload installed:
 
 ```bash
-# Install MAUI workloads for your platform
-dotnet workload install maui-android    # For Android
-dotnet workload install maui-windows    # For Windows (Windows only)
+dotnet workload install maui-windows
 ```
 
 ### Building and Running
 
 1. Clone the repository
 2. Navigate to the SBInspector directory
-3. Build and run the application for your platform:
+3. Build and run the application:
 
-   **For Android:**
-   ```bash
-   cd SBInspector
-   dotnet build -f net9.0-android
-   dotnet run -f net9.0-android
-   ```
-
-   **For Windows:**
    ```bash
    cd SBInspector
    dotnet build -f net9.0-windows10.0.19041.0
    dotnet run -f net9.0-windows10.0.19041.0
    ```
 
-   **For iOS (macOS only):**
-   ```bash
-   cd SBInspector
-   dotnet build -f net9.0-ios
-   dotnet run -f net9.0-ios
-   ```
-
-   **For macOS (macOS only):**
-   ```bash
-   cd SBInspector
-   dotnet build -f net9.0-maccatalyst
-   dotnet run -f net9.0-maccatalyst
-   ```
-
 4. Enter your Azure Service Bus connection string and click "Connect"
 5. Browse queues, topics, and inspect messages
+
 ## Azure Service Bus Connection String
 
 You can find your connection string in the Azure Portal:
@@ -170,12 +141,6 @@ For detailed information about the UI component structure, see [UI_COMPONENTS.md
 ## Message Filtering
 
 The application supports filtering messages by their application properties (attributes). See [FILTERING.md](FILTERING.md) for detailed documentation on how to use this feature.
-
-## Migration from Tauri
-
-Previous versions of SBInspector used Tauri for desktop deployment. The application has been refactored to use .NET MAUI, which provides better integration with .NET and cross-platform capabilities. The Tauri configuration (`src-tauri/`, `package.json`) is no longer used but kept for reference.
-
-For the MAUI version, use the build instructions above. The old Tauri-based version can be found in earlier commits.
 
 ## License
 
