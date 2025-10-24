@@ -1,6 +1,8 @@
 # SBInspector
 
-Azure Service Bus Inspector - A Blazor web application for inspecting Azure Service Bus queues, topics, and messages.
+Azure Service Bus Inspector - A Blazor WebAssembly application for inspecting Azure Service Bus queues, topics, and messages.
+
+**Now running on Blazor WebAssembly!** This enables better deployment options including static web hosting and Tauri desktop applications. See [BLAZOR_WEBASSEMBLY_MIGRATION.md](Features/BLAZOR_WEBASSEMBLY_MIGRATION.md) for details.
 
 ## Features
 
