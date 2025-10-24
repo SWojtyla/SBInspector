@@ -1,4 +1,4 @@
-using SBInspector.Shared.Presentation.Components;
+using SBInspector.Components;
 using SBInspector.Shared.Core.Interfaces;
 using SBInspector.Shared.Infrastructure.ServiceBus;
 using SBInspector.Shared.Infrastructure.Storage;
