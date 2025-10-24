@@ -2,7 +2,13 @@
 
 ## About This Project
 
-SBInspector is an Azure Service Bus Inspector - a Blazor web application for inspecting Azure Service Bus queues, topics, and messages.
+SBInspector is an Azure Service Bus Inspector - available as both a Blazor Server web application and a .NET MAUI desktop application for inspecting Azure Service Bus queues, topics, and messages.
+
+### Project Structure
+
+- **SBInspector** - Blazor Server web application (cross-platform)
+- **SEBInspector.Maui** - .NET MAUI desktop application (Windows only)
+- **SBInspector.Shared** - Shared Blazor components and business logic
 
 ## Code Standards
 
@@ -46,6 +52,17 @@ When implementing a new feature:
 - Write unit tests for service classes
 - Ensure new features are testable
 - Mock external dependencies (e.g., Azure Service Bus)
+- **Validate changes in both Blazor Server and MAUI applications when applicable**
+
+### Validation Requirements
+
+When making changes that affect the UI or shared components:
+1. **Blazor Server Application**: Test with `dotnet run` in the `SBInspector/` directory
+2. **MAUI Application**: Build and test on Windows only (MAUI app only supports Windows platform)
+   - Use `dotnet build` in the `SEBInspector.Maui/` directory
+   - Note: MAUI project will not build on non-Windows platforms
+
+Always validate that changes work correctly in both applications when the change affects shared components.
 
 ### Documentation
 
@@ -56,7 +73,8 @@ When implementing a new feature:
 ## Technology Stack
 
 - **.NET 9.0** - Target framework
-- **Blazor** - UI framework
+- **Blazor Server** - Web UI framework (SBInspector project)
+- **.NET MAUI** - Cross-platform desktop framework (SEBInspector.Maui project, Windows only)
 - **Azure.Messaging.ServiceBus** - Service Bus SDK
 - **C# 12** - Programming language
 
@@ -71,8 +89,11 @@ When implementing a new feature:
 ## Getting Started
 
 When working on this codebase:
-1. Review the existing project structure in `SBInspector/`
+1. Review the existing project structure in `SBInspector/`, `SEBInspector.Maui/`, and `SBInspector.Shared/`
 2. Understand the clean architecture layers
 3. Follow the established patterns in similar components
-4. Test locally with `dotnet run` before committing
+4. Test locally before committing:
+   - For Blazor Server: `dotnet run` in `SBInspector/`
+   - For MAUI (Windows only): `dotnet build` in `SEBInspector.Maui/`
 5. Create feature documentation as specified above
+6. When making changes to shared components, validate in both applications
