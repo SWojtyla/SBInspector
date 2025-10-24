@@ -108,12 +108,12 @@ Filter 3:
 ### Technical Details
 
 The delete filtered operation:
-1. **Peeks** at messages in batches of 100
+1. **Receives** messages in batches of 100 using PeekLock mode
 2. **Applies filters** client-side to identify matching messages
-3. **Receives and deletes** messages in ReceiveAndDelete mode
-4. Only messages that pass all filters are deleted
-5. Continues until no more messages match the filters
-6. Reports progress every 100 messages
+3. **Completes** (deletes) only messages that pass all filters
+4. **Abandons** non-matching messages so they remain in the queue
+5. **Stops automatically** after 3 consecutive batches with no matching messages
+6. Reports progress after each deletion
 
 ---
 

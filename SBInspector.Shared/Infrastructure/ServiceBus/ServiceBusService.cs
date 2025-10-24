@@ -582,6 +582,10 @@ public class ServiceBusService : IServiceBusService
             // Create a filter service to check messages
             var filterService = new Application.Services.MessageFilterService();
 
+            // Keep track of consecutive batches with no matches
+            int consecutiveBatchesWithNoMatches = 0;
+            const int maxConsecutiveBatchesWithNoMatches = 3;
+
             // Keep receiving and filtering messages in batches
             while (true)
             {
@@ -627,6 +631,29 @@ public class ServiceBusService : IServiceBusService
 
                 // Apply filters to find matching messages
                 var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
+                
+                // Track if we found any matches in this batch
+                if (matchingMessages.Count == 0)
+                {
+                    consecutiveBatchesWithNoMatches++;
+                    
+                    // If we've checked multiple batches with no matches, stop
+                    // This means we've processed all matching messages
+                    if (consecutiveBatchesWithNoMatches >= maxConsecutiveBatchesWithNoMatches)
+                    {
+                        // Abandon all messages and exit
+                        foreach (var msg in receivedMessages)
+                        {
+                            await receiver.AbandonMessageAsync(msg);
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    // Reset counter when we find matches
+                    consecutiveBatchesWithNoMatches = 0;
+                }
                 
                 // Delete (complete) only the matching messages, abandon the rest
                 foreach (var matchingMsg in matchingMessages)
