@@ -26,44 +26,71 @@ fn find_available_port() -> Option<u16> {
 
 #[cfg(not(debug_assertions))]
 fn wait_for_server(url: &str, max_attempts: u32) -> bool {
-  use std::net::TcpStream;
+  use std::net::{TcpStream, ToSocketAddrs};
   use std::time::Duration;
   
   // Extract host and port from URL
   let url_parts: Vec<&str> = url.split("://").collect();
   if url_parts.len() < 2 {
+    log::error!("Invalid URL format: {}", url);
     return false;
   }
   
   let host_port: Vec<&str> = url_parts[1].split('/').next().unwrap_or("").split(':').collect();
   if host_port.len() < 2 {
+    log::error!("Could not parse host:port from URL");
     return false;
   }
   
   let host = host_port[0];
-  let port: u16 = host_port[1].parse().unwrap_or(0);
+  let port: u16 = match host_port[1].parse() {
+    Ok(p) => p,
+    Err(e) => {
+      log::error!("Failed to parse port: {}", e);
+      return false;
+    }
+  };
   
-  if port == 0 {
-    return false;
-  }
-  
-  let addr = format!("{}:{}", host, port);
+  let addr_str = format!("{}:{}", host, port);
+  log::info!("Will check server at: {}", addr_str);
   
   for attempt in 1..=max_attempts {
     log::info!("Checking if server is ready (attempt {}/{})", attempt, max_attempts);
     
-    match TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_millis(500)) {
-      Ok(_) => {
-        log::info!("Server is responding!");
-        return true;
-      }
+    // Resolve the address
+    let socket_addrs = match addr_str.to_socket_addrs() {
+      Ok(addrs) => addrs,
       Err(e) => {
-        log::info!("Server not ready yet: {}", e);
-        thread::sleep(Duration::from_millis(500));
+        log::error!("Failed to resolve address {}: {}", addr_str, e);
+        return false;
       }
+    };
+    
+    // Try to connect to the first resolved address
+    let mut connected = false;
+    for socket_addr in socket_addrs {
+      match TcpStream::connect_timeout(&socket_addr, Duration::from_millis(500)) {
+        Ok(_) => {
+          log::info!("Server is responding on {}!", socket_addr);
+          connected = true;
+          break;
+        }
+        Err(e) => {
+          log::debug!("Connection attempt to {} failed: {}", socket_addr, e);
+        }
+      }
+    }
+    
+    if connected {
+      return true;
+    }
+    
+    if attempt < max_attempts {
+      thread::sleep(Duration::from_millis(500));
     }
   }
   
+  log::error!("Server did not respond after {} attempts", max_attempts);
   false
 }
 
