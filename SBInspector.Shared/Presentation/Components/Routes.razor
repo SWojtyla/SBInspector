@@ -1,16 +1,8 @@
 ﻿@using System.Reflection
-@using Microsoft.AspNetCore.Components.Web
 
 <Router AppAssembly="@AppAssembly">
     <Found Context="routeData">
-        @if (DefaultRenderMode != null)
-        {
-            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" @rendermode="DefaultRenderMode" />
-        }
-        else
-        {
-            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        }
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
@@ -18,9 +10,6 @@
 @code {
     [Parameter]
     public Assembly? AppAssembly { get; set; }
-    
-    [Parameter]
-    public IComponentRenderMode? DefaultRenderMode { get; set; }
     
     protected override void OnInitialized()
     {
