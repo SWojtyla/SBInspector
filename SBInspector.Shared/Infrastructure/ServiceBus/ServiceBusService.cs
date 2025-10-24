@@ -549,6 +549,143 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task<int> DeleteFilteredMessagesAsync(string entityName, string messageType, List<MessageFilter> filters, bool isSubscription = false, string? topicName = null, string? subscriptionName = null, CancellationToken cancellationToken = default, IProgress<int>? progress = null)
+    {
+        if (_client == null) return 0;
+
+        ServiceBusReceiver? peekReceiver = null;
+        ServiceBusReceiver? deleteReceiver = null;
+        int totalDeleted = 0;
+
+        try
+        {
+            var peekOptions = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            var deleteOptions = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete
+            };
+
+            // Handle dead-letter queue
+            if (messageType == "DeadLetter")
+            {
+                peekOptions.SubQueue = SubQueue.DeadLetter;
+                deleteOptions.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receivers
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                peekReceiver = _client.CreateReceiver(topicName, subscriptionName, peekOptions);
+                deleteReceiver = _client.CreateReceiver(topicName, subscriptionName, deleteOptions);
+            }
+            else
+            {
+                peekReceiver = _client.CreateReceiver(entityName, peekOptions);
+                deleteReceiver = _client.CreateReceiver(entityName, deleteOptions);
+            }
+
+            // Create a filter service to check messages
+            var filterService = new Application.Services.MessageFilterService();
+            long? fromSequenceNumber = null;
+
+            // Keep receiving and filtering messages in batches
+            while (true)
+            {
+                // Check for cancellation
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                // Peek at messages to check which ones match the filter
+                var peekedMessages = await peekReceiver.PeekMessagesAsync(maxMessages: 100, fromSequenceNumber);
+                
+                if (peekedMessages.Count == 0)
+                {
+                    break; // No more messages to process
+                }
+
+                // Convert to MessageInfo for filtering
+                var messageInfos = new List<MessageInfo>();
+                foreach (var msg in peekedMessages)
+                {
+                    var messageInfo = new MessageInfo
+                    {
+                        MessageId = msg.MessageId ?? string.Empty,
+                        Subject = msg.Subject ?? string.Empty,
+                        ContentType = msg.ContentType ?? string.Empty,
+                        Body = msg.Body.ToString(),
+                        EnqueuedTime = msg.EnqueuedTime.DateTime,
+                        ScheduledEnqueueTime = msg.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : msg.ScheduledEnqueueTime.DateTime,
+                        SequenceNumber = msg.SequenceNumber,
+                        DeliveryCount = msg.DeliveryCount,
+                        State = messageType,
+                        Properties = new Dictionary<string, object>()
+                    };
+
+                    foreach (var prop in msg.ApplicationProperties)
+                    {
+                        messageInfo.Properties[prop.Key] = prop.Value;
+                    }
+
+                    messageInfos.Add(messageInfo);
+                }
+
+                // Apply filters to find matching messages
+                var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
+                var matchingSequenceNumbers = matchingMessages.Select(m => m.SequenceNumber).ToHashSet();
+
+                // Now receive and delete matching messages
+                // We need to receive messages in order to delete them
+                var receivedMessages = await deleteReceiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
+                
+                if (receivedMessages.Count == 0)
+                {
+                    break;
+                }
+
+                // Count how many of the received messages matched our filter
+                int deletedInBatch = receivedMessages.Count(m => matchingSequenceNumbers.Contains(m.SequenceNumber));
+                totalDeleted += deletedInBatch;
+                
+                // Report progress
+                progress?.Report(totalDeleted);
+                
+                // Update the sequence number for next peek
+                fromSequenceNumber = peekedMessages.Max(m => m.SequenceNumber) + 1;
+                
+                // Add a small delay to avoid overwhelming the service
+                if (receivedMessages.Count == 100)
+                {
+                    await Task.Delay(100, cancellationToken);
+                }
+            }
+
+            return totalDeleted;
+        }
+        catch (OperationCanceledException)
+        {
+            // Return partial count if cancelled
+            return totalDeleted;
+        }
+        catch
+        {
+            return totalDeleted; // Return partial count if error occurs
+        }
+        finally
+        {
+            if (peekReceiver != null)
+            {
+                await peekReceiver.DisposeAsync();
+            }
+            if (deleteReceiver != null)
+            {
+                await deleteReceiver.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> SetQueueStatusAsync(string queueName, bool enabled)
     {
         if (_adminClient == null) return false;

@@ -130,6 +130,7 @@ public class MessageFilterService
         return op switch
         {
             FilterOperator.Contains => value.Contains(filterValue, StringComparison.OrdinalIgnoreCase),
+            FilterOperator.NotContains => !value.Contains(filterValue, StringComparison.OrdinalIgnoreCase),
             FilterOperator.Equals => value.Equals(filterValue, StringComparison.OrdinalIgnoreCase),
             FilterOperator.NotEquals => !value.Equals(filterValue, StringComparison.OrdinalIgnoreCase),
             FilterOperator.Regex => MatchesRegex(value, filterValue),
