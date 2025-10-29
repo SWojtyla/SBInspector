@@ -12,6 +12,14 @@ public class ServiceBusService : IServiceBusService
     private ServiceBusClient? _client;
     private string? _connectionString;
 
+    // Constants for dead-letter operations
+    private const int MaxDeadLetterRetryAttempts = 10;
+    private const int DeadLetterRetryDelayMs = 200;
+    private const int DeadLetterReceiveBatchSize = 10;
+    private const int DeadLetterReceiveTimeoutSeconds = 2;
+    private const string DeadLetterReason = "Manual";
+    private const string DeadLetterDescription = "Message sent directly to dead-letter queue";
+
     public bool IsConnected => _adminClient != null && _client != null;
 
     public async Task<bool> ConnectAsync(string connectionString)
@@ -679,14 +687,15 @@ public class ServiceBusService : IServiceBusService
             }
 
             // Try multiple times to receive and dead-letter the message
-            const int maxAttempts = 10;
-            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            for (int attempt = 0; attempt < MaxDeadLetterRetryAttempts; attempt++)
             {
                 // Wait a bit for the message to be available
-                await Task.Delay(200);
+                await Task.Delay(DeadLetterRetryDelayMs);
 
                 // Receive messages to find the one we just sent
-                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 10, maxWaitTime: TimeSpan.FromSeconds(2));
+                var receivedMessages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: DeadLetterReceiveBatchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(DeadLetterReceiveTimeoutSeconds));
                 
                 // Find our message by matching the unique MessageId
                 var targetMessage = receivedMessages.FirstOrDefault(m => m.MessageId == uniqueMessageId);
@@ -694,7 +703,7 @@ public class ServiceBusService : IServiceBusService
                 if (targetMessage != null)
                 {
                     // Dead-letter the message
-                    await receiver.DeadLetterMessageAsync(targetMessage, "Manual", "Message sent directly to dead-letter queue");
+                    await receiver.DeadLetterMessageAsync(targetMessage, DeadLetterReason, DeadLetterDescription);
                     
                     // Abandon other messages
                     foreach (var msg in receivedMessages.Where(m => m.MessageId != uniqueMessageId))

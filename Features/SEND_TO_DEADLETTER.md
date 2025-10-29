@@ -134,7 +134,15 @@ The implementation uses the following Azure Service Bus SDK methods:
 
 2. **Two-Step Process**: The message is first sent to the regular queue, then moved to dead-letter. There's a brief moment where it exists in the regular queue.
 
-3. **Race Conditions**: In high-volume scenarios, there's a small possibility that another consumer might process the message before it can be moved to dead-letter. The implementation retries to minimize this risk.
+3. **Race Conditions and Reliability**: 
+   - **Primary Use Case**: This feature is designed for **development and testing environments**, not for production use.
+   - **Risk**: In high-volume scenarios or environments with active consumers, there's a possibility that another consumer might process the message before it can be moved to dead-letter.
+   - **Mitigation**: The implementation uses a unique MessageId and retries up to 10 times (configurable in code) to minimize this risk.
+   - **Recommendation**: For production scenarios requiring guaranteed dead-letter placement, consider:
+     - Temporarily stopping consumers before sending test messages
+     - Using a dedicated test queue with no active consumers
+     - Implementing proper message handling that naturally dead-letters based on business logic
+   - **Best Practice**: Use this feature in controlled environments where you can manage consumer activity.
 
 4. **Requires Manage Permissions**: Your Service Bus connection must have "Manage" permissions to dead-letter messages.
 
