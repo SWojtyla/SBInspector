@@ -627,6 +627,7 @@ public class ServiceBusService : IServiceBusService
         if (_client == null) return false;
 
         ServiceBusSender? sender = null;
+        ServiceBusReceiver? receiver = null;
 
         try
         {
@@ -640,9 +641,11 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // Create the message
+            // Create the message with a unique identifier
+            var uniqueMessageId = Guid.NewGuid().ToString();
             var message = new ServiceBusMessage(messageBody)
             {
+                MessageId = uniqueMessageId,
                 Subject = subject ?? string.Empty,
                 ContentType = contentType ?? "text/plain"
             };
@@ -661,64 +664,56 @@ public class ServiceBusService : IServiceBusService
 
             // Now move it to the dead letter queue
             // We need to receive it and dead-letter it
-            ServiceBusReceiver? receiver = null;
-            try
+            var receiverOptions = new ServiceBusReceiverOptions
             {
-                var receiverOptions = new ServiceBusReceiverOptions
-                {
-                    ReceiveMode = ServiceBusReceiveMode.PeekLock
-                };
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
 
-                if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
-                {
-                    receiver = _client.CreateReceiver(topicName, subscriptionName, receiverOptions);
-                }
-                else
-                {
-                    receiver = _client.CreateReceiver(entityName, receiverOptions);
-                }
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, receiverOptions);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, receiverOptions);
+            }
 
+            // Try multiple times to receive and dead-letter the message
+            const int maxAttempts = 10;
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
                 // Wait a bit for the message to be available
-                await Task.Delay(100);
+                await Task.Delay(200);
 
                 // Receive messages to find the one we just sent
-                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 10, maxWaitTime: TimeSpan.FromSeconds(5));
+                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 10, maxWaitTime: TimeSpan.FromSeconds(2));
                 
-                // Find our message by matching the body and subject
-                var targetMessage = receivedMessages.FirstOrDefault(m => 
-                    m.Body.ToString() == messageBody && 
-                    m.Subject == (subject ?? string.Empty));
+                // Find our message by matching the unique MessageId
+                var targetMessage = receivedMessages.FirstOrDefault(m => m.MessageId == uniqueMessageId);
 
                 if (targetMessage != null)
                 {
                     // Dead-letter the message
-                    await receiver.DeadLetterMessageAsync(targetMessage);
+                    await receiver.DeadLetterMessageAsync(targetMessage, "Manual", "Message sent directly to dead-letter queue");
                     
                     // Abandon other messages
-                    foreach (var msg in receivedMessages.Where(m => m.MessageId != targetMessage.MessageId))
+                    foreach (var msg in receivedMessages.Where(m => m.MessageId != uniqueMessageId))
                     {
                         await receiver.AbandonMessageAsync(msg);
                     }
                     
                     return true;
                 }
-                else
+                
+                // Abandon all messages and try again
+                foreach (var msg in receivedMessages)
                 {
-                    // If we can't find the message, abandon all and return false
-                    foreach (var msg in receivedMessages)
-                    {
-                        await receiver.AbandonMessageAsync(msg);
-                    }
-                    return false;
+                    await receiver.AbandonMessageAsync(msg);
                 }
             }
-            finally
-            {
-                if (receiver != null)
-                {
-                    await receiver.DisposeAsync();
-                }
-            }
+
+            // Failed to find the message after all attempts
+            return false;
         }
         catch
         {
@@ -726,6 +721,10 @@ public class ServiceBusService : IServiceBusService
         }
         finally
         {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
             if (sender != null)
             {
                 await sender.DisposeAsync();
