@@ -59,6 +59,7 @@
     {
         await LoadConnectionsAsync();
         ConnectionState.OnChange += HandleConnectionStateChanged;
+        ConnectionState.OnConnectionsChanged += HandleConnectionsListChanged;
     }
 
     private async Task LoadConnectionsAsync()
@@ -90,6 +91,11 @@
         StateHasChanged();
     }
 
+    private async void HandleConnectionsListChanged()
+    {
+        await RefreshConnectionsAsync();
+    }
+
     private bool IsConnected(SavedConnection connection)
     {
         return ServiceBusService.IsConnected && 
@@ -114,5 +120,6 @@
     public void Dispose()
     {
         ConnectionState.OnChange -= HandleConnectionStateChanged;
+        ConnectionState.OnConnectionsChanged -= HandleConnectionsListChanged;
     }
 }

@@ -1,7 +1,9 @@
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
-@inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
+@using SBInspector.Shared.Application.Services
+@inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
+@inject ConnectionStateService ConnectionState
 
 <div class="card">
     <div class="card-body">
@@ -137,6 +139,9 @@
             await LoadSavedConnectionsAsync();
             selectedConnectionName = string.Empty;
             successMessage = "Connection deleted successfully";
+            
+            // Notify that connections list has changed
+            ConnectionState.NotifyConnectionsChanged();
         }
     }
 
@@ -163,12 +168,18 @@
                     await StorageService.SaveConnectionAsync(savedConnection);
                     await LoadSavedConnectionsAsync();
                     successMessage = $"Connection saved as '{connectionName}'";
+                    
+                    // Notify that connections list has changed
+                    ConnectionState.NotifyConnectionsChanged();
                 }
                 else if (!string.IsNullOrEmpty(selectedConnectionName))
                 {
                     // Update last used time for loaded connection
                     await StorageService.UpdateLastUsedAsync(selectedConnectionName);
                     await LoadSavedConnectionsAsync();
+                    
+                    // Notify that connections list has changed
+                    ConnectionState.NotifyConnectionsChanged();
                 }
                 
                 await OnConnected.InvokeAsync();

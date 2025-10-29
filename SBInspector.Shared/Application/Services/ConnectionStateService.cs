@@ -28,5 +28,15 @@ public class ConnectionStateService
     /// </summary>
     public event Action? OnChange;
 
+    /// <summary>
+    /// Event raised when connections list should be refreshed (e.g., after saving a new connection)
+    /// </summary>
+    public event Action? OnConnectionsChanged;
+
     private void NotifyStateChanged() => OnChange?.Invoke();
+
+    /// <summary>
+    /// Notify that the connections list has changed and should be refreshed
+    /// </summary>
+    public void NotifyConnectionsChanged() => OnConnectionsChanged?.Invoke();
 }
