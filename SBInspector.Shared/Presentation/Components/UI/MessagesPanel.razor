@@ -76,6 +76,7 @@
                 SortAscending="@SortAscending"
                 SortAscendingChanged="@SortAscendingChanged"
                 OnViewDetails="@OnViewMessageDetails"
+                OnExport="@OnExportMessage"
                 OnDelete="@OnDeleteMessage"
                 OnRequeue="@OnRequeueMessage"
                 OnReschedule="@OnRescheduleMessage" />
@@ -160,6 +161,9 @@
 
     [Parameter]
     public EventCallback<MessageInfo> OnViewMessageDetails { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnExportMessage { get; set; }
 
     [Parameter]
     public EventCallback<MessageInfo> OnDeleteMessage { get; set; }
