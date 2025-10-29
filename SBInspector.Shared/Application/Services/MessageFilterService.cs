@@ -8,12 +8,12 @@ public class MessageFilterService
 {
     public IEnumerable<MessageInfo> ApplyFilters(IEnumerable<MessageInfo> messages, List<MessageFilter> filters)
     {
-        if (filters == null || !filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
+        if (filters == null || !filters.Any(f => f.IsEnabled && (!string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue))))
         {
             return messages;
         }
 
-        return messages.Where(message => filters.All(filter => MatchesFilter(message, filter)));
+        return messages.Where(message => filters.All(filter => !filter.IsEnabled || MatchesFilter(message, filter)));
     }
 
     private bool MatchesFilter(MessageInfo message, MessageFilter filter)

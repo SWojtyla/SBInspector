@@ -27,6 +27,7 @@ public class MessageFilter
     public string AttributeName { get; set; } = string.Empty;
     public string AttributeValue { get; set; } = string.Empty;
     public FilterOperator Operator { get; set; } = FilterOperator.Contains;
+    public bool IsEnabled { get; set; } = true;
     
     // For backward compatibility
     [Obsolete("Use Operator property with FilterOperator.Regex instead")]
