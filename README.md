@@ -65,10 +65,11 @@ Both applications share the same codebase and features through a shared Razor Cl
   - Filter by application properties, enqueued time, delivery count, or sequence number
   - Multiple operators: Contains, Not Contains, Equals, Not Equals, Greater Than, Less Than, Regex, etc.
   - Add multiple filters with AND logic
+  - **Enable/Disable Individual Filters**: Toggle filters on/off without removing them
   - Real-time filtering with message count display
   - **Delete Filtered**: Delete only messages that match your filters
   - **Export Filtered**: Download filtered messages as JSON for backup or analysis
-  - See [FILTERING.md](FILTERING.md) and [FILTER_BASED_OPERATIONS.md](FILTER_BASED_OPERATIONS.md) for detailed documentation
+  - See [FILTERING.md](FILTERING.md), [FILTER_BASED_OPERATIONS.md](FILTER_BASED_OPERATIONS.md), and [FILTER_ENABLE_DISABLE.md](Features/FILTER_ENABLE_DISABLE.md) for detailed documentation
 - Sortable tables:
   - Click on column headers to sort queues by name or message counts
   - Click on column headers to sort messages by ID, subject, enqueued time, or delivery count
