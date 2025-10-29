@@ -694,7 +694,7 @@ public class ServiceBusService : IServiceBusService
 
                 // Receive messages to find the one we just sent
                 var receivedMessages = await receiver.ReceiveMessagesAsync(
-                    maxMessages: DeadLetterReceiveBatchSize, 
+                    maxMessages: DeadLetterReceiveBatchSize,
                     maxWaitTime: TimeSpan.FromSeconds(DeadLetterReceiveTimeoutSeconds));
                 
                 // Find our message by matching the unique MessageId
