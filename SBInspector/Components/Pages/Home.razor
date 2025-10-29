@@ -593,6 +593,7 @@
                 success = await ServiceBusService.DeleteMessageAsync(
                     selectedEntity, 
                     messageForOperation.SequenceNumber,
+                    messageForOperation.State,
                     isSubscription: true,
                     topicName: selectedTopic,
                     subscriptionName: selectedSubscriptionName);
@@ -602,7 +603,8 @@
                 // It's a queue
                 success = await ServiceBusService.DeleteMessageAsync(
                     selectedEntity, 
-                    messageForOperation.SequenceNumber);
+                    messageForOperation.SequenceNumber,
+                    messageForOperation.State);
             }
 
             if (success)
@@ -761,6 +763,7 @@
                         selectedEntity,
                         messageForOperation.SequenceNumber,
                         data.ScheduledTime.Value,
+                        messageForOperation.State,
                         isSubscription: true,
                         topicName: selectedTopic,
                         subscriptionName: selectedSubscriptionName);
@@ -771,7 +774,8 @@
                     success = await ServiceBusService.RescheduleMessageAsync(
                         selectedEntity,
                         messageForOperation.SequenceNumber,
-                        data.ScheduledTime.Value);
+                        data.ScheduledTime.Value,
+                        messageForOperation.State);
                 }
 
                 if (success)

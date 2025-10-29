@@ -291,7 +291,7 @@ public class ServiceBusService : IServiceBusService
         return messages;
     }
 
-    public async Task<bool> DeleteMessageAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<bool> DeleteMessageAsync(string entityName, long sequenceNumber, string messageType = "Active", bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
     {
         if (_client == null) return false;
 
@@ -303,6 +303,12 @@ public class ServiceBusService : IServiceBusService
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
+
+            // Handle dead-letter queue
+            if (messageType == "DeadLetter")
+            {
+                options.SubQueue = SubQueue.DeadLetter;
+            }
 
             // Create the appropriate receiver
             if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
@@ -574,7 +580,7 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
-    public async Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTime newScheduledTime, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTime newScheduledTime, string messageType = "Active", bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
     {
         if (_client == null) return false;
 
@@ -587,6 +593,12 @@ public class ServiceBusService : IServiceBusService
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
+
+            // Handle dead-letter queue
+            if (messageType == "DeadLetter")
+            {
+                options.SubQueue = SubQueue.DeadLetter;
+            }
 
             // Create receiver and sender
             if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
@@ -819,16 +831,20 @@ public class ServiceBusService : IServiceBusService
             // Create a filter service to check messages
             var filterService = new Application.Services.MessageFilterService();
 
-            // Keep receiving and filtering messages in batches until no more messages
+            // Keep receiving and filtering messages in batches
+            // Track sequence numbers we've seen to avoid infinite processing
+            var seenSequenceNumbers = new HashSet<long>();
             int emptyBatchCount = 0;
             const int maxEmptyBatches = 3;
+            int consecutiveNonMatchingBatches = 0;
+            const int maxConsecutiveNonMatchingBatches = 5; // Stop if we get 5 batches with no matches
             
             while (true)
             {
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                // Receive messages with PeekLock mode - increased timeout
+                // Receive messages with PeekLock mode
                 var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(5));
                 
                 if (receivedMessages.Count == 0)
@@ -844,12 +860,27 @@ public class ServiceBusService : IServiceBusService
 
                 emptyBatchCount = 0; // Reset counter when we receive messages
 
+                // Check if we've seen all these messages before (infinite loop detection)
+                bool allSeen = receivedMessages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    // We're stuck in a loop, abandon all and exit
+                    foreach (var msg in receivedMessages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    break;
+                }
+
                 // Convert to MessageInfo for filtering
                 var messageInfos = new List<MessageInfo>();
                 var messageMap = new Dictionary<long, ServiceBusReceivedMessage>();
                 
                 foreach (var msg in receivedMessages)
                 {
+                    // Track this sequence number
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
+                    
                     var messageInfo = new MessageInfo
                     {
                         MessageId = msg.MessageId ?? string.Empty,
@@ -875,6 +906,26 @@ public class ServiceBusService : IServiceBusService
 
                 // Apply filters to find matching messages
                 var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
+                
+                if (matchingMessages.Count == 0)
+                {
+                    consecutiveNonMatchingBatches++;
+                    
+                    // If we've seen too many batches with no matches, stop processing
+                    if (consecutiveNonMatchingBatches >= maxConsecutiveNonMatchingBatches)
+                    {
+                        // Abandon all messages and exit
+                        foreach (var msg in receivedMessages)
+                        {
+                            await receiver.AbandonMessageAsync(msg);
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    consecutiveNonMatchingBatches = 0; // Reset when we find matches
+                }
                 
                 // Delete (complete) only the matching messages, abandon the rest
                 foreach (var matchingMsg in matchingMessages)

@@ -2,97 +2,188 @@
 
 ## Overview
 
-This feature optimizes the performance of delete operations for Azure Service Bus messages, significantly reducing the time required to delete messages, especially when dealing with large message queues.
+This feature optimizes the performance of delete operations for Azure Service Bus messages, significantly reducing the time required to delete messages, especially when dealing with large message queues. It also fixes issues with deleting messages from deadletter queues and optimizes filtered deletion operations.
 
 ## Problem Statement
 
-Previously, delete operations were slow when trying to delete messages from queues with many messages (e.g., deleting 10 messages with filters from a queue containing 1000+ messages in deadletter). The primary bottleneck was unnecessary peek operations performed before each delete.
+Previously, delete operations had multiple issues:
+1. **Slow individual deletes**: Each delete peeked through up to 5,120 messages before attempting deletion
+2. **Deadletter queue deletion failed**: DeleteMessageAsync didn't properly handle deadletter queues
+3. **Filtered deletion was extremely slow**: DeleteFilteredMessagesAsync processed ALL messages in the queue continuously instead of stopping after processing visible messages
+
+The primary bottlenecks were:
+- Unnecessary peek operations performed before each delete (up to 20 API calls per operation)
+- Missing SubQueue configuration for deadletter operations
+- Infinite processing loop in filtered deletion that never stopped until the queue was empty
 
 ## How It Works
 
-### Previous Implementation
+### Previous Implementation Issues
 
-The old implementation followed this flow for each message operation:
-1. **Peek Phase**: Iterate through up to 5,120 messages (20 batches × 256 messages) to verify the message exists
-2. **Receive Phase**: Receive messages in batches until the target message is found
-3. **Delete Phase**: Complete the target message and abandon others
+**Individual Message Deletion:**
+1. **Peek Phase**: Iterate through up to 5,120 messages to verify existence
+2. **Missing DeadLetter Support**: Didn't set SubQueue.DeadLetter for deadletter messages
+3. **Receive Phase**: Receive messages to find and delete the target
 
-This meant that for a single delete operation, we could potentially make up to 20 peek API calls before even attempting to delete the message.
+**Filtered Message Deletion:**
+1. Continuously processed ALL messages in queue
+2. No exit condition when matching messages were exhausted
+3. Could process thousands of non-matching messages repeatedly
 
 ### Optimized Implementation
 
-The new implementation removes the unnecessary peek phase:
-1. **Direct Receive**: Immediately start receiving messages in batches to find the target
-2. **Delete Phase**: Complete the target message and abandon others
+**Individual Message Deletion:**
+1. **Direct Receive**: Immediately start receiving messages
+2. **Proper Queue Targeting**: Sets SubQueue.DeadLetter when messageType is "DeadLetter"
+3. **Delete Phase**: Complete target message and abandon others
+
+**Filtered Message Deletion:**
+1. Tracks seen sequence numbers to avoid infinite loops
+2. Stops after 5 consecutive batches with no matches
+3. Exits when all messages have been seen before (loop detection)
+4. Much faster termination when matching messages are exhausted
 
 ### Key Insight
 
-Messages shown in the UI have already been peeked and displayed to the user. Therefore, we don't need to verify their existence again before deletion. If a message has been processed or removed between display and deletion, the receive operation will simply not find it, and we return `false`.
+Messages shown in the UI have already been peeked and displayed. We don't need to verify their existence again before deletion. If a message has been processed between display and deletion, the receive operation will simply not find it.
 
 ## Performance Improvements
 
 ### Eliminated Operations
-- Removed up to **20 peek operations** (5,120 messages) per delete
+- Removed up to **20 peek operations** (5,120 messages) per individual delete
 - Each peek operation involved a round-trip to Azure Service Bus
-- For deadletter queues with thousands of messages, this could take several seconds per message
+- For deadletter queues, operations now properly target the deadletter subqueue
+- Filtered deletion now stops intelligently instead of processing entire queue
 
 ### Expected Results
 - **Individual Message Deletion**: 10-50x faster (depending on queue size)
-- **Batch Deletion**: Proportional improvement for each message
+- **Deadletter Message Deletion**: Now works correctly (was broken before)
+- **Batch Filtered Deletion**: Stops after ~5 empty batches instead of processing all messages
 - **User Experience**: Near-instantaneous deletion for most scenarios
 
 ## Technical Implementation
 
 ### Affected Methods
 
-Three methods in `ServiceBusService.cs` were optimized:
+Four methods in `ServiceBusService.cs` were optimized:
 
 #### 1. DeleteMessageAsync
-Removes a message from a queue or subscription.
+- **Fixed**: Now accepts `messageType` parameter to properly handle deadletter queues
+- **Optimized**: Removed peek verification phase
+- **Impact**: Works correctly for deadletter queues, 10-50x faster
 
-```csharp
-// Before: Peek first, then receive
-// After: Directly receive and search
-```
+#### 2. RescheduleMessageAsync
+- **Fixed**: Now accepts `messageType` parameter to properly handle deadletter queues
+- **Optimized**: Removed peek verification phase
 
-#### 2. RequeueDeadLetterMessageAsync
-Moves a message from the dead-letter queue back to the main queue.
+#### 3. RequeueDeadLetterMessageAsync
+- **Optimized**: Removed peek verification phase (already had proper deadletter handling)
 
-#### 3. RescheduleMessageAsync
-Changes the scheduled delivery time of a message.
+#### 4. DeleteFilteredMessagesAsync
+- **Optimized**: Added sequence number tracking to prevent infinite loops
+- **Optimized**: Exits after 5 consecutive batches with no matching messages
+- **Impact**: Stops processing when matching messages are exhausted instead of continuing forever
 
 ### Code Changes
 
-The optimization involved removing the peek verification loop:
+#### Interface Updates
+
+Added `messageType` parameter to DeleteMessageAsync and RescheduleMessageAsync:
 
 ```csharp
-// REMOVED: This section was eliminated
-// First, use Peek to verify the message exists
-bool messageExists = false;
-long? startSequence = null;
-const int peekBatchSize = 256;
-int maxPeekBatches = 20; // Check up to 5120 messages
+// Before
+Task<bool> DeleteMessageAsync(string entityName, long sequenceNumber, 
+    bool isSubscription = false, string? topicName = null, string? subscriptionName = null);
 
-for (int i = 0; i < maxPeekBatches; i++)
+// After
+Task<bool> DeleteMessageAsync(string entityName, long sequenceNumber, 
+    string messageType = "Active", bool isSubscription = false, 
+    string? topicName = null, string? subscriptionName = null);
+```
+
+#### DeleteMessageAsync - Added DeadLetter Support
+
+```csharp
+var options = new ServiceBusReceiverOptions
 {
-    var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-    // ... peek logic ...
+    ReceiveMode = ServiceBusReceiveMode.PeekLock
+};
+
+// NEW: Handle dead-letter queue
+if (messageType == "DeadLetter")
+{
+    options.SubQueue = SubQueue.DeadLetter;
 }
 
-if (!messageExists)
+// Create receiver with proper options
+receiver = _client.CreateReceiver(entityName, options);
+
+// REMOVED: Peek verification (24 lines removed)
+// Direct receive and search
+var messages = await receiver.ReceiveMessagesAsync(100, TimeSpan.FromSeconds(5));
+```
+
+#### DeleteFilteredMessagesAsync - Added Smart Termination
+
+```csharp
+// NEW: Track seen messages to avoid infinite loops
+var seenSequenceNumbers = new HashSet<long>();
+int consecutiveNonMatchingBatches = 0;
+const int maxConsecutiveNonMatchingBatches = 5;
+
+while (true)
 {
-    return false;
+    var receivedMessages = await receiver.ReceiveMessagesAsync(...);
+    
+    // NEW: Exit if we've seen all these messages before
+    bool allSeen = receivedMessages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+    if (allSeen)
+    {
+        // Abandon and exit - we're in a loop
+        break;
+    }
+    
+    // Track seen messages
+    foreach (var msg in receivedMessages)
+    {
+        seenSequenceNumbers.Add(msg.SequenceNumber);
+    }
+    
+    var matchingMessages = filterService.ApplyFilters(messageInfos, filters);
+    
+    // NEW: Exit if no matches found for 5 consecutive batches
+    if (matchingMessages.Count == 0)
+    {
+        consecutiveNonMatchingBatches++;
+        if (consecutiveNonMatchingBatches >= 5)
+        {
+            break; // Stop processing
+        }
+    }
+    else
+    {
+        consecutiveNonMatchingBatches = 0; // Reset counter
+    }
+    
+    // Delete matching messages...
 }
 ```
 
-The receive loop now starts immediately:
+#### UI Updates
+
+Updated Home.razor to pass message state:
 
 ```csharp
-// Receive messages until we find the target one
-// No need to peek first - the message was already displayed so it exists
-var seenSequenceNumbers = new HashSet<long>();
-const int receiveBatchSize = 100;
-// ... receive and delete logic ...
+// Before
+success = await ServiceBusService.DeleteMessageAsync(
+    selectedEntity, 
+    messageForOperation.SequenceNumber);
+
+// After
+success = await ServiceBusService.DeleteMessageAsync(
+    selectedEntity, 
+    messageForOperation.SequenceNumber,
+    messageForOperation.State); // Pass the message type (Active/DeadLetter/Scheduled)
 ```
 
 ## Safety Considerations
