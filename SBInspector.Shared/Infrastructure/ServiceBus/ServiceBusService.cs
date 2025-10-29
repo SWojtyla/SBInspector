@@ -125,32 +125,55 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            var receivedMessages = await receiver.PeekMessagesAsync(maxMessages, fromSequenceNumber);
+            // Azure Service Bus PeekMessagesAsync has a maximum limit of 256 messages per call
+            // To fetch more than 256 messages, we need to make multiple calls
+            const int maxMessagesPerPeek = 256;
+            int remainingMessages = maxMessages;
+            long? currentSequenceNumber = fromSequenceNumber;
             
-            foreach (var message in receivedMessages)
+            while (remainingMessages > 0)
             {
-                var body = message.Body.ToString();
+                int messagesToFetch = Math.Min(remainingMessages, maxMessagesPerPeek);
+                var receivedMessages = await receiver.PeekMessagesAsync(messagesToFetch, currentSequenceNumber);
                 
-                var messageInfo = new MessageInfo
+                if (receivedMessages.Count == 0)
                 {
-                    MessageId = message.MessageId ?? string.Empty,
-                    Subject = message.Subject ?? string.Empty,
-                    ContentType = message.ContentType ?? string.Empty,
-                    Body = body,
-                    EnqueuedTime = message.EnqueuedTime.DateTime,
-                    ScheduledEnqueueTime = message.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : message.ScheduledEnqueueTime.DateTime,
-                    SequenceNumber = message.SequenceNumber,
-                    DeliveryCount = message.DeliveryCount,
-                    State = messageType,
-                    Properties = new Dictionary<string, object>()
-                };
-
-                foreach (var prop in message.ApplicationProperties)
-                {
-                    messageInfo.Properties[prop.Key] = prop.Value;
+                    break; // No more messages available
                 }
+                
+                foreach (var message in receivedMessages)
+                {
+                    var body = message.Body.ToString();
+                    
+                    var messageInfo = new MessageInfo
+                    {
+                        MessageId = message.MessageId ?? string.Empty,
+                        Subject = message.Subject ?? string.Empty,
+                        ContentType = message.ContentType ?? string.Empty,
+                        Body = body,
+                        EnqueuedTime = message.EnqueuedTime.DateTime,
+                        ScheduledEnqueueTime = message.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : message.ScheduledEnqueueTime.DateTime,
+                        SequenceNumber = message.SequenceNumber,
+                        DeliveryCount = message.DeliveryCount,
+                        State = messageType,
+                        Properties = new Dictionary<string, object>()
+                    };
 
-                messages.Add(messageInfo);
+                    foreach (var prop in message.ApplicationProperties)
+                    {
+                        messageInfo.Properties[prop.Key] = prop.Value;
+                    }
+
+                    messages.Add(messageInfo);
+                }
+                
+                remainingMessages -= receivedMessages.Count;
+                
+                // Set the next sequence number to continue from
+                if (receivedMessages.Count > 0)
+                {
+                    currentSequenceNumber = receivedMessages.Last().SequenceNumber + 1;
+                }
             }
         }
         finally
@@ -206,32 +229,55 @@ public class ServiceBusService : IServiceBusService
 
             receiver = _client.CreateReceiver(topicName, subscriptionName, options);
 
-            var receivedMessages = await receiver.PeekMessagesAsync(maxMessages, fromSequenceNumber);
+            // Azure Service Bus PeekMessagesAsync has a maximum limit of 256 messages per call
+            // To fetch more than 256 messages, we need to make multiple calls
+            const int maxMessagesPerPeek = 256;
+            int remainingMessages = maxMessages;
+            long? currentSequenceNumber = fromSequenceNumber;
             
-            foreach (var message in receivedMessages)
+            while (remainingMessages > 0)
             {
-                var body = message.Body.ToString();
+                int messagesToFetch = Math.Min(remainingMessages, maxMessagesPerPeek);
+                var receivedMessages = await receiver.PeekMessagesAsync(messagesToFetch, currentSequenceNumber);
                 
-                var messageInfo = new MessageInfo
+                if (receivedMessages.Count == 0)
                 {
-                    MessageId = message.MessageId ?? string.Empty,
-                    Subject = message.Subject ?? string.Empty,
-                    ContentType = message.ContentType ?? string.Empty,
-                    Body = body,
-                    EnqueuedTime = message.EnqueuedTime.DateTime,
-                    ScheduledEnqueueTime = message.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : message.ScheduledEnqueueTime.DateTime,
-                    SequenceNumber = message.SequenceNumber,
-                    DeliveryCount = message.DeliveryCount,
-                    State = messageType,
-                    Properties = new Dictionary<string, object>()
-                };
-
-                foreach (var prop in message.ApplicationProperties)
-                {
-                    messageInfo.Properties[prop.Key] = prop.Value;
+                    break; // No more messages available
                 }
+                
+                foreach (var message in receivedMessages)
+                {
+                    var body = message.Body.ToString();
+                    
+                    var messageInfo = new MessageInfo
+                    {
+                        MessageId = message.MessageId ?? string.Empty,
+                        Subject = message.Subject ?? string.Empty,
+                        ContentType = message.ContentType ?? string.Empty,
+                        Body = body,
+                        EnqueuedTime = message.EnqueuedTime.DateTime,
+                        ScheduledEnqueueTime = message.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : message.ScheduledEnqueueTime.DateTime,
+                        SequenceNumber = message.SequenceNumber,
+                        DeliveryCount = message.DeliveryCount,
+                        State = messageType,
+                        Properties = new Dictionary<string, object>()
+                    };
 
-                messages.Add(messageInfo);
+                    foreach (var prop in message.ApplicationProperties)
+                    {
+                        messageInfo.Properties[prop.Key] = prop.Value;
+                    }
+
+                    messages.Add(messageInfo);
+                }
+                
+                remainingMessages -= receivedMessages.Count;
+                
+                // Set the next sequence number to continue from
+                if (receivedMessages.Count > 0)
+                {
+                    currentSequenceNumber = receivedMessages.Last().SequenceNumber + 1;
+                }
             }
         }
         finally
@@ -268,14 +314,42 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            // Receive messages and find the one with matching sequence number
-            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100);
-            var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
-
-            if (messageToDelete != null)
+            // Search through messages in batches until we find the target message
+            // or run out of messages to search
+            const int batchSize = 100;
+            int maxBatchesToSearch = 50; // Limit to prevent infinite loops (5000 messages max)
+            
+            for (int i = 0; i < maxBatchesToSearch; i++)
             {
-                await receiver.CompleteMessageAsync(messageToDelete);
-                return true;
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: batchSize, maxWaitTime: TimeSpan.FromSeconds(2));
+                
+                if (messages.Count == 0)
+                {
+                    // No more messages available
+                    return false;
+                }
+                
+                var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+
+                if (messageToDelete != null)
+                {
+                    // Found the message, delete it and abandon the rest
+                    await receiver.CompleteMessageAsync(messageToDelete);
+                    
+                    // Abandon other messages so they're available again
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Message not found in this batch, abandon all and continue searching
+                foreach (var msg in messages)
+                {
+                    await receiver.AbandonMessageAsync(msg);
+                }
             }
 
             return false;
@@ -320,30 +394,56 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // Receive messages from dead-letter queue
-            var messages = await dlqReceiver.ReceiveMessagesAsync(maxMessages: 100);
-            var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
-
-            if (messageToRequeue != null)
+            // Search through messages in batches until we find the target message
+            const int batchSize = 100;
+            int maxBatchesToSearch = 50; // Limit to prevent infinite loops (5000 messages max)
+            
+            for (int i = 0; i < maxBatchesToSearch; i++)
             {
-                // Create a new message with the same content
-                var newMessage = new ServiceBusMessage(messageToRequeue.Body)
+                var messages = await dlqReceiver.ReceiveMessagesAsync(maxMessages: batchSize, maxWaitTime: TimeSpan.FromSeconds(2));
+                
+                if (messages.Count == 0)
                 {
-                    Subject = messageToRequeue.Subject,
-                    ContentType = messageToRequeue.ContentType,
-                    MessageId = messageToRequeue.MessageId
-                };
-
-                // Copy application properties
-                foreach (var prop in messageToRequeue.ApplicationProperties)
-                {
-                    newMessage.ApplicationProperties[prop.Key] = prop.Value;
+                    // No more messages available
+                    return false;
                 }
+                
+                var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
 
-                // Send to main queue and complete the DLQ message
-                await sender.SendMessageAsync(newMessage);
-                await dlqReceiver.CompleteMessageAsync(messageToRequeue);
-                return true;
+                if (messageToRequeue != null)
+                {
+                    // Create a new message with the same content
+                    var newMessage = new ServiceBusMessage(messageToRequeue.Body)
+                    {
+                        Subject = messageToRequeue.Subject,
+                        ContentType = messageToRequeue.ContentType,
+                        MessageId = messageToRequeue.MessageId
+                    };
+
+                    // Copy application properties
+                    foreach (var prop in messageToRequeue.ApplicationProperties)
+                    {
+                        newMessage.ApplicationProperties[prop.Key] = prop.Value;
+                    }
+
+                    // Send to main queue and complete the DLQ message
+                    await sender.SendMessageAsync(newMessage);
+                    await dlqReceiver.CompleteMessageAsync(messageToRequeue);
+                    
+                    // Abandon other messages so they're available again
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    {
+                        await dlqReceiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Message not found in this batch, abandon all and continue searching
+                foreach (var msg in messages)
+                {
+                    await dlqReceiver.AbandonMessageAsync(msg);
+                }
             }
 
             return false;
@@ -441,30 +541,56 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // Find the scheduled message
-            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100);
-            var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
-
-            if (messageToReschedule != null)
+            // Search through messages in batches until we find the target message
+            const int batchSize = 100;
+            int maxBatchesToSearch = 50; // Limit to prevent infinite loops (5000 messages max)
+            
+            for (int i = 0; i < maxBatchesToSearch; i++)
             {
-                // Create a new message with the same content
-                var newMessage = new ServiceBusMessage(messageToReschedule.Body)
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: batchSize, maxWaitTime: TimeSpan.FromSeconds(2));
+                
+                if (messages.Count == 0)
                 {
-                    Subject = messageToReschedule.Subject,
-                    ContentType = messageToReschedule.ContentType,
-                    MessageId = messageToReschedule.MessageId
-                };
-
-                // Copy application properties
-                foreach (var prop in messageToReschedule.ApplicationProperties)
-                {
-                    newMessage.ApplicationProperties[prop.Key] = prop.Value;
+                    // No more messages available
+                    return false;
                 }
+                
+                var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
 
-                // Schedule with new time and complete the old message
-                await sender.ScheduleMessageAsync(newMessage, newScheduledTime);
-                await receiver.CompleteMessageAsync(messageToReschedule);
-                return true;
+                if (messageToReschedule != null)
+                {
+                    // Create a new message with the same content
+                    var newMessage = new ServiceBusMessage(messageToReschedule.Body)
+                    {
+                        Subject = messageToReschedule.Subject,
+                        ContentType = messageToReschedule.ContentType,
+                        MessageId = messageToReschedule.MessageId
+                    };
+
+                    // Copy application properties
+                    foreach (var prop in messageToReschedule.ApplicationProperties)
+                    {
+                        newMessage.ApplicationProperties[prop.Key] = prop.Value;
+                    }
+
+                    // Schedule with new time and complete the old message
+                    await sender.ScheduleMessageAsync(newMessage, newScheduledTime);
+                    await receiver.CompleteMessageAsync(messageToReschedule);
+                    
+                    // Abandon other messages so they're available again
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Message not found in this batch, abandon all and continue searching
+                foreach (var msg in messages)
+                {
+                    await receiver.AbandonMessageAsync(msg);
+                }
             }
 
             return false;
@@ -595,11 +721,7 @@ public class ServiceBusService : IServiceBusService
             // Create a filter service to check messages
             var filterService = new Application.Services.MessageFilterService();
 
-            // Keep track of consecutive batches with no matches
-            int consecutiveBatchesWithNoMatches = 0;
-            const int maxConsecutiveBatchesWithNoMatches = 3;
-
-            // Keep receiving and filtering messages in batches
+            // Keep receiving and filtering messages in batches until no more messages
             while (true)
             {
                 // Check for cancellation
@@ -644,29 +766,6 @@ public class ServiceBusService : IServiceBusService
 
                 // Apply filters to find matching messages
                 var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
-                
-                // Track if we found any matches in this batch
-                if (matchingMessages.Count == 0)
-                {
-                    consecutiveBatchesWithNoMatches++;
-                    
-                    // If we've checked multiple batches with no matches, stop
-                    // This means we've processed all matching messages
-                    if (consecutiveBatchesWithNoMatches >= maxConsecutiveBatchesWithNoMatches)
-                    {
-                        // Abandon all messages and exit
-                        foreach (var msg in receivedMessages)
-                        {
-                            await receiver.AbandonMessageAsync(msg);
-                        }
-                        break;
-                    }
-                }
-                else
-                {
-                    // Reset counter when we find matches
-                    consecutiveBatchesWithNoMatches = 0;
-                }
                 
                 // Delete (complete) only the matching messages, abandon the rest
                 foreach (var matchingMsg in matchingMessages)
