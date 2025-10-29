@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SEBInspector.Maui", "SEBIns
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SBInspector.Shared", "SBInspector.Shared\SBInspector.Shared.csproj", "{2037DE83-6856-485E-AE7C-B52B6EB03217}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SBInspector.Tests", "SBInspector.Tests\SBInspector.Tests.csproj", "{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,18 @@ Global
 		{2037DE83-6856-485E-AE7C-B52B6EB03217}.Release|x64.Build.0 = Release|Any CPU
 		{2037DE83-6856-485E-AE7C-B52B6EB03217}.Release|x86.ActiveCfg = Release|Any CPU
 		{2037DE83-6856-485E-AE7C-B52B6EB03217}.Release|x86.Build.0 = Release|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Debug|x64.Build.0 = Debug|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Debug|x86.Build.0 = Debug|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Release|x64.ActiveCfg = Release|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Release|x64.Build.0 = Release|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Release|x86.ActiveCfg = Release|Any CPU
+		{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
