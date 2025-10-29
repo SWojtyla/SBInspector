@@ -622,6 +622,117 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task<bool> SendMessageToDeadLetterQueueAsync(string entityName, string messageBody, string? subject = null, string? contentType = null, Dictionary<string, object>? properties = null, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusSender? sender = null;
+
+        try
+        {
+            // Create sender for the entity (queue or topic)
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                sender = _client.CreateSender(topicName);
+            }
+            else
+            {
+                sender = _client.CreateSender(entityName);
+            }
+
+            // Create the message
+            var message = new ServiceBusMessage(messageBody)
+            {
+                Subject = subject ?? string.Empty,
+                ContentType = contentType ?? "text/plain"
+            };
+
+            // Add application properties
+            if (properties != null)
+            {
+                foreach (var prop in properties)
+                {
+                    message.ApplicationProperties[prop.Key] = prop.Value;
+                }
+            }
+
+            // Send the message to the regular queue/topic first
+            await sender.SendMessageAsync(message);
+
+            // Now move it to the dead letter queue
+            // We need to receive it and dead-letter it
+            ServiceBusReceiver? receiver = null;
+            try
+            {
+                var receiverOptions = new ServiceBusReceiverOptions
+                {
+                    ReceiveMode = ServiceBusReceiveMode.PeekLock
+                };
+
+                if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+                {
+                    receiver = _client.CreateReceiver(topicName, subscriptionName, receiverOptions);
+                }
+                else
+                {
+                    receiver = _client.CreateReceiver(entityName, receiverOptions);
+                }
+
+                // Wait a bit for the message to be available
+                await Task.Delay(100);
+
+                // Receive messages to find the one we just sent
+                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 10, maxWaitTime: TimeSpan.FromSeconds(5));
+                
+                // Find our message by matching the body and subject
+                var targetMessage = receivedMessages.FirstOrDefault(m => 
+                    m.Body.ToString() == messageBody && 
+                    m.Subject == (subject ?? string.Empty));
+
+                if (targetMessage != null)
+                {
+                    // Dead-letter the message
+                    await receiver.DeadLetterMessageAsync(targetMessage);
+                    
+                    // Abandon other messages
+                    foreach (var msg in receivedMessages.Where(m => m.MessageId != targetMessage.MessageId))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                else
+                {
+                    // If we can't find the message, abandon all and return false
+                    foreach (var msg in receivedMessages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
+                }
+            }
+            finally
+            {
+                if (receiver != null)
+                {
+                    await receiver.DisposeAsync();
+                }
+            }
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (sender != null)
+            {
+                await sender.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTime newScheduledTime, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
     {
         if (_client == null) return false;

@@ -974,17 +974,38 @@
                 // Send new message
                 var entityToSendTo = !string.IsNullOrEmpty(selectedSubscriptionName) ? selectedTopic : selectedEntity;
                 
-                success = await ServiceBusService.SendMessageAsync(
-                    entityToSendTo,
-                    data.Body,
-                    data.Subject,
-                    data.ContentType,
-                    data.Properties,
-                    data.ScheduledTime);
+                if (data.SendToDeadLetter)
+                {
+                    // Send to dead-letter queue
+                    success = await ServiceBusService.SendMessageToDeadLetterQueueAsync(
+                        entityToSendTo,
+                        data.Body,
+                        data.Subject,
+                        data.ContentType,
+                        data.Properties,
+                        isSubscription: !string.IsNullOrEmpty(selectedSubscriptionName),
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName);
+                }
+                else
+                {
+                    // Send to regular queue/topic
+                    success = await ServiceBusService.SendMessageAsync(
+                        entityToSendTo,
+                        data.Body,
+                        data.Subject,
+                        data.ContentType,
+                        data.Properties,
+                        data.ScheduledTime);
+                }
 
                 if (success)
                 {
-                    if (data.ScheduledTime.HasValue)
+                    if (data.SendToDeadLetter)
+                    {
+                        successMessage = "Message sent to dead-letter queue successfully.";
+                    }
+                    else if (data.ScheduledTime.HasValue)
                     {
                         successMessage = $"Message scheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
                     }
@@ -998,7 +1019,9 @@
                 }
                 else
                 {
-                    operationErrorMessage = "Failed to send message.";
+                    operationErrorMessage = data.SendToDeadLetter 
+                        ? "Failed to send message to dead-letter queue." 
+                        : "Failed to send message.";
                 }
             }
 
