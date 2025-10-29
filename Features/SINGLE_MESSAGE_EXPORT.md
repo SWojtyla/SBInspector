@@ -19,9 +19,11 @@ The exported file will be named using the pattern:
 {entity-name}_{message-type}_message_{message-id}_{timestamp}.json
 ```
 
+**Note:** Special characters (such as `/`) in entity names are automatically replaced with underscores (`_`) to ensure filesystem compatibility.
+
 For example:
 - `my-queue_active_message_abc123def456_20250129_143000.json`
-- `my-subscription_deadletter_message_xyz789abc123_20250129_143015.json`
+- `my-topic_my-subscription_deadletter_message_xyz789abc123_20250129_143015.json`
 
 ### Export Format
 
@@ -95,7 +97,7 @@ This feature is particularly useful for:
 1. User clicks Export button for a message
 2. Event propagates through: MessageListTable → MessagesPanel → Home.razor
 3. `HandleExportSingleMessage()` serializes the message to JSON
-4. Filename is generated with message ID (truncated to 20 chars if longer)
+4. Filename is generated with message ID (truncated to 20 characters if longer for filesystem compatibility and readability while maintaining uniqueness)
 5. `IFileExportService.ExportToFileAsync()` handles platform-specific download
 6. Success/error message displayed to user for 3 seconds
 
