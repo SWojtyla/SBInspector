@@ -314,36 +314,12 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20; // Check up to 5120 messages
-            
-            for (int i = 0; i < maxPeekBatches; i++)
-            {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
-                
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
-                {
-                    messageExists = true;
-                    break;
-                }
-                
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false; // Message not found in queue
-            }
-
-            // Now receive messages until we find the target one
+            // Receive messages until we find the target one
+            // No need to peek first - the message was already displayed so it exists
             // Track sequence numbers we've already seen to avoid infinite loops
             var seenSequenceNumbers = new HashSet<long>();
             const int receiveBatchSize = 100;
-            int maxReceiveBatches = 100; // Increased limit
+            int maxReceiveBatches = 100;
             int emptyBatchCount = 0;
             const int maxEmptyBatches = 3;
             
@@ -448,32 +424,8 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20;
-            
-            for (int i = 0; i < maxPeekBatches; i++)
-            {
-                var peekedMessages = await dlqReceiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
-                
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
-                {
-                    messageExists = true;
-                    break;
-                }
-                
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false;
-            }
-
-            // Now receive messages until we find the target one
+            // Receive messages until we find the target one
+            // No need to peek first - the message was already displayed so it exists
             // Track sequence numbers to avoid infinite loops
             var seenSequenceNumbers = new HashSet<long>();
             const int batchSize = 100;
@@ -648,32 +600,8 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20;
-            
-            for (int i = 0; i < maxPeekBatches; i++)
-            {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
-                
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
-                {
-                    messageExists = true;
-                    break;
-                }
-                
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false;
-            }
-
-            // Now receive messages until we find the target one
+            // Receive messages until we find the target one
+            // No need to peek first - the message was already displayed so it exists
             // Track sequence numbers to avoid infinite loops
             var seenSequenceNumbers = new HashSet<long>();
             const int batchSize = 100;
