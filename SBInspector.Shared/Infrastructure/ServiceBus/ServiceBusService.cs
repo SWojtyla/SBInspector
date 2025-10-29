@@ -314,7 +314,7 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            // First, use Peek to verify the message exists and get its position
+            // First, use Peek to verify the message exists
             bool messageExists = false;
             long? startSequence = null;
             const int peekBatchSize = 256;
@@ -340,8 +340,12 @@ public class ServiceBusService : IServiceBusService
             }
 
             // Now receive messages until we find the target one
+            // Track sequence numbers we've already seen to avoid infinite loops
+            var seenSequenceNumbers = new HashSet<long>();
             const int receiveBatchSize = 100;
-            int maxReceiveBatches = 50;
+            int maxReceiveBatches = 100; // Increased limit
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
             
             for (int i = 0; i < maxReceiveBatches; i++)
             {
@@ -352,9 +356,27 @@ public class ServiceBusService : IServiceBusService
                 
                 if (messages.Count == 0)
                 {
-                    // No messages received - wait a bit and retry
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        return false; // Message not available after multiple attempts
+                    }
                     await Task.Delay(1000);
                     continue;
+                }
+                
+                emptyBatchCount = 0;
+                
+                // Check if we've seen all these messages before (infinite loop detection)
+                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    // We're stuck in a loop, abandon all and return false
+                    foreach (var msg in messages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
                 }
                 
                 var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
@@ -373,13 +395,14 @@ public class ServiceBusService : IServiceBusService
                     return true;
                 }
                 
-                // Message not found in this batch, abandon all and continue searching
+                // Track these sequence numbers and abandon all
                 foreach (var msg in messages)
                 {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
                     await receiver.AbandonMessageAsync(msg);
                 }
                 
-                // Add a small delay to allow messages to become available again
+                // Add a delay to allow messages to become available again
                 await Task.Delay(500);
             }
 
@@ -451,8 +474,12 @@ public class ServiceBusService : IServiceBusService
             }
 
             // Now receive messages until we find the target one
+            // Track sequence numbers to avoid infinite loops
+            var seenSequenceNumbers = new HashSet<long>();
             const int batchSize = 100;
-            int maxBatchesToSearch = 50;
+            int maxBatchesToSearch = 100;
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
             
             for (int i = 0; i < maxBatchesToSearch; i++)
             {
@@ -463,8 +490,26 @@ public class ServiceBusService : IServiceBusService
                 
                 if (messages.Count == 0)
                 {
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        return false;
+                    }
                     await Task.Delay(1000);
                     continue;
+                }
+                
+                emptyBatchCount = 0;
+                
+                // Check for infinite loop
+                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    foreach (var msg in messages)
+                    {
+                        await dlqReceiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
                 }
                 
                 var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
@@ -498,9 +543,10 @@ public class ServiceBusService : IServiceBusService
                     return true;
                 }
                 
-                // Message not found in this batch, abandon all and continue searching
+                // Track and abandon all messages
                 foreach (var msg in messages)
                 {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
                     await dlqReceiver.AbandonMessageAsync(msg);
                 }
                 
@@ -628,8 +674,12 @@ public class ServiceBusService : IServiceBusService
             }
 
             // Now receive messages until we find the target one
+            // Track sequence numbers to avoid infinite loops
+            var seenSequenceNumbers = new HashSet<long>();
             const int batchSize = 100;
-            int maxBatchesToSearch = 50;
+            int maxBatchesToSearch = 100;
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
             
             for (int i = 0; i < maxBatchesToSearch; i++)
             {
@@ -640,8 +690,26 @@ public class ServiceBusService : IServiceBusService
                 
                 if (messages.Count == 0)
                 {
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        return false;
+                    }
                     await Task.Delay(1000);
                     continue;
+                }
+                
+                emptyBatchCount = 0;
+                
+                // Check for infinite loop
+                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    foreach (var msg in messages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
                 }
                 
                 var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
@@ -675,9 +743,10 @@ public class ServiceBusService : IServiceBusService
                     return true;
                 }
                 
-                // Message not found in this batch, abandon all and continue searching
+                // Track and abandon all messages
                 foreach (var msg in messages)
                 {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
                     await receiver.AbandonMessageAsync(msg);
                 }
                 
@@ -734,18 +803,28 @@ public class ServiceBusService : IServiceBusService
             }
 
             // Keep receiving and deleting messages in batches until no more messages
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
+            
             while (true)
             {
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
+                var messages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(5));
                 
                 if (messages.Count == 0)
                 {
-                    break; // No more messages to delete
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        break; // No more messages to delete after multiple attempts
+                    }
+                    await Task.Delay(1000, cancellationToken); // Wait a bit before retrying
+                    continue;
                 }
 
+                emptyBatchCount = 0; // Reset counter when we receive messages
                 totalDeleted += messages.Count;
                 
                 // Report progress
@@ -813,18 +892,29 @@ public class ServiceBusService : IServiceBusService
             var filterService = new Application.Services.MessageFilterService();
 
             // Keep receiving and filtering messages in batches until no more messages
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
+            
             while (true)
             {
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                // Receive messages with PeekLock mode
-                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(1));
+                // Receive messages with PeekLock mode - increased timeout
+                var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(5));
                 
                 if (receivedMessages.Count == 0)
                 {
-                    break; // No more messages to process
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        break; // No more messages to process after multiple attempts
+                    }
+                    await Task.Delay(1000, cancellationToken); // Wait before retrying
+                    continue;
                 }
+
+                emptyBatchCount = 0; // Reset counter when we receive messages
 
                 // Convert to MessageInfo for filtering
                 var messageInfos = new List<MessageInfo>();
@@ -880,11 +970,8 @@ public class ServiceBusService : IServiceBusService
                     }
                 }
                 
-                // Add a small delay to avoid overwhelming the service
-                if (receivedMessages.Count == 100)
-                {
-                    await Task.Delay(100, cancellationToken);
-                }
+                // Add a delay to allow abandoned messages to become available again
+                await Task.Delay(500, cancellationToken);
             }
 
             return totalDeleted;
