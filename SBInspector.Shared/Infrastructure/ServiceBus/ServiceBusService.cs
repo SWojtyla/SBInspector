@@ -314,19 +314,47 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            // Search through messages in batches until we find the target message
-            // or run out of messages to search
-            const int batchSize = 100;
-            int maxBatchesToSearch = 50; // Limit to prevent infinite loops (5000 messages max)
+            // First, use Peek to verify the message exists and get its position
+            bool messageExists = false;
+            long? startSequence = null;
+            const int peekBatchSize = 256;
+            int maxPeekBatches = 20; // Check up to 5120 messages
             
-            for (int i = 0; i < maxBatchesToSearch; i++)
+            for (int i = 0; i < maxPeekBatches; i++)
             {
-                var messages = await receiver.ReceiveMessagesAsync(maxMessages: batchSize, maxWaitTime: TimeSpan.FromSeconds(2));
+                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                if (peekedMessages.Count == 0) break;
+                
+                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                {
+                    messageExists = true;
+                    break;
+                }
+                
+                startSequence = peekedMessages.Last().SequenceNumber + 1;
+            }
+            
+            if (!messageExists)
+            {
+                return false; // Message not found in queue
+            }
+
+            // Now receive messages until we find the target one
+            const int receiveBatchSize = 100;
+            int maxReceiveBatches = 50;
+            
+            for (int i = 0; i < maxReceiveBatches; i++)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: receiveBatchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(5)
+                );
                 
                 if (messages.Count == 0)
                 {
-                    // No more messages available
-                    return false;
+                    // No messages received - wait a bit and retry
+                    await Task.Delay(1000);
+                    continue;
                 }
                 
                 var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
@@ -350,6 +378,9 @@ public class ServiceBusService : IServiceBusService
                 {
                     await receiver.AbandonMessageAsync(msg);
                 }
+                
+                // Add a small delay to allow messages to become available again
+                await Task.Delay(500);
             }
 
             return false;
@@ -394,18 +425,46 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // Search through messages in batches until we find the target message
+            // First, use Peek to verify the message exists
+            bool messageExists = false;
+            long? startSequence = null;
+            const int peekBatchSize = 256;
+            int maxPeekBatches = 20;
+            
+            for (int i = 0; i < maxPeekBatches; i++)
+            {
+                var peekedMessages = await dlqReceiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                if (peekedMessages.Count == 0) break;
+                
+                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                {
+                    messageExists = true;
+                    break;
+                }
+                
+                startSequence = peekedMessages.Last().SequenceNumber + 1;
+            }
+            
+            if (!messageExists)
+            {
+                return false;
+            }
+
+            // Now receive messages until we find the target one
             const int batchSize = 100;
-            int maxBatchesToSearch = 50; // Limit to prevent infinite loops (5000 messages max)
+            int maxBatchesToSearch = 50;
             
             for (int i = 0; i < maxBatchesToSearch; i++)
             {
-                var messages = await dlqReceiver.ReceiveMessagesAsync(maxMessages: batchSize, maxWaitTime: TimeSpan.FromSeconds(2));
+                var messages = await dlqReceiver.ReceiveMessagesAsync(
+                    maxMessages: batchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(5)
+                );
                 
                 if (messages.Count == 0)
                 {
-                    // No more messages available
-                    return false;
+                    await Task.Delay(1000);
+                    continue;
                 }
                 
                 var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
@@ -444,6 +503,8 @@ public class ServiceBusService : IServiceBusService
                 {
                     await dlqReceiver.AbandonMessageAsync(msg);
                 }
+                
+                await Task.Delay(500);
             }
 
             return false;
@@ -541,18 +602,46 @@ public class ServiceBusService : IServiceBusService
                 sender = _client.CreateSender(entityName);
             }
 
-            // Search through messages in batches until we find the target message
+            // First, use Peek to verify the message exists
+            bool messageExists = false;
+            long? startSequence = null;
+            const int peekBatchSize = 256;
+            int maxPeekBatches = 20;
+            
+            for (int i = 0; i < maxPeekBatches; i++)
+            {
+                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                if (peekedMessages.Count == 0) break;
+                
+                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                {
+                    messageExists = true;
+                    break;
+                }
+                
+                startSequence = peekedMessages.Last().SequenceNumber + 1;
+            }
+            
+            if (!messageExists)
+            {
+                return false;
+            }
+
+            // Now receive messages until we find the target one
             const int batchSize = 100;
-            int maxBatchesToSearch = 50; // Limit to prevent infinite loops (5000 messages max)
+            int maxBatchesToSearch = 50;
             
             for (int i = 0; i < maxBatchesToSearch; i++)
             {
-                var messages = await receiver.ReceiveMessagesAsync(maxMessages: batchSize, maxWaitTime: TimeSpan.FromSeconds(2));
+                var messages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: batchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(5)
+                );
                 
                 if (messages.Count == 0)
                 {
-                    // No more messages available
-                    return false;
+                    await Task.Delay(1000);
+                    continue;
                 }
                 
                 var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
@@ -591,6 +680,8 @@ public class ServiceBusService : IServiceBusService
                 {
                     await receiver.AbandonMessageAsync(msg);
                 }
+                
+                await Task.Delay(500);
             }
 
             return false;
