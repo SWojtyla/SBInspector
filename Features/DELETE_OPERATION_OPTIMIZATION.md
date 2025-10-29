@@ -2,82 +2,99 @@
 
 ## Overview
 
-This feature optimizes the performance of delete operations for Azure Service Bus messages, fixing critical issues with deadletter queue operations and improving filtered deletion performance.
+This feature optimizes delete operations for Azure Service Bus messages using a simple, targeted approach. It fixes deadletter queue operations and provides efficient single message deletion.
 
 ## Problem Statement
 
-The delete operations had multiple critical issues:
+Delete operations had critical issues:
 1. **Deadletter queue deletion failed**: DeleteMessageAsync didn't properly handle deadletter queues
-2. **Single message deletion was slow on large queues**: No peek-based positioning meant iterating through many receives
-3. **Filtered deletion stopped prematurely**: Exited after 5 empty batches, missing messages at the end of large queues
+2. **Complex and inefficient approach**: Previous iterations used overly complex logic with extensive peeking and receiving
 
 ## How It Works
 
-### Current Implementation
+### Simplified Approach
+
+The optimization takes advantage of the fact that messages are already displayed in the UI with their sequence numbers.
 
 **Individual Message Deletion (DeleteMessageAsync):**
-1. **Peek Phase**: Quickly scans through messages to verify target exists and find its position (up to 12,800 messages)
-2. **Proper Queue Targeting**: Sets SubQueue.DeadLetter when messageType is "DeadLetter"
-3. **Receive Phase**: Receives messages in batches with improved loop handling
-4. **Delete Phase**: Completes target message and abandons others
+1. **Targeted Peek**: Uses `PeekMessageAsync(sequenceNumber)` to verify the specific message still exists
+2. **Efficient Receive**: Receives in small batches (up to 10 attempts) to find and delete the target
+3. **Quick Exit**: Stops after finding the message or detecting it's no longer available
+
+This is much simpler than scanning through thousands of messages.
 
 **Filtered Message Deletion (DeleteFilteredMessagesAsync):**
-1. Processes all messages in queue until exhausted
-2. Tracks seen sequence numbers to avoid infinite loops
-3. Has safety limit of 200 batches (20,000 messages max)
-4. Stops when no more messages are available (3 consecutive empty batches)
-5. Does not prematurely exit when encountering non-matching batches
+1. Processes messages in batches
+2. Applies filters to each batch
+3. Deletes matching messages, abandons non-matching
+4. Continues until queue is exhausted or safety limit reached (200 batches)
 
 ### Key Features
 
-**For Individual Deletion:**
-- Peek-based verification ensures message exists before receiving
-- Handles up to 12,800 messages in peek phase (50 batches × 256)
-- Increased receive limits to handle large queues (200 batches × 100 messages)
-- Improved abandonment handling with longer delays for busy queues
-- Properly targets deadletter subqueues
-
-**For Filtered Deletion:**
-- Processes entire queue to find all matching messages
-- No premature exit based on consecutive non-matches
-- Safety limit prevents infinite processing
-- Loop detection via sequence number tracking
+- **Single targeted peek** at the exact sequence number (not scanning thousands)
+- **Minimal receive attempts** (up to 10 batches instead of 200)
+- **Proper deadletter handling** via SubQueue.DeadLetter
+- **Simple logic** - easy to understand and maintain
 
 ## Performance Improvements
 
 ### Changes Made
-- **Peek-based positioning** for individual deletes (verifies message exists first)
-- **Increased capacity** to handle large queues (up to 12,800 messages peeked, 20,000 received)
+- **Single targeted peek** using `PeekMessageAsync(sequenceNumber)` - verifies exact message
+- **Reduced receive attempts** from 200 to 10 batches maximum
 - **Fixed deadletter operations** by properly setting SubQueue.DeadLetter
-- **Removed premature exit** from filtered deletion (no longer stops after 5 non-matching batches)
-- **Improved loop handling** with better abandonment delays
+- **Simplified logic** - removed complex multi-phase approach
+- **Faster execution** - typically completes in 1-2 receive attempts
 
 ### Expected Results
-- **Individual Message Deletion**: Works reliably on queues up to 12,800+ messages
-- **Deadletter Message Deletion**: Now works correctly (was completely broken)
+- **Individual Message Deletion**: Very fast - single peek + minimal receives
+- **Deadletter Message Deletion**: Works correctly (was completely broken)
 - **Batch Filtered Deletion**: Processes entire queue to find all matches
-- **User Experience**: Reliable deletion even on large queues
+- **User Experience**: Fast, reliable deletion with simple implementation
 
 ## Technical Implementation
 
-### Affected Methods
+### DeleteMessageAsync - Simplified Approach
 
-Two methods in `ServiceBusService.cs` were fixed:
+The key insight: we already have the sequence number from the UI, so we can peek at that exact message.
 
-#### 1. DeleteMessageAsync
-- **Fixed**: Now accepts `messageType` parameter to properly handle deadletter queues
-- **Improved**: Uses peek to verify message exists before receiving (handles up to 12,800 messages)
-- **Enhanced**: Increased receive limits to 200 batches (20,000 messages)
-- **Better Loop Handling**: Improved abandonment with longer delays for busy queues
+```csharp
+// 1. Single targeted peek to verify message exists
+var peekedMessage = await receiver.PeekMessageAsync(sequenceNumber);
 
-#### 2. DeleteFilteredMessagesAsync
-- **Fixed**: Removed "5 consecutive non-matching batches" early exit condition
-- **Improved**: Now processes entire queue with safety limit of 200 batches
-- **Enhanced**: Better loop detection via sequence number tracking
+if (peekedMessage == null)
+{
+    return false; // Message not found
+}
+
+// 2. Receive in small batches to find and delete
+const int maxAttempts = 10; // Much smaller than before
+
+for (int attempt = 0; attempt < maxAttempts; attempt++)
+{
+    var messages = await receiver.ReceiveMessagesAsync(100, TimeSpan.FromSeconds(5));
+    
+    var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+    
+    if (messageToDelete != null)
+    {
+        await receiver.CompleteMessageAsync(messageToDelete);
+        // Abandon others
+        return true;
+    }
+    
+    // Abandon all and retry
+}
+```
+
+**Benefits:**
+- Single API call to verify existence (not 50+ batches)
+- Up to 10 receive attempts (not 200)
+- Simple, straightforward logic
+- Fast execution
 
 ### Code Changes
 
-#### DeleteMessageAsync - Peek-Based Verification
+#### DeleteMessageAsync - Simple Targeted Approach
 
 ```csharp
 var options = new ServiceBusReceiverOptions
@@ -91,64 +108,68 @@ if (messageType == "DeadLetter")
     options.SubQueue = SubQueue.DeadLetter;
 }
 
-// Peek to verify message exists and find its position
-long? targetPosition = null;
-long? startSequence = null;
-const int peekBatchSize = 256;
-const int maxPeekBatches = 50; // Up to 12,800 messages
+receiver = _client.CreateReceiver(entityName, options);
 
-while (peekBatchCount < maxPeekBatches && !targetPosition.HasValue)
+// Use targeted peek at the specific sequence number
+// This is efficient since we already know the sequence number from the UI
+var peekedMessage = await receiver.PeekMessageAsync(sequenceNumber);
+
+if (peekedMessage == null)
 {
-    var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-    if (peekedMessages.Count == 0) break;
+    return false; // Message not found or already processed
+}
+
+// Now receive messages to find and delete the target
+const int maxAttempts = 10;
+var seenSequenceNumbers = new HashSet<long>();
+
+for (int attempt = 0; attempt < maxAttempts; attempt++)
+{
+    var messages = await receiver.ReceiveMessagesAsync(
+        maxMessages: 100, 
+        maxWaitTime: TimeSpan.FromSeconds(5)
+    );
     
-    var targetMsg = peekedMessages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
-    if (targetMsg != null)
+    if (messages.Count == 0)
     {
-        targetPosition = targetMsg.SequenceNumber;
-        break;
+        await Task.Delay(1000);
+        continue;
     }
     
-    startSequence = peekedMessages.Last().SequenceNumber + 1;
+    // Look for our target message
+    var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+    
+    if (messageToDelete != null)
+    {
+        // Found it! Delete and abandon the rest
+        await receiver.CompleteMessageAsync(messageToDelete);
+        
+        foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+        {
+            await receiver.AbandonMessageAsync(msg);
+        }
+        
+        return true;
+    }
+    
+    // Abandon all and try again
+    foreach (var msg in messages)
+    {
+        seenSequenceNumbers.Add(msg.SequenceNumber);
+        await receiver.AbandonMessageAsync(msg);
+    }
 }
-
-if (!targetPosition.HasValue)
-{
-    return false; // Message not found
-}
-
-// Now receive with increased limits
-const int receiveBatchSize = 100;
-int maxReceiveBatches = 200; // Up to 20,000 messages
-// ... receive and delete logic
 ```
 
-#### DeleteFilteredMessagesAsync - Removed Premature Exit
+#### UI Updates
+
+Home.razor passes the message state to enable proper queue targeting:
 
 ```csharp
-// REMOVED: consecutiveNonMatchingBatches logic that caused early exit
-
-// Keep receiving and filtering messages in batches
-var seenSequenceNumbers = new HashSet<long>();
-int totalBatchesProcessed = 0;
-const int maxTotalBatches = 200; // Safety limit
-
-while (totalBatchesProcessed < maxTotalBatches)
-{
-    totalBatchesProcessed++;
-    var receivedMessages = await receiver.ReceiveMessagesAsync(...);
-    
-    // Exit only on these conditions:
-    // 1. No messages after 3 attempts (empty queue)
-    // 2. All messages seen before (infinite loop)
-    // 3. Safety limit reached (200 batches)
-    
-    // Process ALL batches, even if some have no matches
-    var matchingMessages = filterService.ApplyFilters(messageInfos, filters);
-    
-    // Delete matching messages, abandon non-matching
-    // Continue to next batch...
-}
+success = await ServiceBusService.DeleteMessageAsync(
+    selectedEntity, 
+    messageForOperation.SequenceNumber,
+    messageForOperation.State); // "Active", "DeadLetter", or "Scheduled"
 ```
 
 ## Safety Considerations

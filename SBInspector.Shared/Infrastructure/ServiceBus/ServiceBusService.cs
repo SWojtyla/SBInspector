@@ -320,73 +320,42 @@ public class ServiceBusService : IServiceBusService
                 receiver = _client.CreateReceiver(entityName, options);
             }
 
-            // Receive messages until we find the target one
-            // Strategy: Peek first to find position, then receive in targeted manner
+            // Use targeted peek at the specific sequence number to verify message exists
+            // This is efficient since we already know the sequence number from the UI
+            var peekedMessage = await receiver.PeekMessageAsync(sequenceNumber);
             
-            // First, peek to find the target message and its position
-            long? targetPosition = null;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int peekBatchCount = 0;
-            const int maxPeekBatches = 50; // Increased to handle larger queues
-            
-            while (peekBatchCount < maxPeekBatches && !targetPosition.HasValue)
+            if (peekedMessage == null)
             {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
-                
-                var targetMsg = peekedMessages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
-                if (targetMsg != null)
-                {
-                    targetPosition = targetMsg.SequenceNumber;
-                    break;
-                }
-                
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-                peekBatchCount++;
+                return false; // Message not found or already processed
             }
             
-            if (!targetPosition.HasValue)
-            {
-                return false; // Message not found
-            }
-            
-            // Now receive messages and look for our target
-            // We know it exists, so be more aggressive about finding it
+            // Now receive messages to find and delete the target
+            // Start receiving - the message should be near the front of the queue
+            const int maxAttempts = 10;
             var seenSequenceNumbers = new HashSet<long>();
-            const int receiveBatchSize = 100;
-            int maxReceiveBatches = 200; // Increased significantly
-            int emptyBatchCount = 0;
-            const int maxEmptyBatches = 5;
             
-            for (int i = 0; i < maxReceiveBatches; i++)
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
                 var messages = await receiver.ReceiveMessagesAsync(
-                    maxMessages: receiveBatchSize, 
+                    maxMessages: 100, 
                     maxWaitTime: TimeSpan.FromSeconds(5)
                 );
                 
                 if (messages.Count == 0)
                 {
-                    emptyBatchCount++;
-                    if (emptyBatchCount >= maxEmptyBatches)
-                    {
-                        return false; // Message not available after multiple attempts
-                    }
+                    // No messages available, wait and retry
                     await Task.Delay(1000);
                     continue;
                 }
                 
-                emptyBatchCount = 0;
-                
+                // Look for our target message
                 var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
-
+                
                 if (messageToDelete != null)
                 {
-                    // Found the message, delete it and abandon the rest
+                    // Found it! Delete and abandon the rest
                     await receiver.CompleteMessageAsync(messageToDelete);
                     
-                    // Abandon other messages so they're available again
                     foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
                     {
                         await receiver.AbandonMessageAsync(msg);
@@ -395,30 +364,25 @@ public class ServiceBusService : IServiceBusService
                     return true;
                 }
                 
-                // Check if we've seen these messages too many times
-                bool hasNewMessages = messages.Any(m => !seenSequenceNumbers.Contains(m.SequenceNumber));
-                if (!hasNewMessages)
-                {
-                    // All messages in this batch have been seen before
-                    // This can happen if messages are being processed by other consumers
-                    // Wait longer and try again
-                    foreach (var msg in messages)
-                    {
-                        await receiver.AbandonMessageAsync(msg);
-                    }
-                    await Task.Delay(2000); // Longer delay
-                    continue;
-                }
+                // Message not in this batch, abandon all and try again
+                // Track to detect if we're stuck in a loop
+                bool allPreviouslySeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
                 
-                // Track these sequence numbers and abandon all
                 foreach (var msg in messages)
                 {
                     seenSequenceNumbers.Add(msg.SequenceNumber);
                     await receiver.AbandonMessageAsync(msg);
                 }
                 
-                // Add a small delay to allow messages to become available again
-                await Task.Delay(300);
+                if (allPreviouslySeen)
+                {
+                    // We're seeing the same messages repeatedly, likely the target is locked
+                    await Task.Delay(2000);
+                }
+                else
+                {
+                    await Task.Delay(500);
+                }
             }
 
             return false;
