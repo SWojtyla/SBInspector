@@ -15,6 +15,7 @@ builder.Services.AddRazorComponents()
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
+builder.Services.AddSingleton<ConnectionStateService>();
 
 // Register storage configuration service with LocalStorage as default for web
 builder.Services.AddSingleton<StorageConfigurationService>(sp => 

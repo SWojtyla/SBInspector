@@ -1,0 +1,125 @@
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Application.Services
+@inject IStorageService StorageService
+@inject IServiceBusService ServiceBusService
+@inject ConnectionStateService ConnectionState
+@implements IDisposable
+
+<div class="connection-tree-container">
+    <div class="connection-tree-header">
+        <h6 class="mb-2"><i class="bi bi-plug"></i> Connections</h6>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-2">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (savedConnections.Any())
+    {
+        <div class="connection-tree-content">
+            @foreach (var connection in savedConnections)
+            {
+                <div class="connection-tree-node @(IsConnected(connection) ? "active-connection" : "")" 
+                     @onclick="() => HandleConnectionClick(connection)"
+                     title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
+                    <i class="bi @(IsConnected(connection) ? "bi-plug-fill" : "bi-plug")"></i>
+                    <span class="connection-name">@connection.Name</span>
+                    @if (IsConnected(connection))
+                    {
+                        <span class="connection-status-indicator"></span>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="connection-tree-empty">
+            <small class="text-muted">No saved connections</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<SavedConnection> OnConnect { get; set; }
+
+    [Parameter]
+    public EventCallback OnDisconnect { get; set; }
+
+    private List<SavedConnection> savedConnections = new();
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConnectionsAsync();
+        ConnectionState.OnChange += HandleConnectionStateChanged;
+        ConnectionState.OnConnectionsChanged += HandleConnectionsListChanged;
+    }
+
+    private async Task LoadConnectionsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            savedConnections = await StorageService.GetSavedConnectionsAsync();
+            // Sort by last used (most recent first), then by name
+            savedConnections = savedConnections
+                .OrderByDescending(c => c.LastUsedAt ?? DateTime.MinValue)
+                .ThenBy(c => c.Name)
+                .ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public async Task RefreshConnectionsAsync()
+    {
+        await LoadConnectionsAsync();
+        StateHasChanged();
+    }
+
+    private void HandleConnectionStateChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async void HandleConnectionsListChanged()
+    {
+        await RefreshConnectionsAsync();
+    }
+
+    private bool IsConnected(SavedConnection connection)
+    {
+        return ServiceBusService.IsConnected && 
+               !string.IsNullOrEmpty(ConnectionState.CurrentConnectionString) &&
+               connection.ConnectionString == ConnectionState.CurrentConnectionString;
+    }
+
+    private async Task HandleConnectionClick(SavedConnection connection)
+    {
+        if (IsConnected(connection))
+        {
+            // Disconnect if already connected to this connection
+            await OnDisconnect.InvokeAsync();
+        }
+        else
+        {
+            // Connect to the selected connection
+            await OnConnect.InvokeAsync(connection);
+        }
+    }
+
+    public void Dispose()
+    {
+        ConnectionState.OnChange -= HandleConnectionStateChanged;
+        ConnectionState.OnConnectionsChanged -= HandleConnectionsListChanged;
+    }
+}

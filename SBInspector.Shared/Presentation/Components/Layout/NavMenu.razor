@@ -1,4 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+@using SBInspector.Shared.Core.Domain
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">SEBInspector</a>
     </div>
@@ -7,6 +9,17 @@
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    @* Connection Tree View *@
+    @if (ShowConnectionTree)
+    {
+        <div class="px-3 pt-3 pb-2 border-bottom border-secondary">
+            <ConnectionTreeView 
+                OnConnect="@OnConnectionSelected"
+                OnDisconnect="@OnDisconnectRequested"
+                @ref="connectionTreeViewRef" />
+        </div>
+    }
+    
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -20,4 +33,25 @@
         </div>
     </nav>
 </div>
+
+@code {
+    [Parameter]
+    public bool ShowConnectionTree { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<SavedConnection> OnConnectionSelected { get; set; }
+
+    [Parameter]
+    public EventCallback OnDisconnectRequested { get; set; }
+
+    private ConnectionTreeView? connectionTreeViewRef;
+
+    public async Task RefreshConnectionsAsync()
+    {
+        if (connectionTreeViewRef != null)
+        {
+            await connectionTreeViewRef.RefreshConnectionsAsync();
+        }
+    }
+}
 
