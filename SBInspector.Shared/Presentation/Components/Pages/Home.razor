@@ -62,6 +62,7 @@
                         IsLoadingMore="@isLoadingMoreMessages"
                         OnClose="@CloseMessages"
                         OnViewMessageDetails="@ViewMessageDetails"
+                        OnExportMessage="@HandleExportSingleMessage"
                         OnDeleteMessage="@HandleDeleteMessage"
                         OnRequeueMessage="@HandleRequeueMessage"
                         OnRescheduleMessage="@HandleRescheduleMessage"
@@ -1266,6 +1267,52 @@
         catch (Exception ex)
         {
             operationErrorMessage = $"Error exporting messages: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleExportSingleMessage(MessageInfo message)
+    {
+        try
+        {
+            // Convert to JSON
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            var json = JsonSerializer.Serialize(message, options);
+            
+            // Generate filename using message ID
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var messageTypeDisplay = selectedMessageType.ToLower();
+            var sanitizedMessageId = message.MessageId.Length > 20 
+                ? message.MessageId.Substring(0, 20) 
+                : message.MessageId;
+            var filename = $"{selectedEntity.Replace("/", "_")}_{messageTypeDisplay}_message_{sanitizedMessageId}_{timestamp}.json";
+            
+            // Export file using the platform-specific service
+            var success = await FileExportService.ExportToFileAsync(filename, json);
+            
+            if (success)
+            {
+                successMessage = $"Successfully exported message to {filename}.";
+            }
+            else
+            {
+                operationErrorMessage = "Failed to export message. Please try again.";
+            }
+            
+            await Task.Delay(3000);
+            successMessage = string.Empty;
+            operationErrorMessage = string.Empty;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error exporting message: {ex.Message}";
             await Task.Delay(5000);
             operationErrorMessage = string.Empty;
             StateHasChanged();

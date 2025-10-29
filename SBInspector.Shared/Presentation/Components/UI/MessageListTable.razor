@@ -46,6 +46,9 @@
                             <button class="btn btn-info" @onclick="() => OnViewDetails.InvokeAsync(message)" @onclick:stopPropagation="true" title="View message details">
                                 <i class="bi bi-eye"></i>
                             </button>
+                            <button class="btn btn-secondary" @onclick="() => OnExport.InvokeAsync(message)" @onclick:stopPropagation="true" title="Export this message">
+                                <i class="bi bi-download"></i>
+                            </button>
                             @if (message.State == "DeadLetter")
                             {
                                 <button class="btn btn-success" @onclick="() => OnRequeue.InvokeAsync(message)" @onclick:stopPropagation="true" title="Requeue message to active queue">
@@ -94,6 +97,9 @@
 
     [Parameter]
     public EventCallback<MessageInfo> OnViewDetails { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnExport { get; set; }
 
     [Parameter]
     public EventCallback<MessageInfo> OnDelete { get; set; }
