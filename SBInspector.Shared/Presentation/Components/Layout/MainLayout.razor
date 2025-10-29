@@ -38,6 +38,14 @@
     {
         try
         {
+            // First disconnect from current connection if connected
+            if (ServiceBusService.IsConnected)
+            {
+                await ServiceBusService.DisconnectAsync();
+                // Small delay for smoother transition
+                await Task.Delay(100);
+            }
+            
             var success = await ServiceBusService.ConnectAsync(connection.ConnectionString);
             if (success)
             {

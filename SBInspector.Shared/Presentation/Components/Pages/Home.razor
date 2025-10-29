@@ -7,6 +7,7 @@
 @inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
 @inject IFileExportService FileExportService
 @inject ConnectionStateService ConnectionState
+@implements IDisposable
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
@@ -209,11 +210,78 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Subscribe to connection state changes
+        ConnectionState.OnChange += HandleConnectionStateChanged;
+        
         // If already connected (e.g., after page refresh), reload entities
         if (ServiceBusService.IsConnected)
         {
             await LoadAllEntitiesAsync();
         }
+    }
+
+    private async void HandleConnectionStateChanged()
+    {
+        // This is called when connection changes (e.g., switching connections from tree view)
+        await InvokeAsync(async () =>
+        {
+            if (ServiceBusService.IsConnected && !string.IsNullOrEmpty(ConnectionState.CurrentConnectionString))
+            {
+                // Connection switched - clear old data and load new entities
+                await ClearAllDataAndReload();
+            }
+            StateHasChanged();
+        });
+    }
+
+    private async Task ClearAllDataAndReload()
+    {
+        // Clear all existing data
+        queues.Clear();
+        topics.Clear();
+        messages.Clear();
+        topicSubscriptions.Clear();
+        loadingTopics.Clear();
+        selectedEntity = string.Empty;
+        selectedTopic = string.Empty;
+        selectedEntityType = null;
+        selectedEntityName = null;
+        selectedQueueInfo = null;
+        selectedTopicInfo = null;
+        selectedSubscriptionInfo = null;
+        selectedTopicForSubscription = null;
+        selectedSubscriptionName = string.Empty;
+        
+        // Reset message viewing state
+        messageFilters.Clear();
+        messageFilters.Add(new MessageFilter());
+        messageSortColumn = nameof(MessageInfo.EnqueuedTime);
+        messageSortAscending = false;
+        hasMoreMessages = false;
+        isLoadingMoreMessages = false;
+        
+        // Reset operation state
+        selectedMessage = null;
+        messageForOperation = null;
+        showDeleteConfirmation = false;
+        showRequeueConfirmation = false;
+        showPurgeConfirmation = false;
+        showSendModal = false;
+        isRescheduleMode = false;
+        sendModalTitle = "Send Message";
+        successMessage = string.Empty;
+        operationErrorMessage = string.Empty;
+        isOperationInProgress = false;
+        isPurgeInProgress = false;
+        isDeleteFiltered = false;
+        
+        // Load new entities
+        await LoadAllEntitiesAsync();
+    }
+
+    public void Dispose()
+    {
+        ConnectionState.OnChange -= HandleConnectionStateChanged;
     }
 
     private async Task Disconnect()
