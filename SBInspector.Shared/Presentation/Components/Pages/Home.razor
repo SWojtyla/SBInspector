@@ -176,6 +176,9 @@
     private Dictionary<string, List<SubscriptionInfo>> topicSubscriptions = new();
     private HashSet<string> loadingTopics = new();
     
+    // Cancellation token for connection switching
+    private CancellationTokenSource? loadEntitiesCts = null;
+    
     // Tree selection state
     private string? selectedEntityType = null;
     private string? selectedEntityName = null;
@@ -225,17 +228,42 @@
         // This is called when connection changes (e.g., switching connections from tree view)
         await InvokeAsync(async () =>
         {
-            if (ServiceBusService.IsConnected && !string.IsNullOrEmpty(ConnectionState.CurrentConnectionString))
+            try
             {
-                // Connection switched - clear old data and load new entities
-                await ClearAllDataAndReload();
+                if (ServiceBusService.IsConnected && !string.IsNullOrEmpty(ConnectionState.CurrentConnectionString))
+                {
+                    // Connection switched - clear old data and load new entities
+                    await ClearAllDataAndReload();
+                }
             }
-            StateHasChanged();
+            catch (Exception ex)
+            {
+                // Handle exceptions during connection switching
+                operationErrorMessage = $"Error switching connection: {ex.Message}";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+            finally
+            {
+                StateHasChanged();
+            }
         });
     }
 
     private async Task ClearAllDataAndReload()
     {
+        // Cancel any ongoing entity loading operation
+        if (loadEntitiesCts != null)
+        {
+            loadEntitiesCts.Cancel();
+            loadEntitiesCts.Dispose();
+            loadEntitiesCts = null;
+        }
+        
+        // Show loading state immediately
+        isLoadingEntities = true;
+        StateHasChanged();
+        
         // Clear all existing data
         queues.Clear();
         topics.Clear();
@@ -275,13 +303,21 @@
         isPurgeInProgress = false;
         isDeleteFiltered = false;
         
-        // Load new entities
+        // Load new entities with cancellation support
         await LoadAllEntitiesAsync();
     }
 
     public void Dispose()
     {
         ConnectionState.OnChange -= HandleConnectionStateChanged;
+        
+        // Clean up cancellation token
+        if (loadEntitiesCts != null)
+        {
+            loadEntitiesCts.Cancel();
+            loadEntitiesCts.Dispose();
+            loadEntitiesCts = null;
+        }
     }
 
     private async Task Disconnect()
@@ -348,18 +384,46 @@
 
     private async Task LoadAllEntitiesAsync()
     {
+        // Create a new cancellation token for this operation
+        loadEntitiesCts = new CancellationTokenSource();
+        var cts = loadEntitiesCts;
+        
         isLoadingEntities = true;
         selectedEntity = string.Empty;
         selectedTopic = string.Empty;
         
         try
         {
+            // Check if cancelled before starting
+            cts.Token.ThrowIfCancellationRequested();
+            
             queues = await ServiceBusService.GetQueuesAsync();
+            
+            // Check if cancelled between operations
+            cts.Token.ThrowIfCancellationRequested();
+            
             topics = await ServiceBusService.GetTopicsAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // Operation was cancelled (likely due to rapid connection switching)
+            // This is expected, just return without setting error
+            return;
+        }
+        catch (Exception ex)
+        {
+            // Handle other exceptions
+            operationErrorMessage = $"Error loading entities: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
         }
         finally
         {
-            isLoadingEntities = false;
+            // Only clear loading state if this is still the current operation
+            if (loadEntitiesCts == cts)
+            {
+                isLoadingEntities = false;
+            }
         }
     }
 
