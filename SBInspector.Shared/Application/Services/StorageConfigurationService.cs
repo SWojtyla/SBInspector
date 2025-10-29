@@ -7,9 +7,11 @@ public class StorageConfigurationService
 {
     private readonly string _configFilePath;
     private StorageConfiguration _configuration;
+    private readonly StorageType _defaultStorageType;
 
-    public StorageConfigurationService()
+    public StorageConfigurationService(StorageType defaultStorageType)
     {
+        _defaultStorageType = defaultStorageType;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var configDirectory = Path.Combine(appDataPath, "SBInspector");
         
@@ -40,7 +42,7 @@ public class StorageConfigurationService
             if (File.Exists(_configFilePath))
             {
                 var json = File.ReadAllText(_configFilePath);
-                return JsonSerializer.Deserialize<StorageConfiguration>(json) ?? new StorageConfiguration();
+                return JsonSerializer.Deserialize<StorageConfiguration>(json) ?? new StorageConfiguration { StorageType = _defaultStorageType };
             }
         }
         catch
@@ -48,7 +50,7 @@ public class StorageConfigurationService
             // If there's any error reading the config, return default
         }
         
-        return new StorageConfiguration();
+        return new StorageConfiguration { StorageType = _defaultStorageType };
     }
 
     private async Task SaveConfigurationAsync()
