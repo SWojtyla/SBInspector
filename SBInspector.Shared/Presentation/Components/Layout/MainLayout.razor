@@ -1,8 +1,17 @@
-﻿@inherits LayoutComponentBase
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Application.Services
+@inject IServiceBusService ServiceBusService
+@inject IStorageService StorageService
+@inject ConnectionStateService ConnectionState
+@inherits LayoutComponentBase
 
 <div class="page">
     <div class="sidebar">
-        <NavMenu />
+        <NavMenu 
+            OnConnectionSelected="@HandleConnectionSelected"
+            OnDisconnectRequested="@HandleDisconnectRequested"
+            @ref="navMenuRef" />
     </div>
 
     <main>
@@ -21,3 +30,38 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private NavMenu? navMenuRef;
+
+    private async Task HandleConnectionSelected(SavedConnection connection)
+    {
+        try
+        {
+            var success = await ServiceBusService.ConnectAsync(connection.ConnectionString);
+            if (success)
+            {
+                ConnectionState.CurrentConnectionString = connection.ConnectionString;
+                
+                // Update last used time
+                await StorageService.UpdateLastUsedAsync(connection.Name);
+                
+                // Refresh the connections list to show updated timestamps
+                if (navMenuRef != null)
+                {
+                    await navMenuRef.RefreshConnectionsAsync();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Error handling can be improved with notifications if needed
+        }
+    }
+
+    private async Task HandleDisconnectRequested()
+    {
+        await ServiceBusService.DisconnectAsync();
+        ConnectionState.CurrentConnectionString = null;
+    }
+}

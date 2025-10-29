@@ -1,10 +1,12 @@
 @page "/"
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Application.Services
 @using System.Text.Json
 @using Microsoft.JSInterop
 @inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
 @inject IFileExportService FileExportService
+@inject ConnectionStateService ConnectionState
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
@@ -201,6 +203,7 @@
 
     private async Task HandleConnected()
     {
+        ConnectionState.CurrentConnectionString = connectionString;
         await LoadAllEntitiesAsync();
     }
 
@@ -216,6 +219,7 @@
     private async Task Disconnect()
     {
         await ServiceBusService.DisconnectAsync();
+        ConnectionState.CurrentConnectionString = null;
         queues.Clear();
         topics.Clear();
         messages.Clear();
