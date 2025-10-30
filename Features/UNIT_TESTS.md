@@ -9,7 +9,7 @@ This document describes the unit test coverage for the SBInspector Service Bus o
 - **Project Name**: SBInspector.Tests
 - **Framework**: .NET 9.0
 - **Testing Framework**: XUnit 2.9.2
-- **Mocking Framework**: Moq 4.20.72
+- **Mocking Framework**: FakeItEasy 8.3.0
 
 ## Test Coverage
 
@@ -132,7 +132,7 @@ The test project requires the following NuGet packages:
 - `xunit` (2.9.2) - Testing framework
 - `xunit.runner.visualstudio` (2.8.2) - Visual Studio test runner
 - `Microsoft.NET.Test.Sdk` (17.12.0) - .NET test infrastructure
-- `Moq` (4.20.72) - Mocking framework
+- `FakeItEasy` (8.3.0) - Mocking framework
 - `coverlet.collector` (6.0.2) - Code coverage collection
 
 ## Notes

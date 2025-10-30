@@ -1,6 +1,6 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
-using Moq;
+using FakeItEasy;
 using SBInspector.Shared.Core.Domain;
 using SBInspector.Shared.Infrastructure.ServiceBus;
 
