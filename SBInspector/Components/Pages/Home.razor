@@ -933,9 +933,9 @@
             {
                 var progress = new Progress<int>(count =>
                 {
-                    if (activeOperations.ContainsKey(operationId))
+                    if (activeOperations.TryGetValue(operationId, out var op))
                     {
-                        activeOperations[operationId].Progress = count;
+                        op.Progress = count;
                     }
                     purgeProgress = count;
                     InvokeAsync(StateHasChanged);
@@ -1059,9 +1059,9 @@
 
     private void CancelPurgeOperation(string operationId)
     {
-        if (activeOperations.ContainsKey(operationId))
+        if (activeOperations.TryGetValue(operationId, out var operation))
         {
-            activeOperations[operationId].CancellationTokenSource?.Cancel();
+            operation.CancellationTokenSource?.Cancel();
         }
     }
 
