@@ -137,9 +137,14 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345
+        };
 
         // Act
-        var result = await service.DeleteMessageAsync("test-queue", 12345);
+        var result = await service.DeleteMessageAsync(options);
 
         // Assert
         Assert.False(result);
@@ -150,9 +155,15 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            IsDeadLetterQueue = true
+        };
 
         // Act
-        var result = await service.RequeueDeadLetterMessageAsync("test-queue", 12345);
+        var result = await service.RequeueDeadLetterMessageAsync(options);
 
         // Assert
         Assert.False(result);
@@ -177,9 +188,14 @@ public class ServiceBusServiceTests
         // Arrange
         var service = new ServiceBusService();
         var futureTime = DateTime.UtcNow.AddHours(1);
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345
+        };
 
         // Act
-        var result = await service.RescheduleMessageAsync("test-queue", 12345, futureTime);
+        var result = await service.RescheduleMessageAsync(options, futureTime);
 
         // Assert
         Assert.False(result);
@@ -363,14 +379,17 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            IsSubscription = true,
+            TopicName = "test-topic",
+            SubscriptionName = "test-subscription"
+        };
 
         // Act
-        var result = await service.DeleteMessageAsync(
-            "test-queue", 
-            12345, 
-            isSubscription: true, 
-            topicName: "test-topic", 
-            subscriptionName: "test-subscription");
+        var result = await service.DeleteMessageAsync(options);
 
         // Assert
         Assert.False(result); // False because not connected
@@ -381,14 +400,18 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            IsSubscription = true,
+            TopicName = "test-topic",
+            SubscriptionName = "test-subscription",
+            IsDeadLetterQueue = true
+        };
 
         // Act
-        var result = await service.RequeueDeadLetterMessageAsync(
-            "test-queue", 
-            12345, 
-            isSubscription: true, 
-            topicName: "test-topic", 
-            subscriptionName: "test-subscription");
+        var result = await service.RequeueDeadLetterMessageAsync(options);
 
         // Assert
         Assert.False(result); // False because not connected
@@ -547,15 +570,17 @@ public class ServiceBusServiceTests
         // Arrange
         var service = new ServiceBusService();
         var futureTime = DateTime.UtcNow.AddHours(1);
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            IsSubscription = true,
+            TopicName = "test-topic",
+            SubscriptionName = "test-subscription"
+        };
 
         // Act
-        var result = await service.RescheduleMessageAsync(
-            "test-queue", 
-            12345, 
-            futureTime,
-            isSubscription: true,
-            topicName: "test-topic",
-            subscriptionName: "test-subscription");
+        var result = await service.RescheduleMessageAsync(options, futureTime);
 
         // Assert
         Assert.False(result); // False because not connected
@@ -566,12 +591,15 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            SkipPeekVerification = true
+        };
 
         // Act
-        var result = await service.DeleteMessageAsync(
-            "test-queue",
-            12345,
-            skipPeekVerification: true);
+        var result = await service.DeleteMessageAsync(options);
 
         // Assert
         // Should return false because not connected, but validates parameter is accepted
@@ -583,12 +611,16 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            SkipPeekVerification = true,
+            IsDeadLetterQueue = true
+        };
 
         // Act
-        var result = await service.RequeueDeadLetterMessageAsync(
-            "test-queue",
-            12345,
-            skipPeekVerification: true);
+        var result = await service.RequeueDeadLetterMessageAsync(options);
 
         // Assert
         // Should return false because not connected, but validates parameter is accepted
@@ -600,12 +632,15 @@ public class ServiceBusServiceTests
     {
         // Arrange
         var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            SkipPeekVerification = true
+        };
 
         // Act
-        var result = await service.MoveActiveMessageToDeadLetterAsync(
-            "test-queue",
-            12345,
-            skipPeekVerification: true);
+        var result = await service.MoveActiveMessageToDeadLetterAsync(options);
 
         // Assert
         // Should return false because not connected, but validates parameter is accepted
@@ -618,13 +653,15 @@ public class ServiceBusServiceTests
         // Arrange
         var service = new ServiceBusService();
         var futureTime = DateTime.UtcNow.AddHours(1);
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 12345,
+            SkipPeekVerification = true
+        };
 
         // Act
-        var result = await service.RescheduleMessageAsync(
-            "test-queue",
-            12345,
-            futureTime,
-            skipPeekVerification: true);
+        var result = await service.RescheduleMessageAsync(options, futureTime);
 
         // Assert
         // Should return false because not connected, but validates parameter is accepted
