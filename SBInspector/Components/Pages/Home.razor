@@ -595,14 +595,16 @@
                     messageForOperation.SequenceNumber,
                     isSubscription: true,
                     topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
+                    subscriptionName: selectedSubscriptionName,
+                    skipPeekVerification: true);
             }
             else
             {
                 // It's a queue
                 success = await ServiceBusService.DeleteMessageAsync(
                     selectedEntity, 
-                    messageForOperation.SequenceNumber);
+                    messageForOperation.SequenceNumber,
+                    skipPeekVerification: true);
             }
 
             if (success)
@@ -672,14 +674,16 @@
                     messageForOperation.SequenceNumber,
                     isSubscription: true,
                     topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
+                    subscriptionName: selectedSubscriptionName,
+                    skipPeekVerification: true);
             }
             else
             {
                 // It's a queue
                 success = await ServiceBusService.RequeueDeadLetterMessageAsync(
                     selectedEntity, 
-                    messageForOperation.SequenceNumber);
+                    messageForOperation.SequenceNumber,
+                    skipPeekVerification: true);
             }
 
             if (success)
@@ -763,7 +767,8 @@
                         data.ScheduledTime.Value,
                         isSubscription: true,
                         topicName: selectedTopic,
-                        subscriptionName: selectedSubscriptionName);
+                        subscriptionName: selectedSubscriptionName,
+                        skipPeekVerification: true);
                 }
                 else
                 {
@@ -771,7 +776,8 @@
                     success = await ServiceBusService.RescheduleMessageAsync(
                         selectedEntity,
                         messageForOperation.SequenceNumber,
-                        data.ScheduledTime.Value);
+                        data.ScheduledTime.Value,
+                        skipPeekVerification: true);
                 }
 
                 if (success)

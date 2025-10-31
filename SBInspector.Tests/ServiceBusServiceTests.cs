@@ -560,4 +560,74 @@ public class ServiceBusServiceTests
         // Assert
         Assert.False(result); // False because not connected
     }
+
+    [Fact]
+    public async Task DeleteMessageAsync_WithSkipPeekVerification_SkipsPeekStep()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+
+        // Act
+        var result = await service.DeleteMessageAsync(
+            "test-queue",
+            12345,
+            skipPeekVerification: true);
+
+        // Assert
+        // Should return false because not connected, but validates parameter is accepted
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task RequeueDeadLetterMessageAsync_WithSkipPeekVerification_SkipsPeekStep()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+
+        // Act
+        var result = await service.RequeueDeadLetterMessageAsync(
+            "test-queue",
+            12345,
+            skipPeekVerification: true);
+
+        // Assert
+        // Should return false because not connected, but validates parameter is accepted
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task MoveActiveMessageToDeadLetterAsync_WithSkipPeekVerification_SkipsPeekStep()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+
+        // Act
+        var result = await service.MoveActiveMessageToDeadLetterAsync(
+            "test-queue",
+            12345,
+            skipPeekVerification: true);
+
+        // Assert
+        // Should return false because not connected, but validates parameter is accepted
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task RescheduleMessageAsync_WithSkipPeekVerification_SkipsPeekStep()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+        var futureTime = DateTime.UtcNow.AddHours(1);
+
+        // Act
+        var result = await service.RescheduleMessageAsync(
+            "test-queue",
+            12345,
+            futureTime,
+            skipPeekVerification: true);
+
+        // Assert
+        // Should return false because not connected, but validates parameter is accepted
+        Assert.False(result);
+    }
 }
