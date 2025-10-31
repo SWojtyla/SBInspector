@@ -207,11 +207,13 @@
     private void ToggleExpanded()
     {
         isExpanded = !isExpanded;
+        StateHasChanged();
     }
 
     private void ToggleJsonFormat()
     {
         isJsonFormatted = !isJsonFormatted;
+        StateHasChanged();
     }
 
     private bool IsJsonContent()
