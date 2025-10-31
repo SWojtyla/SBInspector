@@ -1,0 +1,229 @@
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Core.Interfaces
+@inject IStorageService StorageService
+
+@if (Message != null)
+{
+    <div class="card card-enhanced">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-info-circle"></i> Message Details
+            </h4>
+            <button type="button" class="btn btn-secondary" @onclick="HandleBack">
+                <i class="bi bi-arrow-left"></i> Back to Messages
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="info-section">
+                        <div class="mb-2">
+                            <strong>Message ID:</strong>
+                            <div><code>@Message.MessageId</code></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-section">
+                        <div class="mb-2">
+                            <strong>Subject:</strong>
+                            <div>@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="info-section">
+                        <div class="mb-2">
+                            <strong>Content Type:</strong>
+                            <div>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-section">
+                        <div class="mb-2">
+                            <strong>Delivery Count:</strong>
+                            <div>
+                                <span class="badge @(Message.DeliveryCount > 0 ? "bg-warning text-dark" : "bg-success")">
+                                    @Message.DeliveryCount
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="info-section">
+                        <div class="mb-2">
+                            <strong>Enqueued Time:</strong>
+                            <div>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                        </div>
+                    </div>
+                </div>
+                @if (Message.ScheduledEnqueueTime.HasValue)
+                {
+                    <div class="col-md-6">
+                        <div class="info-section">
+                            <div class="mb-2">
+                                <strong>Scheduled Enqueue Time:</strong>
+                                <div>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="info-section mb-3">
+                <div class="mb-2">
+                    <strong>Sequence Number:</strong>
+                    <div>@Message.SequenceNumber</div>
+                </div>
+            </div>
+
+            @if (Message.Properties.Any())
+            {
+                <div class="mb-3">
+                    <h6><i class="bi bi-tags"></i> Application Properties (@Message.Properties.Count)</h6>
+                    <div class="info-section">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Key</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var prop in Message.Properties)
+                                {
+                                    <tr>
+                                        <td><code>@prop.Key</code></td>
+                                        <td>@prop.Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            <div class="mb-3">
+                <h6><i class="bi bi-file-text"></i> Message Body</h6>
+                <div class="info-section">
+                    <pre class="mb-0" style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">@Message.Body</pre>
+                </div>
+            </div>
+
+            @if (showSaveTemplateForm)
+            {
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6><i class="bi bi-bookmark-plus"></i> Save as Template</h6>
+                        <div class="mb-2">
+                            <input type="text" class="form-control" @bind="templateName" placeholder="Enter template name" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(saveMessage))
+                        {
+                            <div class="alert alert-success alert-sm mb-2">
+                                <i class="bi bi-check-circle"></i> @saveMessage
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(saveError))
+                        {
+                            <div class="alert alert-danger alert-sm mb-2">
+                                <i class="bi bi-exclamation-triangle"></i> @saveError
+                            </div>
+                        }
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAsTemplate" disabled="@string.IsNullOrWhiteSpace(templateName)">
+                                <i class="bi bi-save"></i> Save
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { showSaveTemplateForm = false; templateName = string.Empty; saveMessage = string.Empty; saveError = string.Empty; }">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-secondary" @onclick="HandleBack">
+                <i class="bi bi-arrow-left"></i> Back to Messages
+            </button>
+            @if (!showSaveTemplateForm)
+            {
+                <button type="button" class="btn btn-outline-primary" @onclick="() => showSaveTemplateForm = true">
+                    <i class="bi bi-bookmark-plus"></i> Save as Template
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public MessageInfo? Message { get; set; }
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    private bool showSaveTemplateForm = false;
+    private string templateName = string.Empty;
+    private string saveMessage = string.Empty;
+    private string saveError = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        // Reset state when message changes
+        showSaveTemplateForm = false;
+        templateName = string.Empty;
+        saveMessage = string.Empty;
+        saveError = string.Empty;
+    }
+
+    private async Task SaveAsTemplate()
+    {
+        saveMessage = string.Empty;
+        saveError = string.Empty;
+
+        if (Message == null || string.IsNullOrWhiteSpace(templateName))
+        {
+            saveError = "Template name is required.";
+            return;
+        }
+
+        try
+        {
+            var template = new MessageTemplate
+            {
+                Name = templateName.Trim(),
+                MessageBody = Message.Body,
+                Subject = Message.Subject,
+                ContentType = Message.ContentType,
+                Properties = Message.Properties?.Count > 0 ? Message.Properties : null
+            };
+
+            await StorageService.SaveMessageTemplateAsync(template);
+            saveMessage = $"Template '{templateName}' saved successfully!";
+            templateName = string.Empty;
+            
+            // Auto-hide form after 2 seconds
+            await Task.Delay(2000);
+            showSaveTemplateForm = false;
+            saveMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            saveError = $"Error saving template: {ex.Message}";
+        }
+    }
+
+    private async Task HandleBack()
+    {
+        await OnBack.InvokeAsync();
+    }
+}

@@ -62,7 +62,6 @@
                         HasMoreMessages="@hasMoreMessages"
                         IsLoadingMore="@isLoadingMoreMessages"
                         OnClose="@CloseMessages"
-                        OnViewMessageDetails="@ViewMessageDetails"
                         OnDeleteMessage="@HandleDeleteMessage"
                         OnRequeueMessage="@HandleRequeueMessage"
                         OnRescheduleMessage="@HandleRescheduleMessage"
@@ -85,11 +84,7 @@
             </div>
         </div>
 
-        <MessageDetailsModal 
-            Message="@selectedMessage"
-            OnClose="@CloseMessageDetails" />
-
-        <ConfirmationModal 
+        <ConfirmationModal
             IsVisible="@showDeleteConfirmation"
             Title="Delete Message"
             Message="@deleteConfirmationMessage"
@@ -185,7 +180,6 @@
     private string selectedMessageType = string.Empty;
     private string selectedTopic = string.Empty;
     private string selectedSubscriptionName = string.Empty;
-    private MessageInfo? selectedMessage = null;
     
     private List<MessageFilter> messageFilters = new() { new MessageFilter() };
     
@@ -421,18 +415,6 @@
         messageFilters.Add(new MessageFilter());
         hasMoreMessages = false;
     }
-
-    private void ViewMessageDetails(MessageInfo message)
-    {
-        selectedMessage = message;
-    }
-
-    private void CloseMessageDetails()
-    {
-        selectedMessage = null;
-    }
-
-
 
     private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)
     {
