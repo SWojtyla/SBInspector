@@ -166,8 +166,9 @@ public class MessageBodyFormattingTests
                 WriteIndented = true 
             });
         }
-        catch
+        catch (System.Text.Json.JsonException)
         {
+            // Invalid JSON, return raw body
             return jsonBody;
         }
     }

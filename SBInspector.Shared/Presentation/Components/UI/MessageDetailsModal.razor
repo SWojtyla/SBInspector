@@ -243,8 +243,9 @@
                     WriteIndented = true 
                 });
             }
-            catch
+            catch (System.Text.Json.JsonException)
             {
+                // Invalid JSON, return raw body
                 return Message.Body;
             }
         }
