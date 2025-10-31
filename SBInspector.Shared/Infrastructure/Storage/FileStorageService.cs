@@ -7,21 +7,37 @@ namespace SBInspector.Shared.Infrastructure.Storage;
 public class FileStorageService : IStorageService
 {
     private readonly string _storageDirectory;
+    private readonly string _exportDirectory;
+    private readonly string _templateDirectory;
     private const string ConnectionsFileName = "connections.json";
     private const string TemplatesFileName = "templates.json";
 
-    public FileStorageService()
+    public FileStorageService(string? customStorageDir = null, string? customExportDir = null, string? customTemplateDir = null)
     {
-        // Store in user's Desktop folder for easy access
+        // Use custom directory or default to Desktop
         var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        _storageDirectory = Path.Combine(desktopPath, "SBInspector");
+        _storageDirectory = customStorageDir ?? Path.Combine(desktopPath, "SBInspector");
         
-        // Ensure directory exists
-        if (!Directory.Exists(_storageDirectory))
+        // Set export and template directories
+        _exportDirectory = customExportDir ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Exports");
+        _templateDirectory = customTemplateDir ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Templates");
+        
+        // Ensure directories exist
+        EnsureDirectoryExists(_storageDirectory);
+        EnsureDirectoryExists(_exportDirectory);
+        EnsureDirectoryExists(_templateDirectory);
+    }
+
+    private void EnsureDirectoryExists(string directory)
+    {
+        if (!Directory.Exists(directory))
         {
-            Directory.CreateDirectory(_storageDirectory);
+            Directory.CreateDirectory(directory);
         }
     }
+
+    public string GetExportDirectory() => _exportDirectory;
+    public string GetTemplateDirectory() => _templateDirectory;
 
     // Connection management
     public async Task<List<SavedConnection>> GetSavedConnectionsAsync()
@@ -88,7 +104,7 @@ public class FileStorageService : IStorageService
     {
         try
         {
-            var filePath = Path.Combine(_storageDirectory, TemplatesFileName);
+            var filePath = Path.Combine(_templateDirectory, TemplatesFileName);
             if (!File.Exists(filePath))
             {
                 return new List<MessageTemplate>();
@@ -114,7 +130,7 @@ public class FileStorageService : IStorageService
         template.CreatedAt = DateTime.UtcNow;
         templates.Add(template);
         
-        var filePath = Path.Combine(_storageDirectory, TemplatesFileName);
+        var filePath = Path.Combine(_templateDirectory, TemplatesFileName);
         var json = JsonSerializer.Serialize(templates, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
     }
@@ -124,7 +140,7 @@ public class FileStorageService : IStorageService
         var templates = await GetMessageTemplatesAsync();
         templates.RemoveAll(t => t.Id == id);
         
-        var filePath = Path.Combine(_storageDirectory, TemplatesFileName);
+        var filePath = Path.Combine(_templateDirectory, TemplatesFileName);
         var json = JsonSerializer.Serialize(templates, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
     }
@@ -137,7 +153,7 @@ public class FileStorageService : IStorageService
         if (template != null)
         {
             template.LastUsedAt = DateTime.UtcNow;
-            var filePath = Path.Combine(_storageDirectory, TemplatesFileName);
+            var filePath = Path.Combine(_templateDirectory, TemplatesFileName);
             var json = JsonSerializer.Serialize(templates, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(filePath, json);
         }

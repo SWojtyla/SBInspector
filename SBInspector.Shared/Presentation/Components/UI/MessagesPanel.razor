@@ -50,6 +50,12 @@
                 <div class="loading-text">Loading messages...</div>
             </div>
         }
+        else if (SelectedMessage != null)
+        {
+            <MessageDetailsView 
+                Message="@SelectedMessage"
+                OnBack="@HandleBackToList" />
+        }
         else if (Messages.Any())
         {
             <div class="stats-container mb-3">
@@ -75,10 +81,11 @@
                 SortColumnChanged="@SortColumnChanged"
                 SortAscending="@SortAscending"
                 SortAscendingChanged="@SortAscendingChanged"
-                OnViewDetails="@OnViewMessageDetails"
+                OnViewDetails="@HandleViewDetails"
                 OnExport="@OnExportMessage"
                 OnDelete="@OnDeleteMessage"
                 OnRequeue="@OnRequeueMessage"
+                OnMoveToDeadLetter="@OnMoveToDeadLetterMessage"
                 OnReschedule="@OnRescheduleMessage" />
 
             @if (HasMoreMessages)
@@ -160,9 +167,6 @@
     public EventCallback OnClose { get; set; }
 
     [Parameter]
-    public EventCallback<MessageInfo> OnViewMessageDetails { get; set; }
-
-    [Parameter]
     public EventCallback<MessageInfo> OnExportMessage { get; set; }
 
     [Parameter]
@@ -170,6 +174,9 @@
 
     [Parameter]
     public EventCallback<MessageInfo> OnRequeueMessage { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnMoveToDeadLetterMessage { get; set; }
 
     [Parameter]
     public EventCallback<MessageInfo> OnRescheduleMessage { get; set; }
@@ -191,6 +198,8 @@
 
     [Parameter]
     public EventCallback OnRefresh { get; set; }
+
+    private MessageInfo? SelectedMessage { get; set; }
 
     private IEnumerable<MessageInfo> FilteredMessages => FilterService.ApplyFilters(Messages, Filters);
 
@@ -227,6 +236,18 @@
     private async Task HandleRefresh()
     {
         await OnRefresh.InvokeAsync();
+    }
+
+    private void HandleViewDetails(MessageInfo message)
+    {
+        SelectedMessage = message;
+        StateHasChanged();
+    }
+
+    private void HandleBackToList()
+    {
+        SelectedMessage = null;
+        StateHasChanged();
     }
 
     private async Task HandlePageSizeChanged(ChangeEventArgs e)

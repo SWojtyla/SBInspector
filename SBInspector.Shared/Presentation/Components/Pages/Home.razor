@@ -64,10 +64,10 @@
                         HasMoreMessages="@hasMoreMessages"
                         IsLoadingMore="@isLoadingMoreMessages"
                         OnClose="@CloseMessages"
-                        OnViewMessageDetails="@ViewMessageDetails"
                         OnExportMessage="@HandleExportSingleMessage"
                         OnDeleteMessage="@HandleDeleteMessage"
                         OnRequeueMessage="@HandleRequeueMessage"
+                        OnMoveToDeadLetterMessage="@HandleMoveToDeadLetterMessage"
                         OnRescheduleMessage="@HandleRescheduleMessage"
                         OnSendNew="@HandleSendNewMessage"
                         OnPurge="@HandlePurgeMessages"
@@ -90,11 +90,7 @@
             </div>
         </div>
 
-        <MessageDetailsModal 
-            Message="@selectedMessage"
-            OnClose="@CloseMessageDetails" />
-
-        <ConfirmationModal 
+        <ConfirmationModal
             IsVisible="@showDeleteConfirmation"
             Title="Delete Message"
             Message="@deleteConfirmationMessage"
@@ -115,6 +111,17 @@
             ConfirmText="Requeue"
             OnConfirm="@ConfirmRequeue"
             OnCancel="@CancelRequeue" />
+
+        <ConfirmationModal 
+            IsVisible="@showMoveToDeadLetterConfirmation"
+            Title="Move to Dead-Letter Queue"
+            Message="Are you sure you want to move this active message to the dead-letter queue? This action cannot be undone."
+            IconClass="bi-exclamation-triangle-fill"
+            ConfirmIconClass="bi-exclamation-triangle"
+            ConfirmButtonClass="btn-warning"
+            ConfirmText="Move to Dead-Letter"
+            OnConfirm="@ConfirmMoveToDeadLetter"
+            OnCancel="@CancelMoveToDeadLetter" />
 
         <ConfirmationModal 
             IsVisible="@showPurgeConfirmation"
@@ -197,7 +204,6 @@
     private string selectedMessageType = string.Empty;
     private string selectedTopic = string.Empty;
     private string selectedSubscriptionName = string.Empty;
-    private MessageInfo? selectedMessage = null;
     
     private List<MessageFilter> messageFilters = new() { new MessageFilter() };
     
@@ -294,10 +300,10 @@
         isLoadingMoreMessages = false;
         
         // Reset operation state
-        selectedMessage = null;
         messageForOperation = null;
         showDeleteConfirmation = false;
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
         showPurgeConfirmation = false;
         showSendModal = false;
         isRescheduleMode = false;
@@ -382,10 +388,10 @@
         isLoadingMoreMessages = false;
         
         // Reset operation state
-        selectedMessage = null;
         messageForOperation = null;
         showDeleteConfirmation = false;
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
         showPurgeConfirmation = false;
         showSendModal = false;
         isRescheduleMode = false;
@@ -635,18 +641,6 @@
         hasMoreMessages = false;
     }
 
-    private void ViewMessageDetails(MessageInfo message)
-    {
-        selectedMessage = message;
-    }
-
-    private void CloseMessageDetails()
-    {
-        selectedMessage = null;
-    }
-
-
-
     private async Task HandleViewSubscriptionMessages((string TopicName, string SubscriptionName, string MessageType) args)
     {
         selectedEntity = $"{args.TopicName}/{args.SubscriptionName}";
@@ -756,6 +750,7 @@
     // CRUD operation state
     private bool showDeleteConfirmation = false;
     private bool showRequeueConfirmation = false;
+    private bool showMoveToDeadLetterConfirmation = false;
     private bool showPurgeConfirmation = false;
     private bool showSendModal = false;
     private bool isRescheduleMode = false;
@@ -810,23 +805,14 @@
         {
             bool success;
             
-            if (!string.IsNullOrEmpty(selectedSubscriptionName))
-            {
-                // It's a subscription
-                success = await ServiceBusService.DeleteMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber,
-                    isSubscription: true,
-                    topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
-            }
-            else
-            {
-                // It's a queue
-                success = await ServiceBusService.DeleteMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber);
-            }
+            var options = MessageOperationOptions.FromMessageInfo(
+                messageForOperation,
+                selectedEntity,
+                !string.IsNullOrEmpty(selectedSubscriptionName),
+                selectedTopic,
+                selectedSubscriptionName);
+                
+            success = await ServiceBusService.DeleteMessageAsync(options);
 
             if (success)
             {
@@ -874,6 +860,7 @@
     private async Task ConfirmRequeue()
     {
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
         operationErrorMessage = string.Empty;
         successMessage = string.Empty;
 
@@ -885,25 +872,14 @@
 
         try
         {
-            bool success;
-            
-            if (!string.IsNullOrEmpty(selectedSubscriptionName))
-            {
-                // It's a subscription
-                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber,
-                    isSubscription: true,
-                    topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
-            }
-            else
-            {
-                // It's a queue
-                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber);
-            }
+            var options = MessageOperationOptions.FromMessageInfo(
+                messageForOperation,
+                selectedEntity,
+                !string.IsNullOrEmpty(selectedSubscriptionName),
+                selectedTopic,
+                selectedSubscriptionName);
+                
+            bool success = await ServiceBusService.RequeueDeadLetterMessageAsync(options);
 
             if (success)
             {
@@ -942,6 +918,72 @@
         messageForOperation = null;
     }
 
+    private void HandleMoveToDeadLetterMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        showMoveToDeadLetterConfirmation = true;
+    }
+
+    private async Task ConfirmMoveToDeadLetter()
+    {
+        showMoveToDeadLetterConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        if (messageForOperation == null) return;
+
+        isOperationInProgress = true;
+        operationLoadingTitle = "Moving to Dead-Letter";
+        operationLoadingMessage = "Please wait while the message is being moved to the dead-letter queue...";
+
+        try
+        {
+            var options = MessageOperationOptions.FromMessageInfo(
+                messageForOperation,
+                selectedEntity,
+                !string.IsNullOrEmpty(selectedSubscriptionName),
+                selectedTopic,
+                selectedSubscriptionName);
+                
+            bool success = await ServiceBusService.MoveActiveMessageToDeadLetterAsync(options);
+
+            if (success)
+            {
+                messages.Remove(messageForOperation);
+                successMessage = "Message moved to dead-letter queue successfully.";
+                
+                // Refresh entity counts to update the tree
+                await RefreshEntityCounts();
+                
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "Failed to move message to dead-letter queue. It may have already been processed.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error moving message to dead-letter queue: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            isOperationInProgress = false;
+            messageForOperation = null;
+        }
+    }
+
+    private void CancelMoveToDeadLetter()
+    {
+        showMoveToDeadLetterConfirmation = false;
+        messageForOperation = null;
+    }
+
     private void HandleRescheduleMessage(MessageInfo message)
     {
         messageForOperation = message;
@@ -977,25 +1019,14 @@
                     return;
                 }
 
-                if (!string.IsNullOrEmpty(selectedSubscriptionName))
-                {
-                    // It's a subscription
-                    success = await ServiceBusService.RescheduleMessageAsync(
-                        selectedEntity,
-                        messageForOperation.SequenceNumber,
-                        data.ScheduledTime.Value,
-                        isSubscription: true,
-                        topicName: selectedTopic,
-                        subscriptionName: selectedSubscriptionName);
-                }
-                else
-                {
-                    // It's a queue
-                    success = await ServiceBusService.RescheduleMessageAsync(
-                        selectedEntity,
-                        messageForOperation.SequenceNumber,
-                        data.ScheduledTime.Value);
-                }
+                var options = MessageOperationOptions.FromMessageInfo(
+                    messageForOperation,
+                    selectedEntity,
+                    !string.IsNullOrEmpty(selectedSubscriptionName),
+                    selectedTopic,
+                    selectedSubscriptionName);
+                    
+                success = await ServiceBusService.RescheduleMessageAsync(options, data.ScheduledTime.Value);
 
                 if (success)
                 {
@@ -1015,17 +1046,38 @@
                 // Send new message
                 var entityToSendTo = !string.IsNullOrEmpty(selectedSubscriptionName) ? selectedTopic : selectedEntity;
                 
-                success = await ServiceBusService.SendMessageAsync(
-                    entityToSendTo,
-                    data.Body,
-                    data.Subject,
-                    data.ContentType,
-                    data.Properties,
-                    data.ScheduledTime);
+                if (data.SendToDeadLetter)
+                {
+                    // Send to dead-letter queue
+                    success = await ServiceBusService.SendMessageToDeadLetterQueueAsync(
+                        entityToSendTo,
+                        data.Body,
+                        data.Subject,
+                        data.ContentType,
+                        data.Properties,
+                        isSubscription: !string.IsNullOrEmpty(selectedSubscriptionName),
+                        topicName: selectedTopic,
+                        subscriptionName: selectedSubscriptionName);
+                }
+                else
+                {
+                    // Send to regular queue/topic
+                    success = await ServiceBusService.SendMessageAsync(
+                        entityToSendTo,
+                        data.Body,
+                        data.Subject,
+                        data.ContentType,
+                        data.Properties,
+                        data.ScheduledTime);
+                }
 
                 if (success)
                 {
-                    if (data.ScheduledTime.HasValue)
+                    if (data.SendToDeadLetter)
+                    {
+                        successMessage = "Message sent to dead-letter queue successfully.";
+                    }
+                    else if (data.ScheduledTime.HasValue)
                     {
                         successMessage = $"Message scheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
                     }
@@ -1039,7 +1091,9 @@
                 }
                 else
                 {
-                    operationErrorMessage = "Failed to send message.";
+                    operationErrorMessage = data.SendToDeadLetter 
+                        ? "Failed to send message to dead-letter queue." 
+                        : "Failed to send message.";
                 }
             }
 

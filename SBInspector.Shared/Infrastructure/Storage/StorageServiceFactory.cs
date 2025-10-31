@@ -19,7 +19,11 @@ public class StorageServiceFactory
     {
         return _configuration.StorageType switch
         {
-            StorageType.FileSystem => new FileStorageService(),
+            StorageType.FileSystem => new FileStorageService(
+                null, // Use default storage directory
+                string.IsNullOrWhiteSpace(_configuration.ExportPath) ? null : _configuration.ExportPath,
+                string.IsNullOrWhiteSpace(_configuration.TemplatePath) ? null : _configuration.TemplatePath
+            ),
             StorageType.LocalStorage => new LocalStorageService(_jsRuntime),
             _ => new LocalStorageService(_jsRuntime)
         };

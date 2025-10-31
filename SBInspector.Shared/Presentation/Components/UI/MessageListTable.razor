@@ -49,6 +49,12 @@
                             <button class="btn btn-secondary" @onclick="() => OnExport.InvokeAsync(message)" @onclick:stopPropagation="true" title="Export this message">
                                 <i class="bi bi-download"></i>
                             </button>
+                            @if (message.State == "Active")
+                            {
+                                <button class="btn btn-warning" @onclick="() => OnMoveToDeadLetter.InvokeAsync(message)" @onclick:stopPropagation="true" title="Move message to dead-letter queue">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </button>
+                            }
                             @if (message.State == "DeadLetter")
                             {
                                 <button class="btn btn-success" @onclick="() => OnRequeue.InvokeAsync(message)" @onclick:stopPropagation="true" title="Requeue message to active queue">
@@ -106,6 +112,9 @@
 
     [Parameter]
     public EventCallback<MessageInfo> OnRequeue { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnMoveToDeadLetter { get; set; }
 
     [Parameter]
     public EventCallback<MessageInfo> OnReschedule { get; set; }

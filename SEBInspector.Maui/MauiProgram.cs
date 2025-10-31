@@ -5,6 +5,7 @@ using SBInspector.Shared.Infrastructure.Storage;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
 using SEBInspector.Maui.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace SEBInspector.Maui
 {
@@ -27,10 +28,17 @@ namespace SEBInspector.Maui
     		builder.Logging.AddDebug();
 #endif
 
+            // Add Data Protection for secure storage
+            builder.Services.AddDataProtection()
+                .SetApplicationName("SBInspector")
+                .PersistKeysToFileSystem(new DirectoryInfo(
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys")));
+
             // Register services following clean architecture
             builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
             builder.Services.AddSingleton<MessageFilterService>();
             builder.Services.AddSingleton<ConnectionStateService>();
+            builder.Services.AddSingleton<ConnectionStringEncryptionService>();
 
             // Register storage configuration service with FileSystem as default for MAUI
             builder.Services.AddSingleton<StorageConfigurationService>(sp => 
