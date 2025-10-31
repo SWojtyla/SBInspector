@@ -6,6 +6,7 @@ using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
 using SEBInspector.Maui.Services;
 using Microsoft.AspNetCore.DataProtection;
+using MudBlazor.Services;
 
 namespace SEBInspector.Maui
 {
@@ -22,6 +23,9 @@ namespace SEBInspector.Maui
                 });
 
             builder.Services.AddMauiBlazorWebView();
+
+            // Add MudBlazor services
+            builder.Services.AddMudServices();
 
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();
