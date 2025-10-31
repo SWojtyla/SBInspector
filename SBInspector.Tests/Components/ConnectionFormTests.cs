@@ -45,7 +45,12 @@ public class ConnectionFormTests : TestContext
 
         public byte[] Protect(byte[] plaintext)
         {
-            // Simple encoding for testing
+            if (plaintext == null)
+            {
+                throw new ArgumentNullException(nameof(plaintext));
+            }
+
+            // Simple encoding for testing - add 10 byte header
             var encrypted = new byte[plaintext.Length + 10];
             Array.Copy(plaintext, 0, encrypted, 10, plaintext.Length);
             return encrypted;
@@ -53,7 +58,17 @@ public class ConnectionFormTests : TestContext
 
         public byte[] Unprotect(byte[] protectedData)
         {
-            // Simple decoding for testing
+            if (protectedData == null)
+            {
+                throw new ArgumentNullException(nameof(protectedData));
+            }
+
+            if (protectedData.Length < 10)
+            {
+                throw new System.Security.Cryptography.CryptographicException("Invalid protected data");
+            }
+
+            // Simple decoding for testing - remove 10 byte header
             var decrypted = new byte[protectedData.Length - 10];
             Array.Copy(protectedData, 10, decrypted, 0, decrypted.Length);
             return decrypted;
