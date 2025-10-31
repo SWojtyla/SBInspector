@@ -19,7 +19,7 @@
                     <div class="info-section">
                         <div class="mb-2">
                             <strong>Message ID:</strong>
-                            <div><code>@Message.MessageId</code></div>
+                            <div style="word-break: break-all; overflow-wrap: break-word;"><code>@Message.MessageId</code></div>
                         </div>
                     </div>
                 </div>
@@ -27,7 +27,7 @@
                     <div class="info-section">
                         <div class="mb-2">
                             <strong>Subject:</strong>
-                            <div>@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</div>
+                            <div style="word-break: break-word; overflow-wrap: break-word;">@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</div>
                         </div>
                     </div>
                 </div>
@@ -112,9 +112,17 @@
             }
 
             <div class="mb-3">
-                <h6><i class="bi bi-file-text"></i> Message Body</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0"><i class="bi bi-file-text"></i> Message Body</h6>
+                    @if (IsJsonContent)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="ToggleJsonFormatting">
+                            <i class="bi @(isJsonFormatted ? "bi-code" : "bi-braces")"></i> @(isJsonFormatted ? "Raw" : "Format JSON")
+                        </button>
+                    }
+                </div>
                 <div class="info-section">
-                    <pre class="mb-0" style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">@Message.Body</pre>
+                    <pre class="mb-0" style="max-height: 300px; overflow-y: auto; overflow-x: auto; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word;">@DisplayedMessageBody</pre>
                 </div>
             </div>
 
@@ -177,6 +185,47 @@
     private string templateName = string.Empty;
     private string saveMessage = string.Empty;
     private string saveError = string.Empty;
+    private bool isJsonFormatted = false;
+
+    private bool IsJsonContent
+    {
+        get
+        {
+            if (Message == null || string.IsNullOrWhiteSpace(Message.Body))
+                return false;
+
+            var trimmedBody = Message.Body.Trim();
+            return (trimmedBody.StartsWith("{") && trimmedBody.EndsWith("}")) ||
+                   (trimmedBody.StartsWith("[") && trimmedBody.EndsWith("]"));
+        }
+    }
+
+    private string DisplayedMessageBody
+    {
+        get
+        {
+            if (Message == null)
+                return string.Empty;
+
+            if (!isJsonFormatted || !IsJsonContent)
+                return Message.Body;
+
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(Message.Body);
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                return System.Text.Json.JsonSerializer.Serialize(doc, options);
+            }
+            catch
+            {
+                // If parsing fails, return the original body
+                return Message.Body;
+            }
+        }
+    }
 
     protected override void OnParametersSet()
     {
@@ -185,6 +234,12 @@
         templateName = string.Empty;
         saveMessage = string.Empty;
         saveError = string.Empty;
+        isJsonFormatted = false;
+    }
+
+    private void ToggleJsonFormatting()
+    {
+        isJsonFormatted = !isJsonFormatted;
     }
 
     private async Task SaveAsTemplate()
