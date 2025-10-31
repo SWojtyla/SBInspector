@@ -160,17 +160,6 @@
                 Progress="@operation.Progress"
                 OnCancel="@(() => CancelPurgeOperation(operationId))" />
         }
-        
-        @* Legacy support for single operation (backward compatibility) *@
-        @if (isPurgeInProgress && !activeOperations.Any())
-        {
-            <BackgroundOperationPanel
-                IsVisible="true"
-                Title="Purging Messages"
-                Message="@purgeProgressMessage"
-                Progress="@purgeProgress"
-                OnCancel="@CancelPurge" />
-        }
 
         <OperationLoadingOverlay 
             IsVisible="@isOperationInProgress"
@@ -364,18 +353,6 @@
             }
         }
         activeOperations.Clear();
-        
-        // Clean up legacy purge cancellation token
-        try
-        {
-            purgeCancellationTokenSource?.Cancel();
-            purgeCancellationTokenSource?.Dispose();
-            purgeCancellationTokenSource = null;
-        }
-        catch
-        {
-            // Ignore disposal errors
-        }
     }
 
     private async Task Disconnect()
@@ -803,14 +780,9 @@
     private string operationLoadingTitle = string.Empty;
     private string operationLoadingMessage = string.Empty;
     
-    // Purge operation state
-    private bool isPurgeInProgress = false;
-    private bool isDeleteFiltered = false;
-    private string purgeProgressMessage = string.Empty;
-    private int purgeProgress = 0;
-    private CancellationTokenSource? purgeCancellationTokenSource = null;
+    // Purge operation state - support for multiple concurrent purge operations
+    private bool isDeleteFiltered = false; // Flag to differentiate between normal purge and filtered delete
     
-    // Support for multiple concurrent purge operations
     private class PurgeOperation
     {
         public string OperationId { get; set; } = string.Empty;
@@ -1157,12 +1129,6 @@
         
         activeOperations[operationId] = operation;
         
-        // Also maintain backward compatibility with legacy state
-        isPurgeInProgress = true;
-        purgeProgress = 0;
-        purgeCancellationTokenSource = operation.CancellationTokenSource;
-        purgeProgressMessage = operation.ProgressMessage;
-        
         StateHasChanged();
 
         // Capture current entity context for the background task
@@ -1182,7 +1148,6 @@
                     {
                         op.Progress = count;
                     }
-                    purgeProgress = count;
                     InvokeAsync(StateHasChanged);
                 });
 
@@ -1214,12 +1179,6 @@
                 {
                     // Remove from active operations
                     activeOperations.Remove(operationId);
-                    
-                    // Update legacy state if this is the last operation
-                    if (!activeOperations.Any())
-                    {
-                        isPurgeInProgress = false;
-                    }
                     
                     // Null-safe check for cancellation token
                     bool wasCancelled = operation.CancellationTokenSource?.Token.IsCancellationRequested ?? false;
@@ -1260,10 +1219,6 @@
                 await InvokeAsync(() =>
                 {
                     activeOperations.Remove(operationId);
-                    if (!activeOperations.Any())
-                    {
-                        isPurgeInProgress = false;
-                    }
                     successMessage = $"Purge cancelled. Deleted {operation.Progress} message(s) before cancellation.";
                     StateHasChanged();
                 });
@@ -1280,10 +1235,6 @@
                 await InvokeAsync(() =>
                 {
                     activeOperations.Remove(operationId);
-                    if (!activeOperations.Any())
-                    {
-                        isPurgeInProgress = false;
-                    }
                     operationErrorMessage = $"Error purging messages from {capturedEntity}: {ex.Message}";
                     StateHasChanged();
                 });
@@ -1317,11 +1268,6 @@
             // Cancel the confirmation dialog
             showPurgeConfirmation = false;
             isDeleteFiltered = false;
-        }
-        else if (isPurgeInProgress)
-        {
-            // Cancel the running purge operation (legacy support)
-            purgeCancellationTokenSource?.Cancel();
         }
     }
 
@@ -1389,13 +1335,6 @@
         
         activeOperations[operationId] = operation;
         
-        // Also maintain backward compatibility with legacy state
-        isPurgeInProgress = true;
-        purgeProgress = 0;
-        purgeCancellationTokenSource = operation.CancellationTokenSource;
-        purgeProgressMessage = operation.ProgressMessage;
-        isDeleteFiltered = true;
-        
         StateHasChanged();
 
         // Capture current entity context and filters for the background task
@@ -1416,7 +1355,6 @@
                     {
                         op.Progress = count;
                     }
-                    purgeProgress = count;
                     InvokeAsync(StateHasChanged);
                 });
 
@@ -1450,13 +1388,6 @@
                 {
                     // Remove from active operations
                     activeOperations.Remove(operationId);
-                    
-                    // Update legacy state if this is the last operation
-                    if (!activeOperations.Any())
-                    {
-                        isPurgeInProgress = false;
-                        isDeleteFiltered = false;
-                    }
                     
                     // Null-safe check for cancellation token
                     bool wasCancelled = operation.CancellationTokenSource?.Token.IsCancellationRequested ?? false;
@@ -1493,11 +1424,6 @@
                 await InvokeAsync(() =>
                 {
                     activeOperations.Remove(operationId);
-                    if (!activeOperations.Any())
-                    {
-                        isPurgeInProgress = false;
-                        isDeleteFiltered = false;
-                    }
                     successMessage = $"Delete cancelled. Deleted {operation.Progress} message(s) before cancellation.";
                     StateHasChanged();
                 });
@@ -1514,11 +1440,6 @@
                 await InvokeAsync(() =>
                 {
                     activeOperations.Remove(operationId);
-                    if (!activeOperations.Any())
-                    {
-                        isPurgeInProgress = false;
-                        isDeleteFiltered = false;
-                    }
                     operationErrorMessage = $"Error deleting filtered messages from {capturedEntity}: {ex.Message}";
                     StateHasChanged();
                 });
