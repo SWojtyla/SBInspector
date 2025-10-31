@@ -19,6 +19,13 @@ public class ServiceBusService : IServiceBusService
     private const int DeadLetterReceiveTimeoutSeconds = 2;
     private const string DeadLetterReason = "Manual";
     private const string DeadLetterDescription = "Message sent directly to dead-letter queue";
+    
+    // Constants for message move operations
+    private const int PeekBatchSize = 256;
+    private const int MaxPeekBatches = 20;
+    private const int ReceiveBatchSize = 100;
+    private const int MaxBatchesToSearch = 100;
+    private const int MaxEmptyBatches = 3;
 
     public bool IsConnected => _adminClient != null && _client != null;
 
@@ -606,12 +613,10 @@ public class ServiceBusService : IServiceBusService
             // First, use Peek to verify the message exists
             bool messageExists = false;
             long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20;
             
-            for (int i = 0; i < maxPeekBatches; i++)
+            for (int i = 0; i < MaxPeekBatches; i++)
             {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                var peekedMessages = await receiver.PeekMessagesAsync(PeekBatchSize, startSequence);
                 if (peekedMessages.Count == 0) break;
                 
                 if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
@@ -631,22 +636,19 @@ public class ServiceBusService : IServiceBusService
             // Now receive messages until we find the target one
             // Track sequence numbers to avoid infinite loops
             var seenSequenceNumbers = new HashSet<long>();
-            const int batchSize = 100;
-            int maxBatchesToSearch = 100;
             int emptyBatchCount = 0;
-            const int maxEmptyBatches = 3;
             
-            for (int i = 0; i < maxBatchesToSearch; i++)
+            for (int i = 0; i < MaxBatchesToSearch; i++)
             {
                 var messages = await receiver.ReceiveMessagesAsync(
-                    maxMessages: batchSize, 
+                    maxMessages: ReceiveBatchSize, 
                     maxWaitTime: TimeSpan.FromSeconds(5)
                 );
                 
                 if (messages.Count == 0)
                 {
                     emptyBatchCount++;
-                    if (emptyBatchCount >= maxEmptyBatches)
+                    if (emptyBatchCount >= MaxEmptyBatches)
                     {
                         return false;
                     }
