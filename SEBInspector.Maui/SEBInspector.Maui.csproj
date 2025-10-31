@@ -66,6 +66,22 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Content Remove="wwwroot\images\appicon.svg" />
+      <Content Remove="wwwroot\images\appiconfg.svg" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="wwwroot\images\appicon.svg">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <Color>#512BD4</Color>
+        <ForegroundFile>Resources\AppIcon\appiconfg.svg</ForegroundFile>
+      </None>
+      <None Include="wwwroot\images\appiconfg.svg">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.8" />
