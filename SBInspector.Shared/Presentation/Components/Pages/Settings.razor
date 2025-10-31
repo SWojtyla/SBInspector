@@ -250,9 +250,10 @@
             unencryptedConnectionCount = connections.Count(c => !c.IsEncrypted);
             hasUnencryptedConnections = unencryptedConnectionCount > 0;
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors when checking connections
+            // Log or show error if storage is inaccessible
+            errorMessage = $"Could not check connection security status: {ex.Message}";
             hasUnencryptedConnections = false;
         }
     }

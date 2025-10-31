@@ -59,17 +59,9 @@ public class ConnectionStringEncryptionService
             return false;
         }
 
-        // Encrypted strings are typically longer and contain non-printable characters
-        // This is a simple heuristic - encrypted Data Protection strings are base64-like
-        try
-        {
-            // Try to decrypt - if successful, it's encrypted
-            Decrypt(value);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        // Simple heuristic: Service Bus connection strings typically start with "Endpoint="
+        // If it doesn't start with that, it's likely encrypted
+        // This is a lightweight check compared to attempting decryption
+        return !value.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase);
     }
 }
