@@ -5,6 +5,7 @@ using SBInspector.Shared.Infrastructure.Storage;
 using SBInspector.Shared.Infrastructure.Export;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +13,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Add Data Protection for secure storage
+builder.Services.AddDataProtection()
+    .SetApplicationName("SBInspector")
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys")));
+
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
 builder.Services.AddSingleton<ConnectionStateService>();
+builder.Services.AddSingleton<ConnectionStringEncryptionService>();
 
 // Register storage configuration service with LocalStorage as default for web
 builder.Services.AddSingleton<StorageConfigurationService>(sp => 

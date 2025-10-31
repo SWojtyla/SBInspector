@@ -35,6 +35,28 @@ public class StorageConfigurationService
         await SaveConfigurationAsync();
     }
 
+    public async Task SetExportPathAsync(string exportPath)
+    {
+        _configuration.ExportPath = exportPath;
+        await SaveConfigurationAsync();
+    }
+
+    public async Task SetTemplatePathAsync(string templatePath)
+    {
+        _configuration.TemplatePath = templatePath;
+        await SaveConfigurationAsync();
+    }
+
+    public string GetDefaultExportPath()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Exports");
+    }
+
+    public string GetDefaultTemplatePath()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Templates");
+    }
+
     private StorageConfiguration LoadConfiguration()
     {
         try

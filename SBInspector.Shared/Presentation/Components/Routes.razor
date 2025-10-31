@@ -1,6 +1,6 @@
 ﻿@using System.Reflection
 
-<Router AppAssembly="@AppAssembly">
+<Router AppAssembly="@AppAssembly" AdditionalAssemblies="@AdditionalAssemblies">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
@@ -11,9 +11,14 @@
     [Parameter]
     public Assembly? AppAssembly { get; set; }
     
+    private Assembly[] AdditionalAssemblies = Array.Empty<Assembly>();
+    
     protected override void OnInitialized()
     {
         // Use the current assembly if not provided
         AppAssembly ??= GetType().Assembly;
+        
+        // Include the shared assembly for routing
+        AdditionalAssemblies = new[] { typeof(Routes).Assembly };
     }
 }

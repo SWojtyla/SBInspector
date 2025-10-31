@@ -4,6 +4,7 @@
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
+@inject ConnectionStringEncryptionService EncryptionService
 @inherits LayoutComponentBase
 
 <div class="page">
@@ -46,10 +47,15 @@
                 await Task.Delay(100);
             }
             
-            var success = await ServiceBusService.ConnectAsync(connection.ConnectionString);
+            // Decrypt connection string if encrypted
+            var connectionString = connection.IsEncrypted 
+                ? EncryptionService.Decrypt(connection.ConnectionString)
+                : connection.ConnectionString;
+            
+            var success = await ServiceBusService.ConnectAsync(connectionString);
             if (success)
             {
-                ConnectionState.CurrentConnectionString = connection.ConnectionString;
+                ConnectionState.CurrentConnectionString = connectionString;
                 
                 // Update last used time
                 await StorageService.UpdateLastUsedAsync(connection.Name);
