@@ -305,7 +305,6 @@
         successMessage = string.Empty;
         operationErrorMessage = string.Empty;
         isOperationInProgress = false;
-        isPurgeInProgress = false;
         isDeleteFiltered = false;
         
         // Cancel and clean up active purge operations
@@ -394,7 +393,6 @@
         successMessage = string.Empty;
         operationErrorMessage = string.Empty;
         isOperationInProgress = false;
-        isPurgeInProgress = false;
         isDeleteFiltered = false;
         
         // Cancel any ongoing purge operations
@@ -406,13 +404,6 @@
                 operation.CancellationTokenSource?.Dispose();
             }
             activeOperations.Clear();
-            
-            if (purgeCancellationTokenSource != null)
-            {
-                purgeCancellationTokenSource.Cancel();
-                purgeCancellationTokenSource.Dispose();
-                purgeCancellationTokenSource = null;
-            }
         }
         catch (ObjectDisposedException)
         {
