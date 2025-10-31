@@ -580,6 +580,134 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task<bool> MoveActiveMessageToDeadLetterAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusReceiver? receiver = null;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Create receiver for active queue
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+            }
+
+            // First, use Peek to verify the message exists
+            bool messageExists = false;
+            long? startSequence = null;
+            const int peekBatchSize = 256;
+            int maxPeekBatches = 20;
+            
+            for (int i = 0; i < maxPeekBatches; i++)
+            {
+                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                if (peekedMessages.Count == 0) break;
+                
+                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                {
+                    messageExists = true;
+                    break;
+                }
+                
+                startSequence = peekedMessages.Last().SequenceNumber + 1;
+            }
+            
+            if (!messageExists)
+            {
+                return false;
+            }
+
+            // Now receive messages until we find the target one
+            // Track sequence numbers to avoid infinite loops
+            var seenSequenceNumbers = new HashSet<long>();
+            const int batchSize = 100;
+            int maxBatchesToSearch = 100;
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
+            
+            for (int i = 0; i < maxBatchesToSearch; i++)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: batchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(5)
+                );
+                
+                if (messages.Count == 0)
+                {
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        return false;
+                    }
+                    await Task.Delay(1000);
+                    continue;
+                }
+                
+                emptyBatchCount = 0;
+                
+                // Check for infinite loop
+                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    foreach (var msg in messages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
+                }
+                
+                var messageToDeadLetter = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+
+                if (messageToDeadLetter != null)
+                {
+                    // Dead-letter the message
+                    await receiver.DeadLetterMessageAsync(messageToDeadLetter, DeadLetterReason, DeadLetterDescription);
+                    
+                    // Abandon other messages so they're available again
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Track and abandon all messages
+                foreach (var msg in messages)
+                {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
+                    await receiver.AbandonMessageAsync(msg);
+                }
+                
+                await Task.Delay(500);
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> SendMessageAsync(string entityName, string messageBody, string? subject = null, string? contentType = null, Dictionary<string, object>? properties = null, DateTime? scheduledEnqueueTime = null)
     {
         if (_client == null) return false;

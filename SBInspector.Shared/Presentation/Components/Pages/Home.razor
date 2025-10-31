@@ -68,6 +68,7 @@
                         OnExportMessage="@HandleExportSingleMessage"
                         OnDeleteMessage="@HandleDeleteMessage"
                         OnRequeueMessage="@HandleRequeueMessage"
+                        OnMoveToDeadLetterMessage="@HandleMoveToDeadLetterMessage"
                         OnRescheduleMessage="@HandleRescheduleMessage"
                         OnSendNew="@HandleSendNewMessage"
                         OnPurge="@HandlePurgeMessages"
@@ -115,6 +116,17 @@
             ConfirmText="Requeue"
             OnConfirm="@ConfirmRequeue"
             OnCancel="@CancelRequeue" />
+
+        <ConfirmationModal 
+            IsVisible="@showMoveToDeadLetterConfirmation"
+            Title="Move to Dead-Letter Queue"
+            Message="Are you sure you want to move this active message to the dead-letter queue? This action cannot be undone."
+            IconClass="bi-exclamation-triangle-fill"
+            ConfirmIconClass="bi-exclamation-triangle"
+            ConfirmButtonClass="btn-warning"
+            ConfirmText="Move to Dead-Letter"
+            OnConfirm="@ConfirmMoveToDeadLetter"
+            OnCancel="@CancelMoveToDeadLetter" />
 
         <ConfirmationModal 
             IsVisible="@showPurgeConfirmation"
@@ -294,6 +306,7 @@
         messageForOperation = null;
         showDeleteConfirmation = false;
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
         showPurgeConfirmation = false;
         showSendModal = false;
         isRescheduleMode = false;
@@ -353,6 +366,7 @@
         messageForOperation = null;
         showDeleteConfirmation = false;
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
         showPurgeConfirmation = false;
         showSendModal = false;
         isRescheduleMode = false;
@@ -724,6 +738,7 @@
     // CRUD operation state
     private bool showDeleteConfirmation = false;
     private bool showRequeueConfirmation = false;
+    private bool showMoveToDeadLetterConfirmation = false;
     private bool showPurgeConfirmation = false;
     private bool showSendModal = false;
     private bool isRescheduleMode = false;
@@ -833,6 +848,7 @@
     private async Task ConfirmRequeue()
     {
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
         operationErrorMessage = string.Empty;
         successMessage = string.Empty;
 
@@ -898,6 +914,84 @@
     private void CancelRequeue()
     {
         showRequeueConfirmation = false;
+        showMoveToDeadLetterConfirmation = false;
+        messageForOperation = null;
+    }
+
+    private void HandleMoveToDeadLetterMessage(MessageInfo message)
+    {
+        messageForOperation = message;
+        showMoveToDeadLetterConfirmation = true;
+    }
+
+    private async Task ConfirmMoveToDeadLetter()
+    {
+        showMoveToDeadLetterConfirmation = false;
+        operationErrorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        if (messageForOperation == null) return;
+
+        isOperationInProgress = true;
+        operationLoadingTitle = "Moving to Dead-Letter";
+        operationLoadingMessage = "Please wait while the message is being moved to the dead-letter queue...";
+
+        try
+        {
+            bool success;
+            
+            if (!string.IsNullOrEmpty(selectedSubscriptionName))
+            {
+                // It's a subscription
+                success = await ServiceBusService.MoveActiveMessageToDeadLetterAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber,
+                    isSubscription: true,
+                    topicName: selectedTopic,
+                    subscriptionName: selectedSubscriptionName);
+            }
+            else
+            {
+                // It's a queue
+                success = await ServiceBusService.MoveActiveMessageToDeadLetterAsync(
+                    selectedEntity, 
+                    messageForOperation.SequenceNumber);
+            }
+
+            if (success)
+            {
+                messages.Remove(messageForOperation);
+                successMessage = "Message moved to dead-letter queue successfully.";
+                
+                // Refresh entity counts to update the tree
+                await RefreshEntityCounts();
+                
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+            }
+            else
+            {
+                operationErrorMessage = "Failed to move message to dead-letter queue. It may have already been processed.";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            operationErrorMessage = $"Error moving message to dead-letter queue: {ex.Message}";
+            await Task.Delay(5000);
+            operationErrorMessage = string.Empty;
+        }
+        finally
+        {
+            isOperationInProgress = false;
+            messageForOperation = null;
+        }
+    }
+
+    private void CancelMoveToDeadLetter()
+    {
+        showMoveToDeadLetterConfirmation = false;
         messageForOperation = null;
     }
 
