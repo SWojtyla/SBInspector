@@ -12,6 +12,21 @@ public class ServiceBusService : IServiceBusService
     private ServiceBusClient? _client;
     private string? _connectionString;
 
+    // Constants for dead-letter operations
+    private const int MaxDeadLetterRetryAttempts = 10;
+    private const int DeadLetterRetryDelayMs = 200;
+    private const int DeadLetterReceiveBatchSize = 10;
+    private const int DeadLetterReceiveTimeoutSeconds = 2;
+    private const string DeadLetterReason = "Manual";
+    private const string DeadLetterDescription = "Message sent directly to dead-letter queue";
+    
+    // Constants for message move operations
+    private const int PeekBatchSize = 256;
+    private const int MaxPeekBatches = 20;
+    private const int ReceiveBatchSize = 100;
+    private const int MaxBatchesToSearch = 100;
+    private const int MaxEmptyBatches = 3;
+
     public bool IsConnected => _adminClient != null && _client != null;
 
     public async Task<bool> ConnectAsync(string connectionString)
@@ -572,6 +587,129 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task<bool> MoveActiveMessageToDeadLetterAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusReceiver? receiver = null;
+
+        try
+        {
+            var options = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Create receiver for active queue
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, options);
+            }
+
+            // First, use Peek to verify the message exists
+            bool messageExists = false;
+            long? startSequence = null;
+            
+            for (int i = 0; i < MaxPeekBatches; i++)
+            {
+                var peekedMessages = await receiver.PeekMessagesAsync(PeekBatchSize, startSequence);
+                if (peekedMessages.Count == 0) break;
+                
+                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                {
+                    messageExists = true;
+                    break;
+                }
+                
+                startSequence = peekedMessages.Last().SequenceNumber + 1;
+            }
+            
+            if (!messageExists)
+            {
+                return false;
+            }
+
+            // Now receive messages until we find the target one
+            // Track sequence numbers to avoid infinite loops
+            var seenSequenceNumbers = new HashSet<long>();
+            int emptyBatchCount = 0;
+            
+            for (int i = 0; i < MaxBatchesToSearch; i++)
+            {
+                var messages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: ReceiveBatchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(5)
+                );
+                
+                if (messages.Count == 0)
+                {
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= MaxEmptyBatches)
+                    {
+                        return false;
+                    }
+                    await Task.Delay(1000);
+                    continue;
+                }
+                
+                emptyBatchCount = 0;
+                
+                // Check for infinite loop
+                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    foreach (var msg in messages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
+                }
+                
+                var messageToDeadLetter = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+
+                if (messageToDeadLetter != null)
+                {
+                    // Dead-letter the message
+                    await receiver.DeadLetterMessageAsync(messageToDeadLetter, DeadLetterReason, DeadLetterDescription);
+                    
+                    // Abandon other messages so they're available again
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Track and abandon all messages
+                foreach (var msg in messages)
+                {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
+                    await receiver.AbandonMessageAsync(msg);
+                }
+                
+                await Task.Delay(500);
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> SendMessageAsync(string entityName, string messageBody, string? subject = null, string? contentType = null, Dictionary<string, object>? properties = null, DateTime? scheduledEnqueueTime = null)
     {
         if (_client == null) return false;
@@ -615,6 +753,117 @@ public class ServiceBusService : IServiceBusService
         }
         finally
         {
+            if (sender != null)
+            {
+                await sender.DisposeAsync();
+            }
+        }
+    }
+
+    public async Task<bool> SendMessageToDeadLetterQueueAsync(string entityName, string messageBody, string? subject = null, string? contentType = null, Dictionary<string, object>? properties = null, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusSender? sender = null;
+        ServiceBusReceiver? receiver = null;
+
+        try
+        {
+            // Create sender for the entity (queue or topic)
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                sender = _client.CreateSender(topicName);
+            }
+            else
+            {
+                sender = _client.CreateSender(entityName);
+            }
+
+            // Create the message with a unique identifier
+            var uniqueMessageId = Guid.NewGuid().ToString();
+            var message = new ServiceBusMessage(messageBody)
+            {
+                MessageId = uniqueMessageId,
+                Subject = subject ?? string.Empty,
+                ContentType = contentType ?? "text/plain"
+            };
+
+            // Add application properties
+            if (properties != null)
+            {
+                foreach (var prop in properties)
+                {
+                    message.ApplicationProperties[prop.Key] = prop.Value;
+                }
+            }
+
+            // Send the message to the regular queue/topic first
+            await sender.SendMessageAsync(message);
+
+            // Now move it to the dead letter queue
+            // We need to receive it and dead-letter it
+            var receiverOptions = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            {
+                receiver = _client.CreateReceiver(topicName, subscriptionName, receiverOptions);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(entityName, receiverOptions);
+            }
+
+            // Try multiple times to receive and dead-letter the message
+            for (int attempt = 0; attempt < MaxDeadLetterRetryAttempts; attempt++)
+            {
+                // Wait a bit for the message to be available
+                await Task.Delay(DeadLetterRetryDelayMs);
+
+                // Receive messages to find the one we just sent
+                var receivedMessages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: DeadLetterReceiveBatchSize,
+                    maxWaitTime: TimeSpan.FromSeconds(DeadLetterReceiveTimeoutSeconds));
+                
+                // Find our message by matching the unique MessageId
+                var targetMessage = receivedMessages.FirstOrDefault(m => m.MessageId == uniqueMessageId);
+
+                if (targetMessage != null)
+                {
+                    // Dead-letter the message
+                    await receiver.DeadLetterMessageAsync(targetMessage, DeadLetterReason, DeadLetterDescription);
+                    
+                    // Abandon other messages
+                    foreach (var msg in receivedMessages.Where(m => m.MessageId != uniqueMessageId))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Abandon all messages and try again
+                foreach (var msg in receivedMessages)
+                {
+                    await receiver.AbandonMessageAsync(msg);
+                }
+            }
+
+            // Failed to find the message after all attempts
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
             if (sender != null)
             {
                 await sender.DisposeAsync();

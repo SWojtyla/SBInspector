@@ -79,6 +79,7 @@
                 OnExport="@OnExportMessage"
                 OnDelete="@OnDeleteMessage"
                 OnRequeue="@OnRequeueMessage"
+                OnMoveToDeadLetter="@OnMoveToDeadLetterMessage"
                 OnReschedule="@OnRescheduleMessage" />
 
             @if (HasMoreMessages)
@@ -170,6 +171,9 @@
 
     [Parameter]
     public EventCallback<MessageInfo> OnRequeueMessage { get; set; }
+
+    [Parameter]
+    public EventCallback<MessageInfo> OnMoveToDeadLetterMessage { get; set; }
 
     [Parameter]
     public EventCallback<MessageInfo> OnRescheduleMessage { get; set; }

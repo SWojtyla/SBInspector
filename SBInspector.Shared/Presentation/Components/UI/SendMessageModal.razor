@@ -62,7 +62,7 @@
                     else
                     {
                         <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="scheduleCheck" @bind="isScheduled" />
+                            <input type="checkbox" class="form-check-input" id="scheduleCheck" @bind="isScheduled" disabled="@sendToDeadLetter" />
                             <label class="form-check-label" for="scheduleCheck">
                                 Schedule message for later delivery
                             </label>
@@ -75,6 +75,13 @@
                                 <input type="datetime-local" class="form-control" @bind="scheduledTime" />
                             </div>
                         }
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="deadLetterCheck" @bind="sendToDeadLetter" />
+                            <label class="form-check-label" for="deadLetterCheck">
+                                Send directly to dead-letter queue
+                            </label>
+                        </div>
                     }
 
                     <div class="mb-3">
@@ -161,6 +168,7 @@
     private string contentType = "text/plain";
     private string propertiesText = string.Empty;
     private bool isScheduled = false;
+    private bool sendToDeadLetter = false;
     private DateTime scheduledTime = DateTime.Now.AddHours(1);
     private string errorMessage = string.Empty;
     private bool isSending = false;
@@ -261,6 +269,12 @@
             return;
         }
 
+        if (sendToDeadLetter && isScheduled)
+        {
+            errorMessage = "Cannot schedule messages when sending to dead-letter queue.";
+            return;
+        }
+
         isSending = true;
 
         try
@@ -301,7 +315,8 @@
                 Subject = subject,
                 ContentType = contentType,
                 Properties = properties,
-                ScheduledTime = (isScheduled || IsReschedule) ? scheduledTime : null
+                ScheduledTime = (isScheduled || IsReschedule) ? scheduledTime : null,
+                SendToDeadLetter = sendToDeadLetter
             };
 
             await OnSend.InvokeAsync(data);
@@ -324,6 +339,7 @@
         contentType = "text/plain";
         propertiesText = string.Empty;
         isScheduled = false;
+        sendToDeadLetter = false;
         scheduledTime = DateTime.Now.AddHours(1);
         errorMessage = string.Empty;
         successMessage = string.Empty;
@@ -340,5 +356,6 @@
         public string ContentType { get; set; } = string.Empty;
         public Dictionary<string, object> Properties { get; set; } = new();
         public DateTime? ScheduledTime { get; set; }
+        public bool SendToDeadLetter { get; set; }
     }
 }
