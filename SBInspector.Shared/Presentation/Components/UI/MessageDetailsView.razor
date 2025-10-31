@@ -171,6 +171,8 @@
     [Parameter]
     public EventCallback OnBack { get; set; }
 
+    private const int SuccessMessageAutoHideDelayMs = 2000;
+
     private bool showSaveTemplateForm = false;
     private string templateName = string.Empty;
     private string saveMessage = string.Empty;
@@ -211,8 +213,8 @@
             saveMessage = $"Template '{templateName}' saved successfully!";
             templateName = string.Empty;
             
-            // Auto-hide form after 2 seconds
-            await Task.Delay(2000);
+            // Auto-hide form after configured delay
+            await Task.Delay(SuccessMessageAutoHideDelayMs);
             showSaveTemplateForm = false;
             saveMessage = string.Empty;
         }

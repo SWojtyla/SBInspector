@@ -241,11 +241,13 @@
     private void HandleViewDetails(MessageInfo message)
     {
         SelectedMessage = message;
+        StateHasChanged();
     }
 
     private void HandleBackToList()
     {
         SelectedMessage = null;
+        StateHasChanged();
     }
 
     private async Task HandlePageSizeChanged(ChangeEventArgs e)
