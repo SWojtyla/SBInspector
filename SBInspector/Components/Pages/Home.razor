@@ -569,23 +569,14 @@
         {
             bool success;
             
-            if (!string.IsNullOrEmpty(selectedSubscriptionName))
-            {
-                // It's a subscription
-                success = await ServiceBusService.DeleteMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber,
-                    isSubscription: true,
-                    topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
-            }
-            else
-            {
-                // It's a queue
-                success = await ServiceBusService.DeleteMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber);
-            }
+            var options = MessageOperationOptions.FromMessageInfo(
+                messageForOperation,
+                selectedEntity,
+                !string.IsNullOrEmpty(selectedSubscriptionName),
+                selectedTopic,
+                selectedSubscriptionName);
+                
+            success = await ServiceBusService.DeleteMessageAsync(options);
 
             if (success)
             {
@@ -644,25 +635,14 @@
 
         try
         {
-            bool success;
-            
-            if (!string.IsNullOrEmpty(selectedSubscriptionName))
-            {
-                // It's a subscription
-                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber,
-                    isSubscription: true,
-                    topicName: selectedTopic,
-                    subscriptionName: selectedSubscriptionName);
-            }
-            else
-            {
-                // It's a queue
-                success = await ServiceBusService.RequeueDeadLetterMessageAsync(
-                    selectedEntity, 
-                    messageForOperation.SequenceNumber);
-            }
+            var options = MessageOperationOptions.FromMessageInfo(
+                messageForOperation,
+                selectedEntity,
+                !string.IsNullOrEmpty(selectedSubscriptionName),
+                selectedTopic,
+                selectedSubscriptionName);
+                
+            bool success = await ServiceBusService.RequeueDeadLetterMessageAsync(options);
 
             if (success)
             {
@@ -736,25 +716,14 @@
                     return;
                 }
 
-                if (!string.IsNullOrEmpty(selectedSubscriptionName))
-                {
-                    // It's a subscription
-                    success = await ServiceBusService.RescheduleMessageAsync(
-                        selectedEntity,
-                        messageForOperation.SequenceNumber,
-                        data.ScheduledTime.Value,
-                        isSubscription: true,
-                        topicName: selectedTopic,
-                        subscriptionName: selectedSubscriptionName);
-                }
-                else
-                {
-                    // It's a queue
-                    success = await ServiceBusService.RescheduleMessageAsync(
-                        selectedEntity,
-                        messageForOperation.SequenceNumber,
-                        data.ScheduledTime.Value);
-                }
+                var options = MessageOperationOptions.FromMessageInfo(
+                    messageForOperation,
+                    selectedEntity,
+                    !string.IsNullOrEmpty(selectedSubscriptionName),
+                    selectedTopic,
+                    selectedSubscriptionName);
+                    
+                success = await ServiceBusService.RescheduleMessageAsync(options, data.ScheduledTime.Value);
 
                 if (success)
                 {

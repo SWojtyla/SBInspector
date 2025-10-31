@@ -306,7 +306,7 @@ public class ServiceBusService : IServiceBusService
         return messages;
     }
 
-    public async Task<bool> DeleteMessageAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<bool> DeleteMessageAsync(MessageOperationOptions options)
     {
         if (_client == null) return false;
 
@@ -314,44 +314,53 @@ public class ServiceBusService : IServiceBusService
 
         try
         {
-            var options = new ServiceBusReceiverOptions
+            var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
 
-            // Create the appropriate receiver
-            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            // Set SubQueue if it's a dead-letter queue
+            if (options.IsDeadLetterQueue)
             {
-                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+                receiverOptions.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receiver
+            if (options.IsSubscription && !string.IsNullOrEmpty(options.TopicName) && !string.IsNullOrEmpty(options.SubscriptionName))
+            {
+                receiver = _client.CreateReceiver(options.TopicName, options.SubscriptionName, receiverOptions);
             }
             else
             {
-                receiver = _client.CreateReceiver(entityName, options);
+                receiver = _client.CreateReceiver(options.EntityName, receiverOptions);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20; // Check up to 5120 messages
-            
-            for (int i = 0; i < maxPeekBatches; i++)
+            // Only verify the message exists via Peek if not skipping verification
+            if (!options.SkipPeekVerification)
             {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
+                bool messageExists = false;
+                long? startSequence = null;
+                const int peekBatchSize = 256;
+                int maxPeekBatches = 20; // Check up to 5120 messages
                 
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                for (int i = 0; i < maxPeekBatches; i++)
                 {
-                    messageExists = true;
-                    break;
+                    var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                    if (peekedMessages.Count == 0) break;
+                    
+                    if (peekedMessages.Any(m => m.SequenceNumber == options.SequenceNumber))
+                    {
+                        messageExists = true;
+                        break;
+                    }
+                    
+                    startSequence = peekedMessages.Last().SequenceNumber + 1;
                 }
                 
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false; // Message not found in queue
+                if (!messageExists)
+                {
+                    return false; // Message not found in queue
+                }
             }
 
             // Now receive messages until we find the target one
@@ -394,7 +403,7 @@ public class ServiceBusService : IServiceBusService
                     return false;
                 }
                 
-                var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+                var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == options.SequenceNumber);
 
                 if (messageToDelete != null)
                 {
@@ -402,7 +411,7 @@ public class ServiceBusService : IServiceBusService
                     await receiver.CompleteMessageAsync(messageToDelete);
                     
                     // Abandon other messages so they're available again
-                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != options.SequenceNumber))
                     {
                         await receiver.AbandonMessageAsync(msg);
                     }
@@ -436,7 +445,7 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
-    public async Task<bool> RequeueDeadLetterMessageAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<bool> RequeueDeadLetterMessageAsync(MessageOperationOptions options)
     {
         if (_client == null) return false;
 
@@ -445,47 +454,50 @@ public class ServiceBusService : IServiceBusService
 
         try
         {
-            var options = new ServiceBusReceiverOptions
+            var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock,
                 SubQueue = SubQueue.DeadLetter
             };
 
             // Create dead-letter queue receiver
-            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            if (options.IsSubscription && !string.IsNullOrEmpty(options.TopicName) && !string.IsNullOrEmpty(options.SubscriptionName))
             {
-                dlqReceiver = _client.CreateReceiver(topicName, subscriptionName, options);
-                sender = _client.CreateSender(topicName);
+                dlqReceiver = _client.CreateReceiver(options.TopicName, options.SubscriptionName, receiverOptions);
+                sender = _client.CreateSender(options.TopicName);
             }
             else
             {
-                dlqReceiver = _client.CreateReceiver(entityName, options);
-                sender = _client.CreateSender(entityName);
+                dlqReceiver = _client.CreateReceiver(options.EntityName, receiverOptions);
+                sender = _client.CreateSender(options.EntityName);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20;
-            
-            for (int i = 0; i < maxPeekBatches; i++)
+            // Only verify the message exists via Peek if not skipping verification
+            if (!options.SkipPeekVerification)
             {
-                var peekedMessages = await dlqReceiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
+                bool messageExists = false;
+                long? startSequence = null;
+                const int peekBatchSize = 256;
+                int maxPeekBatches = 20;
                 
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                for (int i = 0; i < maxPeekBatches; i++)
                 {
-                    messageExists = true;
-                    break;
+                    var peekedMessages = await dlqReceiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                    if (peekedMessages.Count == 0) break;
+                    
+                    if (peekedMessages.Any(m => m.SequenceNumber == options.SequenceNumber))
+                    {
+                        messageExists = true;
+                        break;
+                    }
+                    
+                    startSequence = peekedMessages.Last().SequenceNumber + 1;
                 }
                 
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false;
+                if (!messageExists)
+                {
+                    return false;
+                }
             }
 
             // Now receive messages until we find the target one
@@ -527,7 +539,7 @@ public class ServiceBusService : IServiceBusService
                     return false;
                 }
                 
-                var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+                var messageToRequeue = messages.FirstOrDefault(m => m.SequenceNumber == options.SequenceNumber);
 
                 if (messageToRequeue != null)
                 {
@@ -550,7 +562,7 @@ public class ServiceBusService : IServiceBusService
                     await dlqReceiver.CompleteMessageAsync(messageToRequeue);
                     
                     // Abandon other messages so they're available again
-                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != options.SequenceNumber))
                     {
                         await dlqReceiver.AbandonMessageAsync(msg);
                     }
@@ -587,7 +599,7 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
-    public async Task<bool> MoveActiveMessageToDeadLetterAsync(string entityName, long sequenceNumber, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<bool> MoveActiveMessageToDeadLetterAsync(MessageOperationOptions options)
     {
         if (_client == null) return false;
 
@@ -595,42 +607,45 @@ public class ServiceBusService : IServiceBusService
 
         try
         {
-            var options = new ServiceBusReceiverOptions
+            var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
 
             // Create receiver for active queue
-            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            if (options.IsSubscription && !string.IsNullOrEmpty(options.TopicName) && !string.IsNullOrEmpty(options.SubscriptionName))
             {
-                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
+                receiver = _client.CreateReceiver(options.TopicName, options.SubscriptionName, receiverOptions);
             }
             else
             {
-                receiver = _client.CreateReceiver(entityName, options);
+                receiver = _client.CreateReceiver(options.EntityName, receiverOptions);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            
-            for (int i = 0; i < MaxPeekBatches; i++)
+            // Only verify the message exists via Peek if not skipping verification
+            if (!options.SkipPeekVerification)
             {
-                var peekedMessages = await receiver.PeekMessagesAsync(PeekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
+                bool messageExists = false;
+                long? startSequence = null;
                 
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                for (int i = 0; i < MaxPeekBatches; i++)
                 {
-                    messageExists = true;
-                    break;
+                    var peekedMessages = await receiver.PeekMessagesAsync(PeekBatchSize, startSequence);
+                    if (peekedMessages.Count == 0) break;
+                    
+                    if (peekedMessages.Any(m => m.SequenceNumber == options.SequenceNumber))
+                    {
+                        messageExists = true;
+                        break;
+                    }
+                    
+                    startSequence = peekedMessages.Last().SequenceNumber + 1;
                 }
                 
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false;
+                if (!messageExists)
+                {
+                    return false;
+                }
             }
 
             // Now receive messages until we find the target one
@@ -669,7 +684,7 @@ public class ServiceBusService : IServiceBusService
                     return false;
                 }
                 
-                var messageToDeadLetter = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+                var messageToDeadLetter = messages.FirstOrDefault(m => m.SequenceNumber == options.SequenceNumber);
 
                 if (messageToDeadLetter != null)
                 {
@@ -677,7 +692,7 @@ public class ServiceBusService : IServiceBusService
                     await receiver.DeadLetterMessageAsync(messageToDeadLetter, DeadLetterReason, DeadLetterDescription);
                     
                     // Abandon other messages so they're available again
-                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != options.SequenceNumber))
                     {
                         await receiver.AbandonMessageAsync(msg);
                     }
@@ -871,7 +886,7 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
-    public async Task<bool> RescheduleMessageAsync(string entityName, long sequenceNumber, DateTime newScheduledTime, bool isSubscription = false, string? topicName = null, string? subscriptionName = null)
+    public async Task<bool> RescheduleMessageAsync(MessageOperationOptions options, DateTime newScheduledTime)
     {
         if (_client == null) return false;
 
@@ -880,46 +895,49 @@ public class ServiceBusService : IServiceBusService
 
         try
         {
-            var options = new ServiceBusReceiverOptions
+            var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
 
             // Create receiver and sender
-            if (isSubscription && !string.IsNullOrEmpty(topicName) && !string.IsNullOrEmpty(subscriptionName))
+            if (options.IsSubscription && !string.IsNullOrEmpty(options.TopicName) && !string.IsNullOrEmpty(options.SubscriptionName))
             {
-                receiver = _client.CreateReceiver(topicName, subscriptionName, options);
-                sender = _client.CreateSender(topicName);
+                receiver = _client.CreateReceiver(options.TopicName, options.SubscriptionName, receiverOptions);
+                sender = _client.CreateSender(options.TopicName);
             }
             else
             {
-                receiver = _client.CreateReceiver(entityName, options);
-                sender = _client.CreateSender(entityName);
+                receiver = _client.CreateReceiver(options.EntityName, receiverOptions);
+                sender = _client.CreateSender(options.EntityName);
             }
 
-            // First, use Peek to verify the message exists
-            bool messageExists = false;
-            long? startSequence = null;
-            const int peekBatchSize = 256;
-            int maxPeekBatches = 20;
-            
-            for (int i = 0; i < maxPeekBatches; i++)
+            // Only verify the message exists via Peek if not skipping verification
+            if (!options.SkipPeekVerification)
             {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
-                if (peekedMessages.Count == 0) break;
+                bool messageExists = false;
+                long? startSequence = null;
+                const int peekBatchSize = 256;
+                int maxPeekBatches = 20;
                 
-                if (peekedMessages.Any(m => m.SequenceNumber == sequenceNumber))
+                for (int i = 0; i < maxPeekBatches; i++)
                 {
-                    messageExists = true;
-                    break;
+                    var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                    if (peekedMessages.Count == 0) break;
+                    
+                    if (peekedMessages.Any(m => m.SequenceNumber == options.SequenceNumber))
+                    {
+                        messageExists = true;
+                        break;
+                    }
+                    
+                    startSequence = peekedMessages.Last().SequenceNumber + 1;
                 }
                 
-                startSequence = peekedMessages.Last().SequenceNumber + 1;
-            }
-            
-            if (!messageExists)
-            {
-                return false;
+                if (!messageExists)
+                {
+                    return false;
+                }
             }
 
             // Now receive messages until we find the target one
@@ -961,7 +979,7 @@ public class ServiceBusService : IServiceBusService
                     return false;
                 }
                 
-                var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == sequenceNumber);
+                var messageToReschedule = messages.FirstOrDefault(m => m.SequenceNumber == options.SequenceNumber);
 
                 if (messageToReschedule != null)
                 {
@@ -984,7 +1002,7 @@ public class ServiceBusService : IServiceBusService
                     await receiver.CompleteMessageAsync(messageToReschedule);
                     
                     // Abandon other messages so they're available again
-                    foreach (var msg in messages.Where(m => m.SequenceNumber != sequenceNumber))
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != options.SequenceNumber))
                     {
                         await receiver.AbandonMessageAsync(msg);
                     }
