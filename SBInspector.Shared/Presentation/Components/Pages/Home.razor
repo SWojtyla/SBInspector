@@ -822,7 +822,7 @@
         public bool IsDeleteFiltered { get; set; }
     }
     
-    private Dictionary<string, PurgeOperation> activeOperations = new();
+    private Dictionary<string, PurgeOperation> activeOperations = new Dictionary<string, PurgeOperation>();
 
     private void HandleDeleteMessage(MessageInfo message)
     {
@@ -1134,7 +1134,7 @@
         successMessage = string.Empty;
 
         // Create a unique operation ID for this purge operation
-        var operationId = $"{selectedEntity}_{selectedMessageType}_{DateTime.Now.Ticks}";
+        var operationId = $"{selectedEntity}_{selectedMessageType}_{Guid.NewGuid()}";
         
         var messageTypeDisplay = selectedMessageType switch
         {
@@ -1366,7 +1366,7 @@
         successMessage = string.Empty;
 
         // Create a unique operation ID for this delete filtered operation
-        var operationId = $"{selectedEntity}_{selectedMessageType}_filtered_{DateTime.Now.Ticks}";
+        var operationId = $"{selectedEntity}_{selectedMessageType}_filtered_{Guid.NewGuid()}";
         
         var messageTypeDisplay = selectedMessageType switch
         {
