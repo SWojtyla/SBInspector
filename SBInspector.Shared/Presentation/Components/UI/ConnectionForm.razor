@@ -4,6 +4,7 @@
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
+@inject ConnectionStringEncryptionService EncryptionService
 
 <div class="card">
     <div class="card-body">
@@ -124,7 +125,11 @@
         var connection = savedConnections.FirstOrDefault(c => c.Name == selectedConnectionName);
         if (connection != null)
         {
-            ConnectionString = connection.ConnectionString;
+            // Decrypt connection string if encrypted
+            ConnectionString = connection.IsEncrypted 
+                ? EncryptionService.Decrypt(connection.ConnectionString)
+                : connection.ConnectionString;
+            
             await ConnectionStringChanged.InvokeAsync(ConnectionString);
             connectionName = connection.Name;
             successMessage = $"Loaded connection '{connection.Name}'";
@@ -162,12 +167,13 @@
                     var savedConnection = new SavedConnection
                     {
                         Name = connectionName.Trim(),
-                        ConnectionString = ConnectionString,
+                        ConnectionString = EncryptionService.Encrypt(ConnectionString),
+                        IsEncrypted = true,
                         LastUsedAt = DateTime.UtcNow
                     };
                     await StorageService.SaveConnectionAsync(savedConnection);
                     await LoadSavedConnectionsAsync();
-                    successMessage = $"Connection saved as '{connectionName}'";
+                    successMessage = $"Connection saved as '{connectionName}' (encrypted)";
                     
                     // Notify that connections list has changed
                     ConnectionState.NotifyConnectionsChanged();
