@@ -4,6 +4,7 @@
 @inject IStorageService StorageService
 @inject IServiceBusService ServiceBusService
 @inject ConnectionStateService ConnectionState
+@inject ConnectionStringEncryptionService EncryptionService
 @implements IDisposable
 
 <div class="connection-tree-container">
@@ -98,9 +99,17 @@
 
     private bool IsConnected(SavedConnection connection)
     {
-        return ServiceBusService.IsConnected && 
-               !string.IsNullOrEmpty(ConnectionState.CurrentConnectionString) &&
-               connection.ConnectionString == ConnectionState.CurrentConnectionString;
+        if (!ServiceBusService.IsConnected || string.IsNullOrEmpty(ConnectionState.CurrentConnectionString))
+        {
+            return false;
+        }
+
+        // Get the decrypted connection string for comparison
+        var connectionString = connection.IsEncrypted 
+            ? EncryptionService.Decrypt(connection.ConnectionString)
+            : connection.ConnectionString;
+
+        return connectionString == ConnectionState.CurrentConnectionString;
     }
 
     private async Task HandleConnectionClick(SavedConnection connection)
