@@ -15,33 +15,6 @@
 
     <div class="row">
         <div class="col-lg-8">
-            <!-- Storage Location -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="bi bi-hdd"></i> Storage Location
-                    </h5>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Storage Type</label>
-                        <select class="form-select" @bind="selectedStorageType">
-                            <option value="@StorageType.LocalStorage">Browser Local Storage (Web)</option>
-                            <option value="@StorageType.FileSystem">File System (Desktop)</option>
-                        </select>
-                        <small class="form-text text-muted">
-                            @if (selectedStorageType == StorageType.LocalStorage)
-                            {
-                                <text>Data is stored in browser localStorage. Best for web deployments.</text>
-                            }
-                            else
-                            {
-                                <text>Data is saved to files on your system. Best for desktop applications.</text>
-                            }
-                        </small>
-                    </div>
-                </div>
-            </div>
-
             <!-- Export Path Configuration -->
             <div class="card mb-4">
                 <div class="card-body">
@@ -181,19 +154,13 @@
                         <i class="bi bi-info-circle"></i> About Settings
                     </h5>
                     <p class="card-text">
-                        Configure how SBInspector stores your data and where exported files are saved.
+                        Configure where exported files are saved and manage connection security.
                     </p>
                     <hr />
                     <h6>Security</h6>
                     <p class="small">
                         Connection strings are encrypted using the Data Protection API, which uses machine-specific keys to secure your sensitive data.
                     </p>
-                    <hr />
-                    <h6>Storage Types</h6>
-                    <ul class="small">
-                        <li><strong>Browser Local Storage:</strong> Data persists in your browser. Best for web deployments.</li>
-                        <li><strong>File System:</strong> Data is stored in files on your computer. Best for desktop applications.</li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -217,7 +184,6 @@
 </div>
 
 @code {
-    private StorageType selectedStorageType;
     private string exportPath = string.Empty;
     private string templatePath = string.Empty;
     private string defaultExportPath = string.Empty;
@@ -232,7 +198,6 @@
     protected override async Task OnInitializedAsync()
     {
         var config = ConfigService.GetConfiguration();
-        selectedStorageType = config.StorageType;
         exportPath = config.ExportPath;
         templatePath = config.TemplatePath;
         
@@ -276,7 +241,6 @@
 
         try
         {
-            await ConfigService.SetStorageTypeAsync(selectedStorageType);
             await ConfigService.SetExportPathAsync(exportPath);
             await ConfigService.SetTemplatePathAsync(templatePath);
 
