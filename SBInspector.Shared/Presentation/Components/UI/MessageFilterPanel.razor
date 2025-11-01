@@ -1,108 +1,54 @@
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 
-<div class="filter-panel mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">
-            <i class="bi bi-funnel"></i> Filter Messages
-        </h5>
+<MudPaper Class="pa-3 mb-3 mud-elevation-1">
+    <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.FilterList" /> Filter Messages</MudText>
         @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
         {
-            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAllFilters">
-                <i class="bi bi-x-circle"></i> Clear All
-            </button>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ClearAllFilters" StartIcon="@Icons.Material.Filled.Clear">Clear All</MudButton>
         }
-    </div>
-    
-    @for (int i = 0; i < Filters.Count; i++)
+    </MudStack>
+    @for (int i =0; i < Filters.Count; i++)
     {
         var index = i;
         var filter = Filters[index];
-        <div class="card mb-2" style="border: 1px solid #dee2e6;">
-            <div class="card-body p-3">
-                <div class="row g-2">
-                    <div class="col-auto d-flex align-items-center">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="filterEnabled_@index" 
-                                   checked="@filter.IsEnabled"
-                                   @onchange="@(async e => { filter.IsEnabled = (bool)(e.Value ?? true); await NotifyFiltersChanged(); })"
-                                   title="Enable or disable this filter" />
-                            <label class="form-check-label visually-hidden" for="filterEnabled_@index">
-                                Enable filter
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filterField_@index" class="form-label fw-semibold">Filter Field</label>
-                        <select class="form-select form-select-sm" id="filterField_@index" 
-                                value="@filter.Field" 
-                                disabled="@(!filter.IsEnabled)"
-                                @onchange="@(async e => { filter.Field = Enum.Parse<FilterField>(e.Value?.ToString() ?? "ApplicationProperty"); await NotifyFiltersChanged(); })">
-                            <option value="@FilterField.ApplicationProperty">Application Property</option>
-                            <option value="@FilterField.EnqueuedTime">Enqueued Time</option>
-                            <option value="@FilterField.DeliveryCount">Delivery Count</option>
-                            <option value="@FilterField.SequenceNumber">Sequence Number</option>
-                        </select>
-                    </div>
-                    
+        <MudCard Class="mb-2">
+            <MudCardContent>
+                <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudCheckBox T="bool" @bind-Checked="filter.IsEnabled" Color="Color.Primary" Title="Enable or disable this filter" />
+                    <MudSelect T="FilterField" @bind-Value="filter.Field" Label="Filter Field" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense">
+                        <MudSelectItem Value="FilterField.ApplicationProperty">Application Property</MudSelectItem>
+                        <MudSelectItem Value="FilterField.EnqueuedTime">Enqueued Time</MudSelectItem>
+                        <MudSelectItem Value="FilterField.DeliveryCount">Delivery Count</MudSelectItem>
+                        <MudSelectItem Value="FilterField.SequenceNumber">Sequence Number</MudSelectItem>
+                    </MudSelect>
                     @if (filter.Field == FilterField.ApplicationProperty)
                     {
-                        <div class="col-md-3">
-                            <label for="filterAttributeName_@index" class="form-label fw-semibold">Attribute Name</label>
-                            <input type="text" class="form-control form-control-sm" id="filterAttributeName_@index" 
-                                   value="@filter.AttributeName" 
-                                   disabled="@(!filter.IsEnabled)"
-                                   @oninput="@(async e => { filter.AttributeName = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
-                                   placeholder="e.g., customerId, orderId" />
-                        </div>
+                        <MudTextField @bind-Value="filter.AttributeName" Label="Attribute Name" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="e.g., customerId, orderId" Margin="Margin.Dense" />
                     }
-                    
-                    <div class="col-md-@(filter.Field == FilterField.ApplicationProperty ? "2" : "3")">
-                        <label for="Core.Domain.FilterOperator_@index" class="form-label fw-semibold">Operator</label>
-                        <select class="form-select form-select-sm" id="Core.Domain.FilterOperator_@index" 
-                                value="@filter.Operator" 
-                                disabled="@(!filter.IsEnabled)"
-                                @onchange="@(async e => { filter.Operator = Enum.Parse<Core.Domain.FilterOperator>(e.Value?.ToString() ?? "Contains"); await NotifyFiltersChanged(); })">
-                            @foreach (var op in GetAvailableOperators(filter.Field))
-                            {
-                                <option value="@op">@GetOperatorDisplayName(op)</option>
-                            }
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-@(filter.Field == FilterField.ApplicationProperty ? "2" : "3")">
-                        <label for="filterAttributeValue_@index" class="form-label fw-semibold">Value</label>
-                        <input type="@GetInputType(filter.Field)" class="form-control form-control-sm" id="filterAttributeValue_@index" 
-                               value="@filter.AttributeValue" 
-                               disabled="@(!filter.IsEnabled)"
-                               @oninput="@(async e => { filter.AttributeValue = e.Value?.ToString() ?? string.Empty; await NotifyFiltersChanged(); })" 
-                               placeholder="@GetPlaceholder(filter.Field, filter.Operator)" />
-                    </div>
-                    
-                    <div class="col-md-1 d-flex align-items-end">
-                        @if (Filters.Count > 1)
+                    <MudSelect T="Core.Domain.FilterOperator" @bind-Value="filter.Operator" Label="Operator" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense">
+                        @foreach (var op in GetAvailableOperators(filter.Field))
                         {
-                            <button class="btn btn-sm btn-outline-danger w-100" @onclick="() => RemoveFilterAtIndex(index)" title="Remove this filter">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <MudSelectItem Value="@op">@GetOperatorDisplayName(op)</MudSelectItem>
                         }
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </MudSelect>
+                    <MudTextField @bind-Value="filter.AttributeValue" Label="Value" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="@GetPlaceholder(filter.Field, filter.Operator)" Margin="Margin.Dense" Type="@GetInputType(filter.Field)" />
+                    @if (Filters.Count >1)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="() => RemoveFilterAtIndex(index)" StartIcon="@Icons.Material.Filled.Delete" Title="Remove this filter"></MudButton>
+                    }
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
     }
-    
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <button class="btn btn-sm btn-outline-primary" @onclick="AddNewFilter">
-            <i class="bi bi-plus-circle"></i> Add Filter
-        </button>
-        <div class="text-muted">
-            <i class="bi bi-info-circle"></i>
-            <small>
-                Showing <strong>@FilteredCount</strong> of <strong>@TotalCount</strong> messages
-            </small>
-        </div>
-    </div>
-</div>
+    <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Class="mt-3">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddNewFilter" StartIcon="@Icons.Material.Filled.Add">Add Filter</MudButton>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            <MudIcon Icon="@Icons.Material.Filled.Info" /> Showing <b>@FilteredCount</b> of <b>@TotalCount</b> messages
+        </MudText>
+    </MudStack>
+</MudPaper>
 
 @code {
     [Parameter]
@@ -130,7 +76,7 @@
 
     private async Task RemoveFilterAtIndex(int index)
     {
-        if (Filters.Count > 1)
+        if (Filters.Count >1)
         {
             Filters.RemoveAt(index);
             await FiltersChanged.InvokeAsync(Filters);
@@ -199,13 +145,13 @@
         };
     }
 
-    private string GetInputType(FilterField field)
+    private InputType GetInputType(FilterField field)
     {
         return field switch
         {
-            FilterField.EnqueuedTime => "datetime-local",
-            FilterField.DeliveryCount or FilterField.SequenceNumber => "number",
-            _ => "text"
+            FilterField.EnqueuedTime => InputType.DateTimeLocal,
+            FilterField.DeliveryCount or FilterField.SequenceNumber => InputType.Number,
+            _ => InputType.Text
         };
     }
 
@@ -214,10 +160,10 @@
         return field switch
         {
             FilterField.EnqueuedTime => "Select date and time",
-            FilterField.DeliveryCount => "e.g., 5",
-            FilterField.SequenceNumber => "e.g., 12345",
+            FilterField.DeliveryCount => "e.g.,5",
+            FilterField.SequenceNumber => "e.g.,12345",
             FilterField.ApplicationProperty when op == Core.Domain.FilterOperator.Regex => "e.g., ^ABC.*",
-            FilterField.ApplicationProperty => "e.g., 12345, ABC",
+            FilterField.ApplicationProperty => "e.g.,12345, ABC",
             _ => ""
         };
     }

@@ -1,147 +1,87 @@
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 @inject IStorageService StorageService
 
 @if (IsVisible)
 {
-    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-send"></i> @Title
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="HandleClose"></button>
-                </div>
-                <div class="modal-body">
-                    @if (!IsReschedule && messageTemplates.Any())
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Message Templates</label>
-                            <div class="d-flex gap-2">
-                                <select class="form-select" @bind="selectedTemplateId">
-                                    <option value="">-- Select a template --</option>
-                                    @foreach (var template in messageTemplates)
-                                    {
-                                        <option value="@template.Id">@template.Name @(template.LastUsedAt.HasValue ? $"(last used: {template.LastUsedAt.Value.ToLocalTime():g})" : "")</option>
-                                    }
-                                </select>
-                                <button class="btn btn-sm btn-outline-primary" @onclick="LoadSelectedTemplate" disabled="@string.IsNullOrEmpty(selectedTemplateId)">
-                                    <i class="bi bi-arrow-down-circle"></i> Load
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedTemplate" disabled="@string.IsNullOrEmpty(selectedTemplateId)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    }
-
-                    <div class="mb-3">
-                        <label class="form-label">Message Body *</label>
-                        <textarea class="form-control" rows="6" @bind="messageBody" placeholder="Enter message body..."></textarea>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Subject</label>
-                            <input type="text" class="form-control" @bind="subject" placeholder="Optional subject" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Content Type</label>
-                            <input type="text" class="form-control" @bind="contentType" placeholder="e.g., application/json" />
-                        </div>
-                    </div>
-
-                    @if (IsReschedule)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Scheduled Enqueue Time *</label>
-                            <input type="datetime-local" class="form-control" @bind="scheduledTime" />
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="scheduleCheck" @bind="isScheduled" disabled="@sendToDeadLetter" />
-                            <label class="form-check-label" for="scheduleCheck">
-                                Schedule message for later delivery
-                            </label>
-                        </div>
-
-                        @if (isScheduled)
+    <MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Open="true">
+        <MudDialogTitle>
+            <MudIcon Icon="@Icons.Material.Filled.Send" /> @Title
+        </MudDialogTitle>
+        <MudDialogContent>
+            @if (!IsReschedule && messageTemplates.Any())
+            {
+                <MudText Typo="Typo.subtitle2">Message Templates</MudText>
+                <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudSelect T="string" @bind-Value="selectedTemplateId" Label="Select a template" Dense="true" Margin="Margin.Dense">
+                        <MudSelectItem Value="string.Empty">-- Select a template --</MudSelectItem>
+                        @foreach (var template in messageTemplates)
                         {
-                            <div class="mb-3">
-                                <label class="form-label">Scheduled Enqueue Time *</label>
-                                <input type="datetime-local" class="form-control" @bind="scheduledTime" />
-                            </div>
+                            <MudSelectItem Value="@template.Id">@template.Name @(template.LastUsedAt.HasValue ? $"(last used: {template.LastUsedAt.Value.ToLocalTime():g})" : "")</MudSelectItem>
                         }
-
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="deadLetterCheck" @bind="sendToDeadLetter" />
-                            <label class="form-check-label" for="deadLetterCheck">
-                                Send directly to dead-letter queue
-                            </label>
-                        </div>
-                    }
-
-                    <div class="mb-3">
-                        <label class="form-label">Application Properties</label>
-                        <small class="text-muted d-block mb-2">Add key-value pairs (one per line, format: key=value)</small>
-                        <textarea class="form-control" rows="4" @bind="propertiesText" placeholder="key1=value1&#10;key2=value2"></textarea>
-                    </div>
-
-                    @if (!IsReschedule)
-                    {
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="saveTemplate" @bind="shouldSaveTemplate" />
-                                <label class="form-check-label" for="saveTemplate">
-                                    Save as template for later use
-                                </label>
-                            </div>
-                            @if (shouldSaveTemplate)
-                            {
-                                <div class="mt-2">
-                                    <input type="text" class="form-control" @bind="templateName" placeholder="Enter a name for this template" />
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle"></i> @errorMessage
-                        </div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(successMessage))
-                    {
-                        <div class="alert alert-success alert-dismissible fade show">
-                            <i class="bi bi-check-circle"></i> @successMessage
-                            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleClose">
-                        <i class="bi bi-x-lg"></i> Cancel
-                    </button>
-                    <button type="button" class="btn btn-primary" @onclick="HandleSend" disabled="@isSending">
-                        @if (isSending)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span>Sending...</span>
-                        }
-                        else
-                        {
-                            <span><i class="bi bi-send"></i> @(IsReschedule ? "Reschedule" : "Send")</span>
-                        }
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Download">Load</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Delete">Delete</MudButton>
+                </MudStack>
+            }
+            <MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Margin="Margin.Normal" Lines="6" />
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="subject" Label="Subject" Margin="Margin.Normal" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="contentType" Label="Content Type" Margin="Margin.Normal" Placeholder="e.g., application/json" />
+                </MudItem>
+            </MudGrid>
+            @if (IsReschedule)
+            {
+                <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Margin="Margin.Normal" InputType="InputType.DateTimeLocal" />
+            }
+            else
+            {
+                <MudCheckBox T="bool" @bind-Checked="isScheduled" Label="Schedule message for later delivery" Disabled="@sendToDeadLetter" />
+                @if (isScheduled)
+                {
+                    <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Margin="Margin.Normal" InputType="InputType.DateTimeLocal" />
+                }
+                <MudCheckBox T="bool" @bind-Checked="sendToDeadLetter" Label="Send directly to dead-letter queue" />
+            }
+            <MudText Typo="Typo.subtitle2">Application Properties</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Add key-value pairs (one per line, format: key=value)</MudText>
+            <MudTextField @bind-Value="propertiesText" Label="Application Properties" Margin="Margin.Normal" Lines="4" />
+            @if (!IsReschedule)
+            {
+                <MudCheckBox T="bool" @bind-Checked="shouldSaveTemplate" Label="Save as template for later use" />
+                @if (shouldSaveTemplate)
+                {
+                    <MudTextField @bind-Value="templateName" Label="Template Name" Margin="Margin.Normal" />
+                }
+            }
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true"><MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage</MudAlert>
+            }
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" OnClose="@(() => successMessage = string.Empty)"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage</MudAlert>
+            }
+        </MudDialogContent>
+        <MudDialogActions>
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleClose" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSend" Disabled="@isSending" StartIcon="@Icons.Material.Filled.Send">
+                @if (isSending)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                    <span>Sending...</span>
+                }
+                else
+                {
+                    <span>@(IsReschedule ? "Reschedule" : "Send")</span>
+                }
+            </MudButton>
+        </MudDialogActions>
+    </MudDialog>
 }
 
 @code {

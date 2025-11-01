@@ -1,62 +1,36 @@
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 
 @if (IsVisible)
 {
-    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-file-earmark-text"></i> @(IsEditMode ? "Edit Template" : "New Template")
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="HandleClose"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Template Name *</label>
-                        <input type="text" class="form-control" @bind="templateName" placeholder="Enter template name..." />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Message Body *</label>
-                        <textarea class="form-control" rows="8" @bind="messageBody" placeholder="Enter message body..."></textarea>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Subject</label>
-                            <input type="text" class="form-control" @bind="subject" placeholder="Optional subject" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Content Type</label>
-                            <input type="text" class="form-control" @bind="contentType" placeholder="e.g., application/json" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Application Properties</label>
-                        <small class="text-muted d-block mb-2">Add key-value pairs (one per line, format: key=value)</small>
-                        <textarea class="form-control" rows="4" @bind="propertiesText" placeholder="key1=value1&#10;key2=value2"></textarea>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle"></i> @errorMessage
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleClose">
-                        <i class="bi bi-x-lg"></i> Cancel
-                    </button>
-                    <button type="button" class="btn btn-primary" @onclick="HandleSave">
-                        <i class="bi bi-check-lg"></i> Save
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Open="true">
+<MudDialogTitle>
+<MudIcon Icon="@Icons.Material.Filled.Description" /> @(IsEditMode ? "Edit Template" : "New Template")
+</MudDialogTitle>
+<MudDialogContent>
+<MudTextField @bind-Value="templateName" Label="Template Name *" Required="true" Margin="Margin.Normal" />
+<MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Margin="Margin.Normal" Lines="8" />
+<MudGrid Class="mb-3">
+<MudItem xs="6">
+<MudTextField @bind-Value="subject" Label="Subject" Margin="Margin.Normal" />
+</MudItem>
+<MudItem xs="6">
+<MudTextField @bind-Value="contentType" Label="Content Type" Margin="Margin.Normal" Placeholder="e.g., application/json" />
+</MudItem>
+</MudGrid>
+<MudText Typo="Typo.subtitle2">Application Properties</MudText>
+<MudText Typo="Typo.caption" Color="Color.Secondary">Add key-value pairs (one per line, format: key=value)</MudText>
+<MudTextField @bind-Value="propertiesText" Label="Application Properties" Margin="Margin.Normal" Lines="4" />
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+<MudAlert Severity="Severity.Error" Dense="true"><MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage</MudAlert>
+}
+</MudDialogContent>
+<MudDialogActions>
+<MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleClose" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave" StartIcon="@Icons.Material.Filled.Check">Save</MudButton>
+</MudDialogActions>
+</MudDialog>
 }
 
 @code {

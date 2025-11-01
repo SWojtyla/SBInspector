@@ -1,149 +1,131 @@
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 
-<div class="entity-details-panel">
+<MudPaper Class="pa-2 mud-elevation-2">
     @if (EntityType == "queue" && QueueInfo != null)
     {
-        <div class="details-header">
-            <div>
-                <h4><i class="bi bi-inbox-fill"></i> @QueueInfo.Name</h4>
-                <span class="badge @(QueueInfo.Status == "Active" ? "bg-success" : "bg-secondary")">
+        <MudStack Spacing="2">
+            <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
+                <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.Inbox" /> @QueueInfo.Name</MudText>
+                <MudChip T=EntityInfo Color="@(QueueInfo.Status == "Active" ? Color.Success : Color.Default)" Variant="Variant.Filled">
                     @QueueInfo.Status
-                </span>
-            </div>
-            <button class="btn btn-sm @(QueueInfo.Status == "Active" ? "btn-secondary" : "btn-success")" 
-                    @onclick="() => OnToggleStatus.InvokeAsync()">
-                <i class="bi @(QueueInfo.Status == "Active" ? "bi-pause-circle" : "bi-play-circle")"></i>
-                @(QueueInfo.Status == "Active" ? "Disable" : "Enable")
-            </button>
-        </div>
+                </MudChip>
+                <MudButton Variant="Variant.Filled" Color="@(QueueInfo.Status == "Active" ? Color.Secondary : Color.Success)"
+                           OnClick="() => OnToggleStatus.InvokeAsync()">
+                    <MudIcon Icon="@(QueueInfo.Status == "Active" ? Icons.Material.Filled.PauseCircle : Icons.Material.Filled.PlayCircle)" /> @(QueueInfo.Status == "Active" ? "Disable" : "Enable")
+                </MudButton>
+            </MudStack>
 
-        <div class="details-content">
-            <h5>Message Counts</h5>
-            <div class="message-type-cards">
-                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Active"))">
-                    <div class="message-type-icon active">
-                        <i class="bi bi-inbox"></i>
-                    </div>
-                    <div class="message-type-info">
-                        <h6>Active Messages</h6>
-                        <span class="message-count">@QueueInfo.ActiveMessageCount</span>
-                    </div>
-                    @if (QueueInfo.ActiveMessageCount > 0)
-                    {
-                        <button class="btn btn-sm btn-primary">View</button>
-                    }
-                </div>
-
-                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Scheduled"))">
-                    <div class="message-type-icon scheduled">
-                        <i class="bi bi-clock"></i>
-                    </div>
-                    <div class="message-type-info">
-                        <h6>Scheduled Messages</h6>
-                        <span class="message-count">@QueueInfo.ScheduledMessageCount</span>
-                    </div>
-                    @if (QueueInfo.ScheduledMessageCount > 0)
-                    {
-                        <button class="btn btn-sm btn-warning">View</button>
-                    }
-                </div>
-
-                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
-                    <div class="message-type-icon deadletter">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </div>
-                    <div class="message-type-info">
-                        <h6>Dead Letter Messages</h6>
-                        <span class="message-count">@QueueInfo.DeadLetterMessageCount</span>
-                    </div>
-                    @if (QueueInfo.DeadLetterMessageCount > 0)
-                    {
-                        <button class="btn btn-sm btn-danger">View</button>
-                    }
-                </div>
-            </div>
-        </div>
+            <MudText Typo="Typo.h6">Message Counts</MudText>
+            <MudStack Direction="Row" Spacing="2">
+                <MudPaper Class="pa-2" Style="cursor:pointer;" OnClick="@(() => OnViewMessages.InvokeAsync("Active"))">
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle2">Active Messages</MudText>
+                        <MudChip T=EntityInfo Color="Color.Primary">@QueueInfo.ActiveMessageCount</MudChip>
+                        @if (QueueInfo.ActiveMessageCount >0)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small">View</MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+                
+                <MudPaper Class="pa-2" Style="cursor:pointer;" OnClick="@(() => OnViewMessages.InvokeAsync("Scheduled"))">
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" />
+                        <MudText Typo="Typo.subtitle2">Scheduled Messages</MudText>
+                        <MudChip T=EntityInfo Color ="Color.Warning">@QueueInfo.ScheduledMessageCount</MudChip>
+                        @if (QueueInfo.ScheduledMessageCount >0)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">View</MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+                
+                <MudPaper Class="pa-2" Style="cursor:pointer;" OnClick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Error" />
+                        <MudText Typo="Typo.subtitle2">Dead Letter Messages</MudText>
+                        <MudChip T=EntityInfo Color="Color.Error">@QueueInfo.DeadLetterMessageCount</MudChip>
+                        @if (QueueInfo.DeadLetterMessageCount >0)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small">View</MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudStack>
     }
     else if (EntityType == "topic" && TopicInfo != null)
     {
-        <div class="details-header">
-            <div>
-                <h4><i class="bi bi-broadcast-pin"></i> @TopicInfo.Name</h4>
-                <span class="badge @(TopicInfo.Status == "Active" ? "bg-success" : "bg-secondary")">
+        <MudStack Spacing="2">
+            <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
+                <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.Campaign" /> @TopicInfo.Name</MudText>
+                <MudChip T=EntityInfo Color ="@(TopicInfo.Status == "Active" ? Color.Success : Color.Default)" Variant="Variant.Filled">
                     @TopicInfo.Status
-                </span>
-            </div>
-            <button class="btn btn-sm @(TopicInfo.Status == "Active" ? "btn-secondary" : "btn-success")" 
-                    @onclick="() => OnToggleStatus.InvokeAsync()">
-                <i class="bi @(TopicInfo.Status == "Active" ? "bi-pause-circle" : "bi-play-circle")"></i>
-                @(TopicInfo.Status == "Active" ? "Disable" : "Enable")
-            </button>
-        </div>
+                </MudChip>
+                <MudButton Variant="Variant.Filled" Color="@(TopicInfo.Status == "Active" ? Color.Secondary : Color.Success)"
+                           OnClick="() => OnToggleStatus.InvokeAsync()">
+                    <MudIcon Icon="@(TopicInfo.Status == "Active" ? Icons.Material.Filled.PauseCircle : Icons.Material.Filled.PlayCircle)" /> @(TopicInfo.Status == "Active" ? "Disable" : "Enable")
+                </MudButton>
+            </MudStack>
 
-        <div class="details-content">
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> Select a subscription from the tree to view its messages.
-            </div>
-        </div>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                <MudIcon Icon="@Icons.Material.Filled.Info" /> Select a subscription from the tree to view its messages.
+            </MudAlert>
+        </MudStack>
     }
     else if (EntityType == "subscription" && SubscriptionInfo != null)
     {
-        <div class="details-header">
-            <div>
-                <h4><i class="bi bi-envelope"></i> @TopicName / @SubscriptionInfo.Name</h4>
-                <span class="badge @(SubscriptionInfo.Status == "Active" ? "bg-success" : "bg-secondary")">
+        <MudStack Spacing="2">
+            <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
+                <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.Email" /> @TopicName / @SubscriptionInfo.Name</MudText>
+                <MudChip T=SubscriptionInfo Color="@(SubscriptionInfo.Status == "Active" ? Color.Success : Color.Default)" Variant="Variant.Filled">
                     @SubscriptionInfo.Status
-                </span>
-            </div>
-            <button class="btn btn-sm @(SubscriptionInfo.Status == "Active" ? "btn-secondary" : "btn-success")" 
-                    @onclick="() => OnToggleStatus.InvokeAsync()">
-                <i class="bi @(SubscriptionInfo.Status == "Active" ? "bi-pause-circle" : "bi-play-circle")"></i>
-                @(SubscriptionInfo.Status == "Active" ? "Disable" : "Enable")
-            </button>
-        </div>
+                </MudChip>
+                <MudButton Variant="Variant.Filled" Color="@(SubscriptionInfo.Status == "Active" ? Color.Secondary : Color.Success)"
+                           OnClick="() => OnToggleStatus.InvokeAsync()">
+                    <MudIcon Icon="@(SubscriptionInfo.Status == "Active" ? Icons.Material.Filled.PauseCircle : Icons.Material.Filled.PlayCircle)" /> @(SubscriptionInfo.Status == "Active" ? "Disable" : "Enable")
+                </MudButton>
+            </MudStack>
 
-        <div class="details-content">
-            <h5>Message Counts</h5>
-            <div class="message-type-cards">
-                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("Active"))">
-                    <div class="message-type-icon active">
-                        <i class="bi bi-inbox"></i>
-                    </div>
-                    <div class="message-type-info">
-                        <h6>Active Messages</h6>
-                        <span class="message-count">@SubscriptionInfo.ActiveMessageCount</span>
-                    </div>
-                    @if (SubscriptionInfo.ActiveMessageCount > 0)
-                    {
-                        <button class="btn btn-sm btn-primary">View</button>
-                    }
-                </div>
-
-                <div class="message-type-card" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
-                    <div class="message-type-icon deadletter">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </div>
-                    <div class="message-type-info">
-                        <h6>Dead Letter Messages</h6>
-                        <span class="message-count">@SubscriptionInfo.DeadLetterMessageCount</span>
-                    </div>
-                    @if (SubscriptionInfo.DeadLetterMessageCount > 0)
-                    {
-                        <button class="btn btn-sm btn-danger">View</button>
-                    }
-                </div>
-            </div>
-        </div>
+            <MudText Typo="Typo.h6">Message Counts</MudText>
+            <MudStack Direction="Row" Spacing="2">
+                <MudPaper Class="pa-2" Style="cursor:pointer;" OnClick="@(() => OnViewMessages.InvokeAsync("Active"))">
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle2">Active Messages</MudText>
+                        <MudChip T=SubscriptionInfo Color="Color.Primary">@SubscriptionInfo.ActiveMessageCount</MudChip>
+                        @if (SubscriptionInfo.ActiveMessageCount >0)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small">View</MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+                
+                <MudPaper Class="pa-2" Style="cursor:pointer;" OnClick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Error" />
+                        <MudText Typo="Typo.subtitle2">Dead Letter Messages</MudText>
+                        <MudChip T=SubscriptionInfo Color="Color.Error">@SubscriptionInfo.DeadLetterMessageCount</MudChip>
+                        @if (SubscriptionInfo.DeadLetterMessageCount >0)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small">View</MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudStack>
     }
     else
     {
-        <div class="details-placeholder">
-            <i class="bi bi-arrow-left-circle"></i>
-            <h5>Select an entity from the tree</h5>
-            <p>Choose a queue, topic, or subscription to view its details and messages.</p>
-        </div>
+        <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Large" />
+            <MudText Typo="Typo.h6">Select an entity from the tree</MudText>
+            <MudText Typo="Typo.body2">Choose a queue, topic, or subscription to view its details and messages.</MudText>
+        </MudStack>
     }
-</div>
+</MudPaper>
 
 @code {
     [Parameter]

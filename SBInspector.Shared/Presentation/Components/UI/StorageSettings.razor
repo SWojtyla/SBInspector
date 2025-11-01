@@ -1,47 +1,45 @@
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Application.Services
+@using MudBlazor
 @inject StorageConfigurationService ConfigService
 
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title">
-            <i class="bi bi-gear"></i> Storage Settings
-        </h5>
+<MudCard Class="mud-elevation-2">
+    <MudCardContent>
+        <MudText Typo="Typo.h5">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" /> Storage Settings
+        </MudText>
         
-        <div class="mb-3">
-            <label class="form-label">Storage Location</label>
-            <select class="form-select" @bind="selectedStorageType" @bind:after="OnStorageTypeChanged">
-                <option value="@StorageType.LocalStorage">Browser Local Storage (Web)</option>
-                <option value="@StorageType.FileSystem">File System (Desktop - Recommended for Tauri)</option>
-            </select>
-            <small class="form-text text-muted">
-                @if (selectedStorageType == StorageType.LocalStorage)
-                {
-                    <text>Data is stored in browser localStorage. Best for web deployments.</text>
-                }
-                else
-                {
-                    <text>Data is saved to files on your Desktop in 'SBInspector' folder. Best for Tauri desktop app.</text>
-                }
-            </small>
-        </div>
-
+        <MudSelect T="StorageType" @bind-Value="selectedStorageType" Label="Storage Location" Margin="Margin.Normal" OnBlur="OnStorageTypeChanged">
+            <MudSelectItem Value="StorageType.LocalStorage">Browser Local Storage (Web)</MudSelectItem>
+            <MudSelectItem Value="StorageType.FileSystem">File System (Desktop - Recommended for Tauri)</MudSelectItem>
+        </MudSelect>
+        
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @if (selectedStorageType == StorageType.LocalStorage)
+            {
+                <text>Data is stored in browser localStorage. Best for web deployments.</text>
+            }
+            else
+            {
+                <text>Data is saved to files on your Desktop in 'SBInspector' folder. Best for Tauri desktop app.</text>
+            }
+        </MudText>
+        
         @if (!string.IsNullOrEmpty(successMessage))
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle"></i> @successMessage
-                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
-            </div>
+            <MudAlert Severity="Severity.Success" Dense="true" OnClose="@(() => successMessage = string.Empty)">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage
+            </MudAlert>
         }
 
         @if (!string.IsNullOrEmpty(infoMessage))
         {
-            <div class="alert alert-info" role="alert">
-                <i class="bi bi-info-circle"></i> @infoMessage
-            </div>
+            <MudAlert Severity="Severity.Info" Dense="true">
+                <MudIcon Icon="@Icons.Material.Filled.Info" /> @infoMessage
+            </MudAlert>
         }
-    </div>
-</div>
+    </MudCardContent>
+</MudCard>
 
 @code {
     private StorageType selectedStorageType;

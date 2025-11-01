@@ -1,116 +1,69 @@
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 
-<div class="card card-enhanced mt-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0">
-                <i class="bi bi-folder"></i> @TopicName
-            </h4>
-            <small class="text-muted">Subscriptions (@Subscriptions.Count)</small>
-        </div>
-        <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
-            <i class="bi bi-x-lg"></i> Close
-        </button>
-    </div>
-    <div class="card-body">
+<MudCard Class="mud-elevation-2 mt-4">
+    <MudCardHeader>
+        <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
+            <MudStack>
+                <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.Folder" /> @TopicName</MudText>
+                <MudChip T=SubscriptionInfo Color="Color.Primary" Size="Size.Small">Subscriptions (@Subscriptions.Count)</MudChip>
+            </MudStack>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="HandleClose" StartIcon="@Icons.Material.Filled.Close">Close</MudButton>
+        </MudStack>
+    </MudCardHeader>
+    <MudCardContent>
         @if (IsLoading)
         {
-            <div class="loading-container">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading subscriptions...</span>
-                </div>
-                <div class="loading-text">Loading subscriptions...</div>
-            </div>
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="my-4">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.body1">Loading subscriptions...</MudText>
+            </MudStack>
         }
         else if (Subscriptions.Any())
         {
-            <div class="mb-3">
-                <div class="search-box">
-                    <input type="text" class="form-control" placeholder="Search subscriptions..." 
-                           @bind="searchTerm" @bind:event="oninput" />
-                </div>
-            </div>
-            
-            <div class="scrollable-content">
+            <MudTextField @bind-Value="searchTerm" Placeholder="Search subscriptions..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" Class="mb-3" />
+            <MudStack Spacing="2">
                 @foreach (var subscription in FilteredSubscriptions)
                 {
-                    <div class="subscription-card">
-                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                            <div class="flex-grow-1 mb-2 mb-md-0">
-                                <h5 class="mb-2">
-                                    <i class="bi bi-envelope"></i> @subscription.Name
-                                    <span class="badge @(subscription.Status == "Active" ? "bg-success" : "bg-secondary") ms-2">
-                                        @subscription.Status
-                                    </span>
-                                </h5>
-                                <div class="d-flex gap-3 flex-wrap">
-                                    <span class="message-count">
-                                        <i class="bi bi-inbox"></i> Active: 
-                                        <span class="message-badge @(subscription.ActiveMessageCount > 0 ? "active" : "zero")">
-                                            @subscription.ActiveMessageCount
-                                        </span>
-                                    </span>
-                                    <span class="message-count">
-                                        <i class="bi bi-exclamation-triangle"></i> Dead Letter: 
-                                        <span class="message-badge @(subscription.DeadLetterMessageCount > 0 ? "deadletter" : "zero")">
-                                            @subscription.DeadLetterMessageCount
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="action-buttons">
+                    <MudPaper Class="pa-2">
+                        <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
+                            <MudStack>
+                                <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Email" /> @subscription.Name</MudText>
+                                <MudChip T=SubscriptionInfo Color="@(subscription.Status == "Active" ? Color.Success : Color.Default)" Size="Size.Small">@subscription.Status</MudChip>
+                                <MudStack Direction="Row" Spacing="1">
+                                    <MudChip T=SubscriptionInfo Color="Color.Primary" Size="Size.Small"><MudIcon Icon="@Icons.Material.Filled.Inbox" /> @subscription.ActiveMessageCount</MudChip>
+                                    <MudChip T=SubscriptionInfo Color="Color.Error" Size="Size.Small"><MudIcon Icon="@Icons.Material.Filled.ReportProblem" /> @subscription.DeadLetterMessageCount</MudChip>
+                                </MudStack>
+                            </MudStack>
+                            <MudStack Direction="Row" Spacing="1">
                                 @if (subscription.Status == "Active")
                                 {
-                                    <button class="btn btn-sm btn-secondary" 
-                                            @onclick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))"
-                                            title="Disable Subscription">
-                                        <i class="bi bi-pause-circle"></i> <span class="d-none d-lg-inline">Disable</span>
-                                    </button>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))" StartIcon="@Icons.Material.Filled.PauseCircle">Disable</MudButton>
                                 }
                                 else
                                 {
-                                    <button class="btn btn-sm btn-success" 
-                                            @onclick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))"
-                                            title="Enable Subscription">
-                                        <i class="bi bi-play-circle"></i> <span class="d-none d-lg-inline">Enable</span>
-                                    </button>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))" StartIcon="@Icons.Material.Filled.PlayCircle">Enable</MudButton>
                                 }
-                                <button class="btn btn-sm btn-primary" 
-                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Active")))"
-                                        title="View Active Messages">
-                                    <i class="bi bi-inbox"></i> <span class="d-none d-lg-inline">View </span>Active
-                                </button>
-                                <button class="btn btn-sm btn-warning" 
-                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Scheduled")))"
-                                        title="View Scheduled Messages">
-                                    <i class="bi bi-clock"></i> <span class="d-none d-lg-inline">View </span>Scheduled
-                                </button>
-                                <button class="btn btn-sm btn-danger" 
-                                        @onclick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "DeadLetter")))"
-                                        title="View Dead Letter Messages">
-                                    <i class="bi bi-exclamation-triangle"></i> <span class="d-none d-lg-inline">View </span>DLQ
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Active")))" StartIcon="@Icons.Material.Filled.Inbox">Active</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Scheduled")))" StartIcon="@Icons.Material.Filled.Schedule">Scheduled</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "DeadLetter")))" StartIcon="@Icons.Material.Filled.ReportProblem">DLQ</MudButton>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
                 }
-            </div>
+            </MudStack>
             
             @if (!FilteredSubscriptions.Any())
             {
-                <div class="alert alert-info mt-3">
-                    No subscriptions match your search criteria.
-                </div>
+                <MudAlert Severity="Severity.Info" Class="mt-3">No subscriptions match your search criteria.</MudAlert>
             }
         }
         else
         {
-            <div class="alert alert-warning">
-                <i class="bi bi-info-circle"></i> No subscriptions found for this topic.
-            </div>
+            <MudAlert Severity="Severity.Warning"><MudIcon Icon="@Icons.Material.Filled.Info" /> No subscriptions found for this topic.</MudAlert>
         }
-    </div>
-</div>
+    </MudCardContent>
+</MudCard>
 
 @code {
     [Parameter]
