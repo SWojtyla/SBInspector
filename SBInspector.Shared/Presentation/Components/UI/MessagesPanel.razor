@@ -210,11 +210,6 @@
         StateHasChanged();
     }
 
-    private async Task HandlePageSizeChanged(int newSize)
-    {
-        await PageSizeChanged.InvokeAsync(newSize);
-    }
-
     private async Task OnPageSizeChanged(int newSize)
     {
         PageSize = newSize;

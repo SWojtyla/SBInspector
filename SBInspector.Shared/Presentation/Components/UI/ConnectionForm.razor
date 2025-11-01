@@ -18,7 +18,7 @@
                 <MudGrid>
                     <MudItem xs="10">
                         <MudSelect T="string" Value="@SelectedConnectionName" ValueChanged="@((string val) => OnConnectionNameChanged(val))" Label="Select a saved connection" Dense="true">
-                            <MudSelectItem T="string" Value="@((string)null)">-- Select a saved connection --</MudSelectItem>
+                            <MudSelectItem T="string" Value="@null">-- Select a saved connection --</MudSelectItem>
                             @foreach (var conn in savedConnections)
                             {
                                 <MudSelectItem T="string" Value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</MudSelectItem>
