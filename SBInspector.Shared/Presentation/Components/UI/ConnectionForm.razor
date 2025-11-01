@@ -1,82 +1,73 @@
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Application.Services
+@using MudBlazor
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
 @inject ConnectionStringEncryptionService EncryptionService
 
-<div class="card">
-    <div class="card-body">
-        <h5 class="card-title">Connect to Service Bus</h5>
-        
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h5" GutterBottom="true">Connect to Service Bus</MudText>
+
         @if (savedConnections.Any())
         {
-            <div class="mb-3">
-                <label class="form-label">Saved Connections</label>
-                <div class="d-flex gap-2">
-                    <select class="form-select" @bind="selectedConnectionName" @bind:after="LoadSelectedConnection">
-                        <option value="">-- Select a saved connection --</option>
-                        @foreach (var conn in savedConnections)
-                        {
-                            <option value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</option>
-                        }
-                    </select>
-                    <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelectedConnection" disabled="@string.IsNullOrEmpty(selectedConnectionName)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">Saved Connections</MudText>
+                <MudGrid>
+                    <MudItem xs="10">
+                        <MudSelect T="string" @bind-Value="SelectedConnectionName" Label="Select a saved connection" Dense="true" @bind-Value:event="onchange">
+                            <MudSelectItem T="string" Value="null">-- Select a saved connection --</MudSelectItem>
+                            @foreach (var conn in savedConnections)
+                            {
+                                <MudSelectItem T="string" Value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="2">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Disabled="@string.IsNullOrEmpty(selectedConnectionName)" OnClick="DeleteSelectedConnection">
+                            <MudIcon Icon="@Icons.Material.Filled.Delete" />
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
         }
-        
-        <div class="mb-3">
-            <label for="connectionString" class="form-label">Connection String</label>
-            <input type="password" class="form-control" id="connectionString" @bind="ConnectionString" placeholder="Endpoint=sb://..." />
-        </div>
-        
-        <div class="mb-3">
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="saveConnection" @bind="shouldSaveConnection" />
-                <label class="form-check-label" for="saveConnection">
-                    Save this connection for later use
-                </label>
-            </div>
-            @if (shouldSaveConnection)
-            {
-                <div class="mt-2">
-                    <input type="text" class="form-control" @bind="connectionName" placeholder="Enter a name for this connection" />
-                </div>
-            }
-        </div>
-        
+
+        <MudTextField @bind-Value="ConnectionString" Label="Connection String" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Normal" Placeholder="Endpoint=sb://..." />
+
+        <MudCheckBox T="bool" @bind-Checked="shouldSaveConnection" Label="Save this connection for later use" />
+        @if (shouldSaveConnection)
+        {
+            <MudTextField @bind-Value="connectionName" Label="Enter a name for this connection" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        }
+
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
-            <div class="alert alert-danger" role="alert">
-                @ErrorMessage
-            </div>
+            <MudAlert Severity="Severity.Error" Elevation="0">@ErrorMessage</MudAlert>
         }
-        
+
         @if (!string.IsNullOrEmpty(successMessage))
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle"></i> @successMessage
-                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
-            </div>
+            <MudAlert Severity="Severity.Success" Elevation="0" Dense="true" OnClose="@(() => successMessage = string.Empty)">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage
+            </MudAlert>
         }
-        
-        <button class="btn btn-primary" @onclick="HandleConnectAsync" disabled="@IsConnecting">
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@IsConnecting" OnClick="HandleConnectAsync">
             @if (IsConnecting)
             {
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                <span> Connecting...</span>
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                <span style="margin-left:8px">Connecting...</span>
             }
             else
             {
                 <span>Connect</span>
             }
-        </button>
-    </div>
-</div> 
+        </MudButton>
+    </MudCardContent>
+</MudCard>
+
 @code {
     [Parameter]
     public string ConnectionString { get; set; } = string.Empty;
@@ -125,10 +116,9 @@
         if (connection != null)
         {
             // Decrypt connection string if encrypted
-            ConnectionString = connection.IsEncrypted 
-                ? EncryptionService.Decrypt(connection.ConnectionString)
-                : connection.ConnectionString;
-            
+            ConnectionString = connection.IsEncrypted
+            ? EncryptionService.Decrypt(connection.ConnectionString)
+            : connection.ConnectionString;
             await ConnectionStringChanged.InvokeAsync(ConnectionString);
             connectionName = connection.Name;
             successMessage = $"Loaded connection '{connection.Name}'";
@@ -143,7 +133,6 @@
             await LoadSavedConnectionsAsync();
             selectedConnectionName = string.Empty;
             successMessage = "Connection deleted successfully";
-            
             // Notify that connections list has changed
             ConnectionState.NotifyConnectionsChanged();
         }
@@ -154,7 +143,6 @@
         await IsConnectingChanged.InvokeAsync(true);
         await ErrorMessageChanged.InvokeAsync(string.Empty);
         successMessage = string.Empty;
-        
         try
         {
             var success = await ServiceBusService.ConnectAsync(ConnectionString);
@@ -173,7 +161,6 @@
                     await StorageService.SaveConnectionAsync(savedConnection);
                     await LoadSavedConnectionsAsync();
                     successMessage = $"Connection saved as '{connectionName}' (encrypted)";
-                    
                     // Notify that connections list has changed
                     ConnectionState.NotifyConnectionsChanged();
                 }
@@ -182,11 +169,9 @@
                     // Update last used time for loaded connection
                     await StorageService.UpdateLastUsedAsync(selectedConnectionName);
                     await LoadSavedConnectionsAsync();
-                    
                     // Notify that connections list has changed
                     ConnectionState.NotifyConnectionsChanged();
                 }
-                
                 await OnConnected.InvokeAsync();
             }
             else
@@ -201,6 +186,20 @@
         finally
         {
             await IsConnectingChanged.InvokeAsync(false);
+        }
+    }
+
+    // Ensure LoadSelectedConnection is called when selection changes
+    private string SelectedConnectionName
+    {
+        get => selectedConnectionName;
+        set
+        {
+            if (selectedConnectionName != value)
+            {
+                selectedConnectionName = value;
+                _ = LoadSelectedConnection();
+            }
         }
     }
 }
