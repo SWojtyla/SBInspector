@@ -17,7 +17,7 @@
                 <MudText Typo="Typo.subtitle2">Saved Connections</MudText>
                 <MudGrid>
                     <MudItem xs="10">
-                        <MudSelect T="string" Value="@SelectedConnectionName" ValueChanged="@OnConnectionNameChanged" Label="Select a saved connection" Dense="true">
+                        <MudSelect T="string" Value="@SelectedConnectionName" ValueChanged="@((string val) => OnConnectionNameChanged(val))" Label="Select a saved connection" Dense="true">
                             <MudSelectItem T="string" Value="@((string)null)">-- Select a saved connection --</MudSelectItem>
                             @foreach (var conn in savedConnections)
                             {
@@ -34,7 +34,7 @@
             </MudStack>
         }
 
-        <MudTextField Value="@ConnectionString" ValueChanged="@OnConnectionStringChanged" Label="Connection String" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Normal" Placeholder="Endpoint=sb://..." />
+        <MudTextField Value="@ConnectionString" ValueChanged="@((string val) => OnConnectionStringChanged(val))" Label="Connection String" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Normal" Placeholder="Endpoint=sb://..." />
 
         <MudCheckBox T="bool" Checked="@shouldSaveConnection" CheckedChanged="@((bool val) => shouldSaveConnection = val)" Label="Save this connection for later use" />
         @if (shouldSaveConnection)
