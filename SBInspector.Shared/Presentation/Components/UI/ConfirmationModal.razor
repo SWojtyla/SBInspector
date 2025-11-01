@@ -1,28 +1,33 @@
 @if (IsVisible)
 {
-    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi @IconClass"></i> @Title
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="HandleCancel"></button>
-                </div>
-                <div class="modal-body">
-                    @Message
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
-                        <i class="bi bi-x-lg"></i> Cancel
-                    </button>
-                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">
-                        <i class="bi @ConfirmIconClass"></i> @ConfirmText
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <MudOverlay Visible="true" ZIndex="9999" DarkBackground="true" AutoClose="false">
+        <MudPaper Elevation="8" Class="pa-6" Style="max-width: 500px; width: 100%;">
+            <MudStack Spacing="4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@GetMudIcon(IconClass)" Class="mr-2" />
+                        @Title
+                    </MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="HandleCancel" Size="Size.Small" />
+                </MudStack>
+                
+                <MudDivider />
+                
+                <MudText>@Message</MudText>
+                
+                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Class="mt-2">
+                    <MudButton OnClick="HandleCancel" Variant="Variant.Text">
+                        <MudIcon Icon="@Icons.Material.Filled.Close" Class="mr-1" Size="Size.Small" />
+                        Cancel
+                    </MudButton>
+                    <MudButton OnClick="HandleConfirm" Color="@GetButtonColor()" Variant="Variant.Filled">
+                        <MudIcon Icon="@GetConfirmIcon()" Class="mr-1" Size="Size.Small" />
+                        @ConfirmText
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudOverlay>
 }
 
 @code {
@@ -61,5 +66,43 @@
     private async Task HandleCancel()
     {
         await OnCancel.InvokeAsync();
+    }
+
+    private string GetMudIcon(string bootstrapIcon)
+    {
+        return bootstrapIcon switch
+        {
+            "bi-question-circle" => Icons.Material.Filled.Help,
+            "bi-exclamation-triangle" => Icons.Material.Filled.Warning,
+            "bi-info-circle" => Icons.Material.Filled.Info,
+            "bi-check-circle" => Icons.Material.Filled.CheckCircle,
+            "bi-x-circle" => Icons.Material.Filled.Cancel,
+            "bi-trash" => Icons.Material.Filled.Delete,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private string GetConfirmIcon()
+    {
+        return ConfirmIconClass switch
+        {
+            "bi-check-lg" => Icons.Material.Filled.Check,
+            "bi-trash" => Icons.Material.Filled.Delete,
+            "bi-x-lg" => Icons.Material.Filled.Close,
+            _ => Icons.Material.Filled.Check
+        };
+    }
+
+    private Color GetButtonColor()
+    {
+        return ConfirmButtonClass switch
+        {
+            "btn-danger" => Color.Error,
+            "btn-warning" => Color.Warning,
+            "btn-success" => Color.Success,
+            "btn-info" => Color.Info,
+            "btn-primary" => Color.Primary,
+            _ => Color.Primary
+        };
     }
 }
