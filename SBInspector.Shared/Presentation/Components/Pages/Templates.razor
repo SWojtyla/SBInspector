@@ -1,104 +1,81 @@
 @page "/templates"
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 @inject IStorageService StorageService
 
 <PageTitle>Message Templates - SBInspector</PageTitle>
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>
-            <i class="bi bi-file-earmark-text"></i> Message Templates
-        </h1>
-        <button class="btn btn-primary" @onclick="ShowCreateModal">
-            <i class="bi bi-plus-circle"></i> New Template
-        </button>
-    </div>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" />
+            <MudText Typo="Typo.h4">Message Templates</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ShowCreateModal" StartIcon="@Icons.Material.Filled.Add">
+            New Template
+        </MudButton>
+    </MudStack>
 
     @if (isLoading)
     {
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading templates...</p>
-        </div>
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-5">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.body1">Loading templates...</MudText>
+        </MudStack>
     }
     else if (!templates.Any())
     {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> No message templates found. Create your first template to get started!
-        </div>
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info">
+            No message templates found. Create your first template to get started!
+        </MudAlert>
     }
     else
     {
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Subject</th>
-                                <th>Content Type</th>
-                                <th>Created</th>
-                                <th>Last Used</th>
-                                <th style="width: 200px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var template in templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt))
-                            {
-                                <tr>
-                                    <td>
-                                        <strong>@template.Name</strong>
-                                    </td>
-                                    <td>@(template.Subject ?? "-")</td>
-                                    <td>@(template.ContentType ?? "text/plain")</td>
-                                    <td>@template.CreatedAt.ToLocalTime().ToString("g")</td>
-                                    <td>@(template.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <button class="btn btn-outline-primary" @onclick="() => ShowViewModal(template)" title="View">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button class="btn btn-outline-secondary" @onclick="() => ShowEditModal(template)" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn btn-outline-danger" @onclick="() => ShowDeleteConfirmation(template)" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudTable Items="@templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt)" Dense="true" Hover="true" Bordered="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Subject</MudTh>
+                    <MudTh>Content Type</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Last Used</MudTh>
+                    <MudTh Style="width: 150px;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">
+                        <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Subject">@(context.Subject ?? "-")</MudTd>
+                    <MudTd DataLabel="Content Type">@(context.ContentType ?? "text/plain")</MudTd>
+                    <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Last Used">@(context.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="() => ShowViewModal(context)" Title="View" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="() => ShowEditModal(context)" Title="Edit" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => ShowDeleteConfirmation(context)" Title="Delete" />
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
 
-        <div class="mt-3">
-            <small class="text-muted">Total templates: @templates.Count</small>
-        </div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total templates: @templates.Count</MudText>
+            </MudStack>
+        </MudPaper>
     }
 
     @if (!string.IsNullOrEmpty(successMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show mt-3">
-            <i class="bi bi-check-circle"></i> @successMessage
-            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
-        </div>
+        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" Class="mt-3" CloseIconClicked="() => successMessage = string.Empty">@successMessage</MudAlert>
     }
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show mt-3">
-            <i class="bi bi-exclamation-triangle"></i> @errorMessage
-            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
-        </div>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3" CloseIconClicked="() => errorMessage = string.Empty">@errorMessage</MudAlert>
     }
-</div>
+</MudContainer>
 
 <MessageTemplateEditorModal
     IsVisible="@isEditorVisible"
@@ -116,74 +93,76 @@
 
 @if (isViewModalVisible && selectedTemplate != null)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-eye"></i> View Template: @selectedTemplate.Name
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
+    <MudDialog @bind-IsVisible="isViewModalVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+        <TitleContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" />
+                <MudText Typo="Typo.h6">View Template: @selectedTemplate.Name</MudText>
+            </MudStack>
+        </TitleContent>
+        <DialogContent>
+            <MudStack Spacing="3">
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Template Name</strong></MudText>
+                    <MudText>@selectedTemplate.Name</MudText>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Template Name</label>
-                        <p class="form-control-plaintext">@selectedTemplate.Name</p>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Message Body</label>
-                        <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">@selectedTemplate.MessageBody</pre>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Subject</label>
-                            <p class="form-control-plaintext">@(selectedTemplate.Subject ?? "-")</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Content Type</label>
-                            <p class="form-control-plaintext">@(selectedTemplate.ContentType ?? "text/plain")</p>
-                        </div>
-                    </div>
-
-                    @if (selectedTemplate.Properties?.Any() == true)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Application Properties</label>
-                            <div class="bg-light p-3 rounded">
-                                @foreach (var prop in selectedTemplate.Properties)
-                                {
-                                    <div class="mb-1">
-                                        <code>@prop.Key</code> = <code>@prop.Value</code>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Created</label>
-                            <p class="form-control-plaintext">@selectedTemplate.CreatedAt.ToLocalTime().ToString("g")</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Last Used</label>
-                            <p class="form-control-plaintext">@(selectedTemplate.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</p>
-                        </div>
-                    </div>
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Message Body</strong></MudText>
+                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey); max-height: 300px; overflow-y: auto;">
+                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">@selectedTemplate.MessageBody</pre>
+                    </MudPaper>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">
-                        <i class="bi bi-x-lg"></i> Close
-                    </button>
-                    <button type="button" class="btn btn-primary" @onclick="() => { CloseViewModal(); ShowEditModal(selectedTemplate); }">
-                        <i class="bi bi-pencil"></i> Edit
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Subject</strong></MudText>
+                        <MudText>@(selectedTemplate.Subject ?? "-")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Content Type</strong></MudText>
+                        <MudText>@(selectedTemplate.ContentType ?? "text/plain")</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                @if (selectedTemplate.Properties?.Any() == true)
+                {
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>Application Properties</strong></MudText>
+                        <MudPaper Class="pa-2" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                            @foreach (var prop in selectedTemplate.Properties)
+                            {
+                                <MudStack Row="true" Spacing="1" Class="mb-1">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@prop.Key</MudChip>
+                                    <MudText>=</MudText>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">@prop.Value</MudChip>
+                                </MudStack>
+                            }
+                        </MudPaper>
+                    </div>
+                }
+
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Created</strong></MudText>
+                        <MudText>@selectedTemplate.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Last Used</strong></MudText>
+                        <MudText>@(selectedTemplate.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CloseViewModal" StartIcon="@Icons.Material.Filled.Close">
+                Close
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => { CloseViewModal(); ShowEditModal(selectedTemplate); }" StartIcon="@Icons.Material.Filled.Edit">
+                Edit
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
 }
 
 @code {
