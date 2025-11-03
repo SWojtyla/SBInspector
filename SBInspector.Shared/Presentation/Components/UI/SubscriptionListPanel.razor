@@ -38,15 +38,15 @@
                             <MudStack Direction="Row" Spacing="1">
                                 @if (subscription.Status == "Active")
                                 {
-                                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))" StartIcon="@Icons.Material.Filled.PauseCircle">Disable</MudButton>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(async () => await OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))" StartIcon="@Icons.Material.Filled.PauseCircle">Disable</MudButton>
                                 }
                                 else
                                 {
-                                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))" StartIcon="@Icons.Material.Filled.PlayCircle">Enable</MudButton>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(async () => await OnToggleStatus.InvokeAsync((TopicName, subscription.Name)))" StartIcon="@Icons.Material.Filled.PlayCircle">Enable</MudButton>
                                 }
-                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Active")))" StartIcon="@Icons.Material.Filled.Inbox">Active</MudButton>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Scheduled")))" StartIcon="@Icons.Material.Filled.Schedule">Scheduled</MudButton>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((TopicName, subscription.Name, "DeadLetter")))" StartIcon="@Icons.Material.Filled.ReportProblem">DLQ</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="@(async () => await OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Active")))" StartIcon="@Icons.Material.Filled.Inbox">Active</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(async () => await OnViewMessages.InvokeAsync((TopicName, subscription.Name, "Scheduled")))" StartIcon="@Icons.Material.Filled.Schedule">Scheduled</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(async () => await OnViewMessages.InvokeAsync((TopicName, subscription.Name, "DeadLetter")))" StartIcon="@Icons.Material.Filled.ReportProblem">DLQ</MudButton>
                             </MudStack>
                         </MudStack>
                     </MudPaper>

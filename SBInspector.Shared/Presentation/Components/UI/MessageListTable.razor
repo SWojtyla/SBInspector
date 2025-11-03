@@ -16,21 +16,21 @@
             <MudTd><span>@context.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span></MudTd>
             <MudTd Align="Center"><MudChip T=MessageInfo  Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)">@context.DeliveryCount</MudChip></MudTd>
             <MudTd Align="Center">
-                <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Visibility" />
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnExport.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Download" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small" OnClick="@(async () => await OnViewDetails.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Visibility" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(async () => await OnExport.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Download" />
                 @if (context.State == "Active")
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnMoveToDeadLetter.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.ReportProblem" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(async () => await OnMoveToDeadLetter.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.ReportProblem" />
                 }
                 @if (context.State == "DeadLetter")
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnRequeue.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Replay" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(async () => await OnRequeue.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Replay" />
                 }
                 @if (context.State == "Scheduled" && context.ScheduledEnqueueTime.HasValue)
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnReschedule.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Schedule" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(async () => await OnReschedule.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Schedule" />
                 }
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Delete" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(async () => await OnDelete.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Delete" />
             </MudTd>
         </RowTemplate>
     </MudTable>
