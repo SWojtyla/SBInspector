@@ -4,10 +4,10 @@
 <MudPaper Class="pa-2">
     <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<MessageInfo>>(this, HandleRowClick))">
         <HeaderContent>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.MessageId))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.Subject))">Subject @GetSortIcon(nameof(MessageInfo.Subject))</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime))">Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))</MudButton></MudTh>
-            <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.DeliveryCount))">Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.MessageId)))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.Subject)))">Subject @GetSortIcon(nameof(MessageInfo.Subject))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime)))">Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))</MudButton></MudTh>
+            <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.DeliveryCount)))">Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))</MudButton></MudTh>
             <MudTh Align="Center">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>

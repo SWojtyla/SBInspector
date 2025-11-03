@@ -52,9 +52,9 @@
                     <MudTd DataLabel="Last Used">@(context.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudTd>
                     <MudTd DataLabel="Actions">
                         <MudStack Row="true" Spacing="0">
-                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="() => ShowViewModal(context)" Title="View" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="() => ShowEditModal(context)" Title="Edit" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => ShowDeleteConfirmation(context)" Title="Delete" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => ShowViewModal(context))" Title="View" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => ShowEditModal(context))" Title="Edit" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => ShowDeleteConfirmation(context))" Title="Delete" />
                         </MudStack>
                     </MudTd>
                 </RowTemplate>
