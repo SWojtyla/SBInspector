@@ -26,8 +26,8 @@
             @if (FilteredQueues.Any())
             {
                 <MudExpansionPanels>
-                    <MudExpansionPanel Text=$"Queues ({FilteredQueues.Count()})">
-                        <MudList T=EntityInfo Dense="true">
+                    <MudExpansionPanel Text=@($"Queues ({FilteredQueues.Count()})") >
+                        <MudList T="EntityInfo" Dense="true">
                             @foreach (var queue in FilteredQueues)
                             {
                                 <MudListItem Class="@((IsSelected("queue", queue.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;" @onclick="() => SelectQueue(queue.Name)">
@@ -55,8 +55,8 @@
             @if (FilteredTopics.Any())
             {
                 <MudExpansionPanels>
-                    <MudExpansionPanel Text=$"Topics ({FilteredTopics.Count()})">
-                        <MudList T=EntityInfo Dense="true">
+                    <MudExpansionPanel Text=@($"Topics ({FilteredTopics.Count()})") >
+                        <MudList T="EntityInfo" Dense="true">
                             @foreach (var topic in FilteredTopics)
                             {
                                 <MudListItem Class="@((IsSelected("topic", topic.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;" @onclick="() => SelectTopic(topic.Name)">
