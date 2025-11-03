@@ -3,20 +3,33 @@
 @if (MudDialog == null && IsVisible)
 {
     <MudDialog @bind-Visible="isDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = false })">
+        <TitleContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                @if (!string.IsNullOrWhiteSpace(IconClass))
+                {
+                    <i class="@IconClass"></i>
+                }
+                else if (!string.IsNullOrWhiteSpace(Icon))
+                {
+                    <MudIcon Icon="@Icon" Size="Size.Medium" />
+                }
+                <MudText Typo="Typo.h6">@Title</MudText>
+            </MudStack>
+        </TitleContent>
         <DialogContent>
             @Message
         </DialogContent>
         <DialogActions>
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleCancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleCancel" Class="@CancelButtonClass" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
             @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
             {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm">
+                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" Class="@ConfirmButtonClass">
                     <i class="@ConfirmIconClass me-2"></i>@ConfirmText
                 </MudButton>
             }
             else
             {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
+                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" Class="@ConfirmButtonClass" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
             }
         </DialogActions>
     </MudDialog>
@@ -52,6 +65,9 @@ else if (MudDialog != null)
     public bool IsVisible { get; set; }
 
     [Parameter]
+    public string Title { get; set; } = "Confirm Action";
+
+    [Parameter]
     public EventCallback OnConfirm { get; set; }
 
     [Parameter]
@@ -64,13 +80,27 @@ else if (MudDialog != null)
     [Parameter]
     public string ConfirmText { get; set; } = "Confirm";
 
+    // Existing icon string for MudBlazor icons
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.HelpOutline;
+
     // Existing confirm icon string for MudBlazor icons
     [Parameter]
     public string ConfirmIcon { get; set; } = Icons.Material.Filled.Check;
 
     // Optional custom CSS icon class overrides (Bootstrap or other icon sets)
     [Parameter]
+    public string IconClass { get; set; } = string.Empty;
+
+    [Parameter]
     public string ConfirmIconClass { get; set; } = string.Empty;
+
+    // Button styling classes (for tests expecting Bootstrap classes)
+    [Parameter]
+    public string ConfirmButtonClass { get; set; } = "btn-primary";
+
+    [Parameter]
+    public string CancelButtonClass { get; set; } = "btn-secondary";
 
     [Parameter]
     public Color ConfirmColor { get; set; } = Color.Primary;
