@@ -1,8 +1,6 @@
 @using MudBlazor
 
-@if (IsVisible)
-{
-    <MudDialog MaxWidth="MaxWidth.Small" FullWidth="true" Open="true" DisableBackdropClick="true">
+<MudDialog @bind-Visible="@isDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = false })">
         <MudDialogTitle>
             <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
@@ -16,7 +14,6 @@
                     }
                     @Title
                 </div>
-                <button type="button" class="@CloseButtonClass" aria-label="Close" @onclick="HandleCancel"></button>
             </div>
         </MudDialogTitle>
         <MudDialogContent>
@@ -36,7 +33,6 @@
             }
         </MudDialogActions>
     </MudDialog>
-}
 
 @code {
     [Parameter]
@@ -85,13 +81,23 @@
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
+    private bool isDialogVisible = false;
+
+    protected override void OnParametersSet()
+    {
+        // Sync the internal dialog visibility with the parameter
+        isDialogVisible = IsVisible;
+    }
+
     private async Task HandleConfirm()
     {
+        isDialogVisible = false;
         await OnConfirm.InvokeAsync();
     }
 
     private async Task HandleCancel()
     {
+        isDialogVisible = false;
         await OnCancel.InvokeAsync();
     }
 }

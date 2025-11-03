@@ -3,9 +3,7 @@
 @using MudBlazor
 @inject IStorageService StorageService
 
-@if (IsVisible)
-{
-    <MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Open="true">
+<MudDialog @bind-Visible="@isDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = false })">
         <MudDialogTitle>
             <MudIcon Icon="@Icons.Material.Filled.Send" /> @Title
         </MudDialogTitle>
@@ -40,19 +38,19 @@
             }
             else
             {
-                <MudCheckBox T="bool" @bind-Checked="isScheduled" Label="Schedule message for later delivery" Disabled="@sendToDeadLetter" />
+                <MudCheckBox T="bool" @bind-Value="isScheduled" Label="Schedule message for later delivery" Disabled="@sendToDeadLetter" />
                 @if (isScheduled)
                 {
                     <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Margin="Margin.Normal" InputType="InputType.DateTimeLocal" />
                 }
-                <MudCheckBox T="bool" @bind-Checked="sendToDeadLetter" Label="Send directly to dead-letter queue" />
+                <MudCheckBox T="bool" @bind-Value="sendToDeadLetter" Label="Send directly to dead-letter queue" />
             }
             <MudText Typo="Typo.subtitle2">Application Properties</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">Add key-value pairs (one per line, format: key=value)</MudText>
             <MudTextField @bind-Value="propertiesText" Label="Application Properties" Margin="Margin.Normal" Lines="4" />
             @if (!IsReschedule)
             {
-                <MudCheckBox T="bool" @bind-Checked="shouldSaveTemplate" Label="Save as template for later use" />
+                <MudCheckBox T="bool" @bind-Value="shouldSaveTemplate" Label="Save as template for later use" />
                 @if (shouldSaveTemplate)
                 {
                     <MudTextField @bind-Value="templateName" Label="Template Name" Margin="Margin.Normal" />
@@ -64,7 +62,7 @@
             }
             @if (!string.IsNullOrEmpty(successMessage))
             {
-                <MudAlert Severity="Severity.Success" Dense="true" OnClose="@(() => successMessage = string.Empty)"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage</MudAlert>
+                <MudAlert Severity="Severity.Success" Dense="true" CloseIconClicked="@(() => successMessage = string.Empty)"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage</MudAlert>
             }
         </MudDialogContent>
         <MudDialogActions>
@@ -82,7 +80,6 @@
             </MudButton>
         </MudDialogActions>
     </MudDialog>
-}
 
 @code {
     [Parameter]
@@ -103,6 +100,7 @@
     [Parameter]
     public MessageInfo? ExistingMessage { get; set; }
 
+    private bool isDialogVisible = false;
     private string messageBody = string.Empty;
     private string subject = string.Empty;
     private string contentType = "text/plain";
@@ -121,6 +119,9 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // Sync the internal dialog visibility with the parameter
+        isDialogVisible = IsVisible;
+        
         if (IsReschedule)
         {
             isScheduled = true;
@@ -188,6 +189,7 @@
     private async Task HandleClose()
     {
         ResetForm();
+        isDialogVisible = false;
         await OnClose.InvokeAsync();
     }
 

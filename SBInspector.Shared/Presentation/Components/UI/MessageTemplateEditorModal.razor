@@ -1,9 +1,7 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-@if (IsVisible)
-{
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Open="true">
+<MudDialog @bind-Visible="@isDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = false })">
 <MudDialogTitle>
 <MudIcon Icon="@Icons.Material.Filled.Description" /> @(IsEditMode ? "Edit Template" : "New Template")
 </MudDialogTitle>
@@ -31,7 +29,6 @@
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave" StartIcon="@Icons.Material.Filled.Check">Save</MudButton>
 </MudDialogActions>
 </MudDialog>
-}
 
 @code {
     [Parameter]
@@ -49,6 +46,7 @@
     [Parameter]
     public EventCallback<MessageTemplate> OnSave { get; set; }
 
+    private bool isDialogVisible = false;
     private string templateName = string.Empty;
     private string messageBody = string.Empty;
     private string subject = string.Empty;
@@ -58,6 +56,9 @@
 
     protected override void OnParametersSet()
     {
+        // Sync the internal dialog visibility with the parameter
+        isDialogVisible = IsVisible;
+        
         if (IsVisible && Template != null && IsEditMode)
         {
             // Load existing template for editing
@@ -86,6 +87,7 @@
     private async Task HandleClose()
     {
         ResetForm();
+        isDialogVisible = false;
         await OnClose.InvokeAsync();
     }
 

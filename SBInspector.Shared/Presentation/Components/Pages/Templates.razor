@@ -93,7 +93,7 @@
 
 @if (isViewModalVisible && selectedTemplate != null)
 {
-    <MudDialog @bind-IsVisible="isViewModalVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+    <MudDialog @bind-Visible="isViewModalVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true })">
         <TitleContent>
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Visibility" />
