@@ -1,53 +1,52 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-<MudPaper Class="pa-3 mb-3 mud-elevation-1">
-    <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Class="mb-3">
-        <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.FilterList" /> Filter Messages</MudText>
-        @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ClearAllFilters" StartIcon="@Icons.Material.Filled.Clear">Clear All</MudButton>
-        }
+<MudPaper Class="pa-2 mb-2 mud-elevation-1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle2">Filters</MudText>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@FilteredCount of @TotalCount</MudChip>
+        </MudStack>
+        <MudStack Row="true" Spacing="1">
+            @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="ClearAllFilters" StartIcon="@Icons.Material.Filled.Clear" Size="Size.Small">Clear</MudButton>
+            }
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="AddNewFilter" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small">Add</MudButton>
+        </MudStack>
     </MudStack>
     @for (int i =0; i < Filters.Count; i++)
     {
         var index = i;
         var filter = Filters[index];
-        <MudCard Class="mb-2">
-            <MudCardContent>
-                <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center">
-                    <MudCheckBox T="bool" Checked="@filter.IsEnabled" CheckedChanged="@((bool val) => { filter.IsEnabled = val; _ = NotifyFiltersChanged(); })" Color="Color.Primary" Title="Enable or disable this filter" />
-                    <MudSelect T="FilterField" Value="@filter.Field" ValueChanged="@((FilterField val) => { filter.Field = val; _ = NotifyFiltersChanged(); })" Label="Filter Field" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense">
-                        <MudSelectItem Value="FilterField.ApplicationProperty">Application Property</MudSelectItem>
-                        <MudSelectItem Value="FilterField.EnqueuedTime">Enqueued Time</MudSelectItem>
-                        <MudSelectItem Value="FilterField.DeliveryCount">Delivery Count</MudSelectItem>
-                        <MudSelectItem Value="FilterField.SequenceNumber">Sequence Number</MudSelectItem>
-                    </MudSelect>
-                    @if (filter.Field == FilterField.ApplicationProperty)
+        <MudPaper Class="pa-2 mb-1" Elevation="0" Style="border:1px solid var(--mud-palette-divider)">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <MudCheckBox T="bool" Checked="@filter.IsEnabled" CheckedChanged="@((bool val) => { filter.IsEnabled = val; _ = NotifyFiltersChanged(); })" Color="Color.Primary" Dense="true" Size="Size.Small" />
+                <MudSelect T="FilterField" Value="@filter.Field" ValueChanged="@((FilterField val) => { filter.Field = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:140px;">
+                    <MudSelectItem Value="FilterField.ApplicationProperty">App Property</MudSelectItem>
+                    <MudSelectItem Value="FilterField.EnqueuedTime">Enqueued</MudSelectItem>
+                    <MudSelectItem Value="FilterField.DeliveryCount">Delivery#</MudSelectItem>
+                    <MudSelectItem Value="FilterField.SequenceNumber">Sequence#</MudSelectItem>
+                </MudSelect>
+                @if (filter.Field == FilterField.ApplicationProperty)
+                {
+                    <MudTextField Value="@filter.AttributeName" ValueChanged="@((string val) => { filter.AttributeName = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="Property name" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:120px;" />
+                }
+                <MudSelect T="Core.Domain.FilterOperator" Value="@filter.Operator" ValueChanged="@((Core.Domain.FilterOperator val) => { filter.Operator = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:100px;">
+                    @foreach (var op in GetAvailableOperators(filter.Field))
                     {
-                        <MudTextField Value="@filter.AttributeName" ValueChanged="@((string val) => { filter.AttributeName = val; _ = NotifyFiltersChanged(); })" Label="Attribute Name" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="e.g., customerId, orderId" Margin="Margin.Dense" />
+                        <MudSelectItem Value="@op">@GetOperatorDisplayName(op)</MudSelectItem>
                     }
-                    <MudSelect T="Core.Domain.FilterOperator" Value="@filter.Operator" ValueChanged="@((Core.Domain.FilterOperator val) => { filter.Operator = val; _ = NotifyFiltersChanged(); })" Label="Operator" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense">
-                        @foreach (var op in GetAvailableOperators(filter.Field))
-                        {
-                            <MudSelectItem Value="@op">@GetOperatorDisplayName(op)</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudTextField Value="@filter.AttributeValue" ValueChanged="@((string val) => { filter.AttributeValue = val; _ = NotifyFiltersChanged(); })" Label="Value" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="@GetPlaceholder(filter.Field, filter.Operator)" Margin="Margin.Dense" Type="@GetInputType(filter.Field)" />
-                    @if (Filters.Count >1)
-                    {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="() => RemoveFilterAtIndex(index)" StartIcon="@Icons.Material.Filled.Delete" Title="Remove this filter"></MudButton>
-                    }
-                </MudStack>
-            </MudCardContent>
-        </MudCard>
+                </MudSelect>
+                <MudTextField Value="@filter.AttributeValue" ValueChanged="@((string val) => { filter.AttributeValue = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="@GetPlaceholder(filter.Field, filter.Operator)" Margin="Margin.Dense" Type="@GetInputType(filter.Field)" Variant="Variant.Outlined" Style="min-width:120px;flex-grow:1;" />
+                @if (Filters.Count >1)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => RemoveFilterAtIndex(index)" Size="Size.Small" />
+                }
+            </MudStack>
+        </MudPaper>
     }
-    <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Class="mt-3">
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddNewFilter" StartIcon="@Icons.Material.Filled.Add">Add Filter</MudButton>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            <MudIcon Icon="@Icons.Material.Filled.Info" /> Showing <b>@FilteredCount</b> of <b>@TotalCount</b> messages
-        </MudText>
-    </MudStack>
 </MudPaper>
 
 @code {
