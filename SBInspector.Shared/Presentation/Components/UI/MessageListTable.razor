@@ -14,7 +14,7 @@
             <MudTd DataLabel="Message ID"><MudTooltip Text="@context.MessageId"><code style="max-width:200px;overflow-x:auto;display:inline-block;">@context.MessageId</code></MudTooltip></MudTd>
             <MudTd DataLabel="Subject"><MudTooltip Text="@context.Subject"><span style="max-width:300px;overflow-x:auto;display:inline-block;">@(string.IsNullOrEmpty(context.Subject) ? "(no subject)" : context.Subject)</span></MudTooltip></MudTd>
             <MudTd DataLabel="Enqueued Time"><span>@context.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span></MudTd>
-            <MudTd DataLabel="Delivery" Align="Center"><MudChip T=MessageInfo  Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)" Size="Size.Small">@context.DeliveryCount</MudChip></MudTd>
+            <MudTd DataLabel="Delivery" Align="Center"><MudChip T="int" Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)" Size="Size.Small">@context.DeliveryCount</MudChip></MudTd>
             <MudTd DataLabel="Actions" Align="Center">
                 <div style="white-space:nowrap;" @onclick:stopPropagation="true">
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context))" Title="View Details" />
