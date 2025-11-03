@@ -17,8 +17,8 @@
                 <MudText Typo="Typo.subtitle2">Saved Connections</MudText>
                 <MudGrid>
                     <MudItem xs="10">
-                        <MudSelect T="string" @bind-Value="SelectedConnectionName" Label="Select a saved connection" Dense="true" @bind-Value:event="onchange">
-                            <MudSelectItem T="string" Value="null">-- Select a saved connection --</MudSelectItem>
+                        <MudSelect T="string" Value="@SelectedConnectionName" ValueChanged="@((string val) => OnConnectionNameChanged(val))" Label="Select a saved connection" Dense="true">
+                            <MudSelectItem T="string" Value="@null">-- Select a saved connection --</MudSelectItem>
                             @foreach (var conn in savedConnections)
                             {
                                 <MudSelectItem T="string" Value="@conn.Name">@conn.Name @(conn.LastUsedAt.HasValue ? $"(last used: {conn.LastUsedAt.Value.ToLocalTime():g})" : "")</MudSelectItem>
@@ -34,12 +34,12 @@
             </MudStack>
         }
 
-        <MudTextField @bind-Value="ConnectionString" Label="Connection String" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Normal" Placeholder="Endpoint=sb://..." />
+        <MudTextField Value="@ConnectionString" ValueChanged="@((string val) => OnConnectionStringChanged(val))" Label="Connection String" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Normal" Placeholder="Endpoint=sb://..." />
 
-        <MudCheckBox T="bool" @bind-Checked="shouldSaveConnection" Label="Save this connection for later use" />
+        <MudCheckBox T="bool" Checked="@shouldSaveConnection" CheckedChanged="@((bool val) => shouldSaveConnection = val)" Label="Save this connection for later use" />
         @if (shouldSaveConnection)
         {
-            <MudTextField @bind-Value="connectionName" Label="Enter a name for this connection" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudTextField Value="@connectionName" ValueChanged="@((string val) => connectionName = val)" Label="Enter a name for this connection" Variant="Variant.Outlined" Margin="Margin.Dense" />
         }
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
@@ -201,5 +201,20 @@
                 _ = LoadSelectedConnection();
             }
         }
+    }
+    
+    private async Task OnConnectionNameChanged(string value)
+    {
+        if (selectedConnectionName != value)
+        {
+            selectedConnectionName = value;
+            await LoadSelectedConnection();
+        }
+    }
+    
+    private async Task OnConnectionStringChanged(string value)
+    {
+        ConnectionString = value;
+        await ConnectionStringChanged.InvokeAsync(value);
     }
 }
