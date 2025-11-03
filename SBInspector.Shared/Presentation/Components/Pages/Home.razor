@@ -4,6 +4,7 @@
 @using SBInspector.Shared.Application.Services
 @using System.Text.Json
 @using Microsoft.JSInterop
+@using MudBlazor
 @inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
 @inject IFileExportService FileExportService
 @inject ConnectionStateService ConnectionState
@@ -11,29 +12,28 @@
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
-<div class="container-fluid mt-4">
-    <h1 class="mb-4">Azure Service Bus Inspector</h1>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.ElectricalServices" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h4">Azure Service Bus Inspector</MudText>
+    </MudStack>
 
     @if (!ServiceBusService.IsConnected)
     {
-        <div class="row">
-            <div class="col-md-12">
-                <ConnectionForm 
-                    @bind-ConnectionString="@connectionString"
-                    @bind-ErrorMessage="@errorMessage"
-                    @bind-IsConnecting="@isConnecting"
-                    OnConnected="@HandleConnected" />
-            </div>
-        </div>
+        <ConnectionForm 
+            @bind-ConnectionString="@connectionString"
+            @bind-ErrorMessage="@errorMessage"
+            @bind-IsConnecting="@isConnecting"
+            OnConnected="@HandleConnected" />
     }
     else
     {
-        <div class="mb-3">
-            <button class="btn btn-danger" @onclick="Disconnect">Disconnect</button>
-        </div>
+        <MudStack Row="true" Class="mb-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Disconnect" StartIcon="@Icons.Material.Filled.PowerOff">Disconnect</MudButton>
+        </MudStack>
 
-        <div class="split-panel-container">
-            <div class="split-panel-left">
+        <MudGrid>
+            <MudItem xs="12" md="3">
                 <EntityTreeView 
                     Queues="@queues"
                     Topics="@topics"
@@ -47,9 +47,8 @@
                     OnSubscriptionSelected="@HandleSubscriptionSelected"
                     OnLoadSubscriptions="@LoadSubscriptionsForTopic"
                     OnRefresh="@HandleRefreshEntities" />
-            </div>
-
-            <div class="split-panel-right">
+            </MudItem>
+            <MudItem xs="12" md="9">
                 @if (!string.IsNullOrEmpty(selectedEntity))
                 {
                     <MessagesPanel 
@@ -87,8 +86,8 @@
                         OnViewMessages="@HandleViewMessagesFromDetails"
                         OnToggleStatus="@HandleToggleStatusFromDetails" />
                 }
-            </div>
-        </div>
+            </MudItem>
+        </MudGrid>
 
         <ConfirmationModal
             IsVisible="@showDeleteConfirmation"
@@ -141,22 +140,6 @@
             OnClose="@CloseSendModal"
             OnSend="@HandleSendMessage" />
 
-        @if (!string.IsNullOrEmpty(successMessage))
-        {
-            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
-                <i class="bi bi-check-circle"></i> @successMessage
-                <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
-            </div>
-        }
-
-        @if (!string.IsNullOrEmpty(operationErrorMessage))
-        {
-            <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
-                <i class="bi bi-exclamation-triangle"></i> @operationErrorMessage
-                <button type="button" class="btn-close" @onclick="() => operationErrorMessage = string.Empty"></button>
-            </div>
-        }
-
         @foreach (var operation in activeOperations.Values)
         {
             var operationId = operation.OperationId;
@@ -172,8 +155,24 @@
             IsVisible="@isOperationInProgress"
             Title="@operationLoadingTitle"
             Message="@operationLoadingMessage" />
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" 
+                      CloseIconClicked="@(() => successMessage = string.Empty)" Class="position-fixed top-0 start-50 translate-middle-x mt-3" Style="z-index: 9999; min-width: 300px;">
+                @successMessage
+            </MudAlert>
+        }
+
+        @if (!string.IsNullOrEmpty(operationErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" 
+                      CloseIconClicked="@(() => operationErrorMessage = string.Empty)" Class="position-fixed top-0 start-50 translate-middle-x mt-3" Style="z-index: 9999; min-width: 300px;">
+                @operationErrorMessage
+            </MudAlert>
+        }
     }
-</div>
+</MudContainer>
 
 @code {
     private string connectionString = string.Empty;

@@ -1,51 +1,56 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-<MudPaper Class="pa-2 mud-elevation-2">
-    <MudStack Spacing="2">
-        <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
-            <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.AccountTree" /> Service Bus Entities</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleRefresh" Disabled="@IsLoading" StartIcon="@Icons.Material.Filled.Refresh">Refresh</MudButton>
+<MudPaper Class="pa-2 mud-elevation-1">
+    <MudStack Spacing="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+            <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" /> Entities</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="HandleRefresh" Disabled="@IsLoading" Size="Size.Small" Title="Refresh" />
         </MudStack>
         @if (IsLoading)
         {
-            <MudStack AlignItems="AlignItems.Center" Class="py-2">
+            <MudStack AlignItems="AlignItems.Center" Class="py-1">
                 <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
-                <MudText Typo="Typo.body2">Loading...</MudText>
             </MudStack>
         }
         @if (!IsLoading && (Queues.Any() || Topics.Any()))
         {
-            <MudTextField @bind-Value="searchTerm" Placeholder="Search queues and topics..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" Class="mb-2" />
-            @if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Clear" Color="Color.Default" OnClick="ClearSearch" Title="Clear search" />
-            }
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudTextField @bind-Value="searchTerm" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" Variant="Variant.Outlined" Class="flex-grow-1" />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Color="Color.Default" OnClick="ClearSearch" Size="Size.Small" Title="Clear search" />
+                }
+            </MudStack>
         }
-        <MudStack Spacing="2">
+        <MudStack Spacing="1">
             @if (FilteredQueues.Any())
             {
-                <MudExpansionPanels>
+                <MudExpansionPanels Dense="true">
                     <MudExpansionPanel Text=@($"Queues ({FilteredQueues.Count()})") >
-                        <MudList T="EntityInfo" Dense="true">
+                        <MudList T="EntityInfo" Dense="true" Class="py-0">
                             @foreach (var queue in FilteredQueues)
                             {
-                                <MudListItem Class="@((IsSelected("queue", queue.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;" @onclick="() => SelectQueue(queue.Name)">
-                                    <MudIcon Icon="@Icons.Material.Filled.Inbox" />
-                                    <MudText Class="ml-2">@queue.Name</MudText>
-                                    <MudChip Color="@(GetStatusColor(queue.Status))" Size="Size.Small" Class="ml-2">@queue.Status</MudChip>
-                                    @if (queue.ActiveMessageCount > 0)
-                                    {
-                                        <MudChip Color="Color.Primary" Size="Size.Small" Class="ml-1">@queue.ActiveMessageCount</MudChip>
-                                    }
-                                    @if (queue.ScheduledMessageCount > 0)
-                                    {
-                                        <MudChip Color="Color.Warning" Size="Size.Small" Class="ml-1">@queue.ScheduledMessageCount</MudChip>
-                                    }
-                                    @if (queue.DeadLetterMessageCount > 0)
-                                    {
-                                        <MudChip Color="Color.Error" Size="Size.Small" Class="ml-1">@queue.DeadLetterMessageCount</MudChip>
-                                    }
+                                <MudListItem Class="@((IsSelected("queue", queue.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => SelectQueue(queue.Name)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
+                                        <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2" Class="flex-shrink-1" Style="min-width:0;overflow:hidden;text-overflow:ellipsis;">@queue.Name</MudText>
+                                        <MudStack Row="true" Spacing="0" Class="flex-shrink-0">
+                                            <MudChip T="string" Color="@(GetStatusColor(queue.Status))" Size="Size.Small" Variant="Variant.Text">@queue.Status</MudChip>
+                                            @if (queue.ActiveMessageCount > 0)
+                                            {
+                                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">A:@queue.ActiveMessageCount</MudChip>
+                                            }
+                                            @if (queue.ScheduledMessageCount > 0)
+                                            {
+                                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Text">S:@queue.ScheduledMessageCount</MudChip>
+                                            }
+                                            @if (queue.DeadLetterMessageCount > 0)
+                                            {
+                                                <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">DL:@queue.DeadLetterMessageCount</MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudStack>
                                 </MudListItem>
                             }
                         </MudList>
@@ -54,21 +59,23 @@
             }
             @if (FilteredTopics.Any())
             {
-                <MudExpansionPanels>
+                <MudExpansionPanels Dense="true">
                     <MudExpansionPanel Text=@($"Topics ({FilteredTopics.Count()})") >
-                        <MudList T="EntityInfo" Dense="true">
+                        <MudList T="EntityInfo" Dense="true" Class="py-0">
                             @foreach (var topic in FilteredTopics)
                             {
-                                <MudListItem Class="@((IsSelected("topic", topic.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;" @onclick="() => SelectTopic(topic.Name)">
-                                    <MudIcon Icon="@Icons.Material.Filled.Campaign" />
-                                    <MudText Class="ml-2">@topic.Name</MudText>
-                                    <MudChip Color="@(GetStatusColor(topic.Status))" Size="Size.Small" Class="ml-2">@topic.Status</MudChip>
-                                    <MudIconButton Icon="@(expandedTopics.Contains(topic.Name) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Default" OnClick="@(() => ToggleTopic(topic.Name))" />
+                                <MudListItem Class="@((IsSelected("topic", topic.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => SelectTopic(topic.Name)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
+                                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2" Class="flex-shrink-1" Style="min-width:0;overflow:hidden;text-overflow:ellipsis;">@topic.Name</MudText>
+                                        <MudChip T="string" Color="@(GetStatusColor(topic.Status))" Size="Size.Small" Variant="Variant.Text" Class="flex-shrink-0">@topic.Status</MudChip>
+                                        <MudIconButton Icon="@(expandedTopics.Contains(topic.Name) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Default" OnClick="@(() => ToggleTopic(topic.Name))" Size="Size.Small" Class="flex-shrink-0" />
+                                    </MudStack>
                                 </MudListItem>
 
                                 @if (expandedTopics.Contains(topic.Name) && TopicSubscriptions.ContainsKey(topic.Name))
                                 {
-                                    <MudList Dense="true" Class="ml-4">
+                                    <MudList Dense="true" Class="pl-4 py-0">
                                         @if (LoadingTopics.Contains(topic.Name))
                                         {
                                             <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
@@ -77,18 +84,22 @@
                                         {
                                             @foreach (var subscription in FilteredSubscriptions(topic.Name))
                                             {
-                                                <MudListItem Class="@((IsSelected("subscription", $"{topic.Name}/{subscription.Name}") ? "mud-selected" : string.Empty))" Style="cursor:pointer;" @onclick="() => SelectSubscription(topic.Name, subscription.Name)">
-                                                    <MudIcon Icon="@Icons.Material.Filled.Email" />
-                                                    <MudText Class="ml-2">@subscription.Name</MudText>
-                                                    <MudChip Color="@(GetStatusColor(subscription.Status))" Size="Size.Small" Class="ml-2">@subscription.Status</MudChip>
-                                                    @if (subscription.ActiveMessageCount > 0)
-                                                    {
-                                                        <MudChip Color="Color.Primary" Size="Size.Small" Class="ml-1">@subscription.ActiveMessageCount</MudChip>
-                                                    }
-                                                    @if (subscription.DeadLetterMessageCount > 0)
-                                                    {
-                                                        <MudChip Color="Color.Error" Size="Size.Small" Class="ml-1">@subscription.DeadLetterMessageCount</MudChip>
-                                                    }
+                                                <MudListItem Class="@((IsSelected("subscription", $"{topic.Name}/{subscription.Name}") ? "mud-selected" : string.Empty))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => SelectSubscription(topic.Name, subscription.Name)">
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
+                                                        <MudText Typo="Typo.body2" Class="flex-shrink-1" Style="min-width:0;overflow:hidden;text-overflow:ellipsis;">@subscription.Name</MudText>
+                                                        <MudStack Row="true" Spacing="0" Class="flex-shrink-0">
+                                                            <MudChip T="string" Color="@(GetStatusColor(subscription.Status))" Size="Size.Small" Variant="Variant.Text">@subscription.Status</MudChip>
+                                                            @if (subscription.ActiveMessageCount > 0)
+                                                            {
+                                                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">A:@subscription.ActiveMessageCount</MudChip>
+                                                            }
+                                                            @if (subscription.DeadLetterMessageCount > 0)
+                                                            {
+                                                                <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">DL:@subscription.DeadLetterMessageCount</MudChip>
+                                                            }
+                                                        </MudStack>
+                                                    </MudStack>
                                                 </MudListItem>
                                             }
                                         }

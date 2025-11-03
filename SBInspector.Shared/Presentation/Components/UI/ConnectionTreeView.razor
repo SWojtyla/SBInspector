@@ -8,26 +8,28 @@
 @inject ConnectionStringEncryptionService EncryptionService
 @implements IDisposable
 
-<MudPaper Class="pa-2 mud-elevation-2">
-    <MudText Typo="Typo.h6" Class="mb-2"><MudIcon Icon="@Icons.Material.Filled.ElectricalServices" /> Connections</MudText>
+<MudPaper Class="pa-2 mud-elevation-1">
+    <MudText Typo="Typo.subtitle1" Class="mb-2"><MudIcon Icon="@Icons.Material.Filled.ElectricalServices" Size="Size.Small" /> Connections</MudText>
     @if (isLoading)
     {
-        <MudStack AlignItems="AlignItems.Center" Class="py-2">
+        <MudStack AlignItems="AlignItems.Center" Class="py-1">
             <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
         </MudStack>
     }
     else if (savedConnections.Any())
     {
-        <MudList T=SavedConnection Dense="true">
+        <MudList T=SavedConnection Dense="true" Class="py-0">
             @foreach (var connection in savedConnections)
             {
-                <MudListItem Class="@((IsConnected(connection) ? "mud-selected" : ""))" Style="cursor:pointer;" @onclick="() => HandleConnectionClick(connection)" Title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
-                    <MudIcon Icon="@(IsConnected(connection) ? Icons.Material.Filled.ElectricalServices : Icons.Material.Outlined.ElectricalServices)" Color="@(IsConnected(connection) ? Color.Primary : Color.Default)" />
-                    <MudText Class="ml-2">@connection.Name</MudText>
-                    @if (IsConnected(connection))
-                    {
-                        <MudChip Color="Color.Success" Size="Size.Small" Class="ml-2">Connected</MudChip>
-                    }
+                <MudListItem Class="@((IsConnected(connection) ? "mud-selected" : ""))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => HandleConnectionClick(connection)" Title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@(IsConnected(connection) ? Icons.Material.Filled.ElectricalServices : Icons.Material.Outlined.ElectricalServices)" Color="@(IsConnected(connection) ? Color.Success : Color.Default)" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">@connection.Name</MudText>
+                        @if (IsConnected(connection))
+                        {
+                            <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Connected</MudChip>
+                        }
+                    </MudStack>
                 </MudListItem>
             }
         </MudList>

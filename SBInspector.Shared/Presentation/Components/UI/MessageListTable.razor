@@ -2,35 +2,37 @@
 @using MudBlazor
 
 <MudPaper Class="pa-2">
-    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true">
+    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<MessageInfo>>(this, HandleRowClick))">
         <HeaderContent>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.MessageId))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.Subject))">Subject @GetSortIcon(nameof(MessageInfo.Subject))</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime))">Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))</MudButton></MudTh>
-            <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(MessageInfo.DeliveryCount))">Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.MessageId)))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.Subject)))">Subject @GetSortIcon(nameof(MessageInfo.Subject))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime)))">Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))</MudButton></MudTh>
+            <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.DeliveryCount)))">Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))</MudButton></MudTh>
             <MudTh Align="Center">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd><MudTooltip Text="@context.MessageId"><code style="max-width:200px;overflow-x:auto;display:inline-block;">@context.MessageId</code></MudTooltip></MudTd>
-            <MudTd><MudTooltip Text="@context.Subject"><span style="max-width:300px;overflow-x:auto;display:inline-block;">@(string.IsNullOrEmpty(context.Subject) ? "(no subject)" : context.Subject)</span></MudTooltip></MudTd>
-            <MudTd><span>@context.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span></MudTd>
-            <MudTd Align="Center"><MudChip T=MessageInfo  Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)">@context.DeliveryCount</MudChip></MudTd>
-            <MudTd Align="Center">
-                <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Visibility" />
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnExport.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Download" />
-                @if (context.State == "Active")
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnMoveToDeadLetter.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.ReportProblem" />
-                }
-                @if (context.State == "DeadLetter")
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnRequeue.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Replay" />
-                }
-                @if (context.State == "Scheduled" && context.ScheduledEnqueueTime.HasValue)
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnReschedule.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Schedule" />
-                }
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete.InvokeAsync(context))" StartIcon="@Icons.Material.Filled.Delete" />
+            <MudTd DataLabel="Message ID"><MudTooltip Text="@context.MessageId"><code style="max-width:200px;overflow-x:auto;display:inline-block;">@context.MessageId</code></MudTooltip></MudTd>
+            <MudTd DataLabel="Subject"><MudTooltip Text="@context.Subject"><span style="max-width:300px;overflow-x:auto;display:inline-block;">@(string.IsNullOrEmpty(context.Subject) ? "(no subject)" : context.Subject)</span></MudTooltip></MudTd>
+            <MudTd DataLabel="Enqueued Time"><span>@context.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span></MudTd>
+            <MudTd DataLabel="Delivery" Align="Center"><MudChip T="int" Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)" Size="Size.Small">@context.DeliveryCount</MudChip></MudTd>
+            <MudTd DataLabel="Actions" Align="Center">
+                <div style="white-space:nowrap;" @onclick:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context))" Title="View Details" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Default" Size="Size.Small" OnClick="@(() => OnExport.InvokeAsync(context))" Title="Export" />
+                    @if (context.State == "Active")
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnMoveToDeadLetter.InvokeAsync(context))" Title="Move to Dead-Letter" />
+                    }
+                    @if (context.State == "DeadLetter")
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Replay" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnRequeue.InvokeAsync(context))" Title="Requeue" />
+                    }
+                    @if (context.State == "Scheduled" && context.ScheduledEnqueueTime.HasValue)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnReschedule.InvokeAsync(context))" Title="Reschedule" />
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete.InvokeAsync(context))" Title="Delete" />
+                </div>
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -121,5 +123,10 @@
             // Default to descending for EnqueuedTime, ascending for others
             await SortAscendingChanged.InvokeAsync(columnName != nameof(MessageInfo.EnqueuedTime));
         }
+    }
+
+    private Task HandleRowClick(TableRowClickEventArgs<MessageInfo> args)
+    {
+        return OnViewDetails.InvokeAsync(args.Item);
     }
 }
