@@ -1,135 +1,43 @@
 @using MudBlazor
 
-@if (MudDialog == null && IsVisible)
-{
-    <MudDialog @bind-Visible="isDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = false })">
-        <TitleContent>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                @if (!string.IsNullOrWhiteSpace(IconClass))
-                {
-                    <i class="@IconClass"></i>
-                }
-                else if (!string.IsNullOrWhiteSpace(Icon))
-                {
-                    <MudIcon Icon="@Icon" Size="Size.Medium" />
-                }
-                <MudText Typo="Typo.h6">@Title</MudText>
-            </MudStack>
-        </TitleContent>
-        <DialogContent>
-            @Message
-        </DialogContent>
-        <DialogActions>
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleCancel" Class="@CancelButtonClass" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
-            @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
-            {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" Class="@ConfirmButtonClass">
-                    <i class="@ConfirmIconClass me-2"></i>@ConfirmText
-                </MudButton>
-            }
-            else
-            {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" Class="@ConfirmButtonClass" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
-            }
-        </DialogActions>
-    </MudDialog>
-}
-else if (MudDialog != null)
-{
-    <MudDialog>
-        <DialogContent>
-            @Message
-        </DialogContent>
-        <DialogActions>
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
-            @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
-            {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit">
-                    <i class="@ConfirmIconClass me-2"></i>@ConfirmText
-                </MudButton>
-            }
-            else
-            {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
-            }
-        </DialogActions>
-    </MudDialog>
-}
+<MudDialog>
+    <DialogContent>
+        @Message
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+        @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
+        {
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit">
+                <i class="@ConfirmIconClass me-2"></i>@ConfirmText
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
 
 @code {
     [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    // Parameters for old-style usage (with IsVisible)
-    [Parameter]
-    public bool IsVisible { get; set; }
-
-    [Parameter]
-    public string Title { get; set; } = "Confirm Action";
-
-    [Parameter]
-    public EventCallback OnConfirm { get; set; }
-
-    [Parameter]
-    public EventCallback OnCancel { get; set; }
-
-    // Shared parameters
     [Parameter]
     public string Message { get; set; } = "Are you sure?";
 
     [Parameter]
     public string ConfirmText { get; set; } = "Confirm";
 
-    // Existing icon string for MudBlazor icons
-    [Parameter]
-    public string Icon { get; set; } = Icons.Material.Filled.HelpOutline;
-
-    // Existing confirm icon string for MudBlazor icons
     [Parameter]
     public string ConfirmIcon { get; set; } = Icons.Material.Filled.Check;
-
-    // Optional custom CSS icon class overrides (Bootstrap or other icon sets)
-    [Parameter]
-    public string IconClass { get; set; } = string.Empty;
 
     [Parameter]
     public string ConfirmIconClass { get; set; } = string.Empty;
 
-    // Button styling classes (for tests expecting Bootstrap classes)
-    [Parameter]
-    public string ConfirmButtonClass { get; set; } = "btn-primary";
-
-    [Parameter]
-    public string CancelButtonClass { get; set; } = "btn-secondary";
-
     [Parameter]
     public Color ConfirmColor { get; set; } = Color.Primary;
 
-    private bool isDialogVisible = false;
-
-    protected override void OnParametersSet()
-    {
-        // Sync the internal dialog visibility with the parameter for old-style usage
-        if (MudDialog == null)
-        {
-            isDialogVisible = IsVisible;
-        }
-    }
-
-    // Methods for IDialogService pattern
-    private void Submit() => MudDialog?.Close(DialogResult.Ok(true));
-    private void Cancel() => MudDialog?.Cancel();
-
-    // Methods for old-style pattern
-    private async Task HandleConfirm()
-    {
-        isDialogVisible = false;
-        await OnConfirm.InvokeAsync();
-    }
-
-    private async Task HandleCancel()
-    {
-        isDialogVisible = false;
-        await OnCancel.InvokeAsync();
-    }
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    private void Cancel() => MudDialog.Cancel();
 }
