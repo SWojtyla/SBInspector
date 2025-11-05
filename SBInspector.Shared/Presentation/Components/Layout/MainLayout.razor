@@ -6,10 +6,12 @@
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
 @inject ConnectionStringEncryptionService EncryptionService
+@inject ThemeService ThemeService
+@implements IDisposable
 @inherits LayoutComponentBase
 
 @* Required *@
-<MudThemeProvider Theme="@_customTheme" />
+<MudThemeProvider Theme="@_currentTheme" />
 <MudPopoverProvider />
 
 @* Needed for dialogs *@
@@ -45,27 +47,24 @@
 
 @code {
     private NavMenu? navMenuRef;
+    private MudTheme _currentTheme = new MudTheme();
 
-    // Custom theme configuration for consistent branding
-    // TODO: Consider moving to a separate theme configuration class for better maintainability
-    private readonly MudTheme _customTheme = new MudTheme()
+    protected override void OnInitialized()
     {
-        PaletteLight = new PaletteLight()
-        {
-            Primary = "#00836b",
-            Secondary = "#6c757d",
-            Background = "#f5f5f5",
-            Surface = "#ffffff",
-            AppbarBackground = "#00836b",
-            AppbarText = "#ffffff",
-            DrawerBackground = "#f8f9fa",
-            DrawerText = "#212529",
-        },
-        LayoutProperties = new LayoutProperties()
-        {
-            DefaultBorderRadius = "4px"
-        }
-    };
+        _currentTheme = ThemeService.GetCurrentTheme();
+        ThemeService.ThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        _currentTheme = ThemeService.GetCurrentTheme();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.ThemeChanged -= OnThemeChanged;
+    }
 
     private async Task HandleConnectionSelected(SavedConnection connection)
     {

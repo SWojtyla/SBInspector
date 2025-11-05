@@ -33,6 +33,7 @@ builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
 builder.Services.AddSingleton<ConnectionStateService>();
 builder.Services.AddSingleton<ConnectionStringEncryptionService>();
+builder.Services.AddSingleton<ThemeService>();
 builder.Services.AddMudServices();
 // Register storage configuration service with LocalStorage as default for web
 builder.Services.AddSingleton<StorageConfigurationService>(sp => 
