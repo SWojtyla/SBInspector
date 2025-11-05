@@ -76,6 +76,8 @@
     [Parameter]
     public EventCallback<MessageInfo> OnReschedule { get; set; }
 
+    private const string NotSetText = "(not set)";
+
     private IEnumerable<MessageInfo> SortedMessages
     {
         get
@@ -105,9 +107,9 @@
     {
         if (message.Properties.TryGetValue("NServiceBus.OriginatingEndpoint", out var endpoint))
         {
-            return endpoint?.ToString() ?? "(not set)";
+            return endpoint?.ToString() ?? NotSetText;
         }
-        return "(not set)";
+        return NotSetText;
     }
 
     private string GetSortIcon(string columnName)
