@@ -7,11 +7,6 @@ using SBInspector.Shared.Core.Interfaces;
 using SBInspector.Shared.Infrastructure.Export;
 using SBInspector.Shared.Infrastructure.ServiceBus;
 using SBInspector.Shared.Infrastructure.Storage;
-using SBInspector.Shared.Infrastructure.Export;
-using SBInspector.Shared.Application.Services;
-using SBInspector.Shared.Core.Domain;
-using Microsoft.AspNetCore.DataProtection;
-using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +29,6 @@ builder.Services.AddSingleton<MessageFilterService>();
 builder.Services.AddSingleton<ConnectionStateService>();
 builder.Services.AddSingleton<ConnectionStringEncryptionService>();
 builder.Services.AddSingleton<ThemeService>();
-builder.Services.AddMudServices();
 // Register storage configuration service with LocalStorage as default for web
 builder.Services.AddSingleton<StorageConfigurationService>(sp => 
     new StorageConfigurationService(StorageType.LocalStorage));
