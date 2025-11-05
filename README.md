@@ -53,6 +53,11 @@ Both applications share the same codebase and features through a shared Razor Cl
   - Application properties
 - **CRUD Operations on Messages**:
   - **Delete** messages from active queues, dead-letter queues, or subscriptions
+    - **Smart Deletion**: Automatic position-based strategy selection (foreground for near messages, background for deep messages)
+    - **Background Operations**: Non-blocking deletion with live progress tracking for messages deep in the queue
+    - **Position Estimation**: Quick position detection before deletion
+    - **Cancellable**: Cancel long-running background deletions at any time
+    - See [SMART_MESSAGE_DELETION.md](Features/SMART_MESSAGE_DELETION.md) for detailed documentation
   - **Requeue** messages from dead-letter queue back to active queue
   - **Send** new messages to queues or topics (with optional scheduling)
   - **Reschedule** scheduled messages to a different delivery time
