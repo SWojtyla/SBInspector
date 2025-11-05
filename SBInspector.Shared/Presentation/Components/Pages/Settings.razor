@@ -90,6 +90,44 @@
                 </div>
             </div>
 
+            <!-- Connections Path Configuration -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-link-45deg"></i> Connections Storage Path
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Saved Connection Strings Location</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="connectionsPath" placeholder="@defaultConnectionsPath" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ResetConnectionsPath">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">
+                            Path where saved connection strings will be stored. Leave empty to use default location.
+                        </small>
+                        @if (!string.IsNullOrWhiteSpace(connectionsPath))
+                        {
+                            <div class="mt-2">
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle"></i> Current: @connectionsPath
+                                </small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mt-2">
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle"></i> Default: @defaultConnectionsPath
+                                </small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
             <!-- Connection Security -->
             <div class="card mb-4">
                 <div class="card-body">
@@ -185,8 +223,10 @@
 @code {
     private string exportPath = string.Empty;
     private string templatePath = string.Empty;
+    private string connectionsPath = string.Empty;
     private string defaultExportPath = string.Empty;
     private string defaultTemplatePath = string.Empty;
+    private string defaultConnectionsPath = string.Empty;
     private bool isSaving = false;
     private bool isEncrypting = false;
     private string successMessage = string.Empty;
@@ -199,9 +239,11 @@
         var config = ConfigService.GetConfiguration();
         exportPath = config.ExportPath;
         templatePath = config.TemplatePath;
+        connectionsPath = config.ConnectionsPath;
         
         defaultExportPath = ConfigService.GetDefaultExportPath();
         defaultTemplatePath = ConfigService.GetDefaultTemplatePath();
+        defaultConnectionsPath = ConfigService.GetDefaultConnectionsPath();
 
         await CheckForUnencryptedConnections();
     }
@@ -232,6 +274,11 @@
         templatePath = string.Empty;
     }
 
+    private void ResetConnectionsPath()
+    {
+        connectionsPath = string.Empty;
+    }
+
     private async Task SaveSettings()
     {
         isSaving = true;
@@ -242,6 +289,7 @@
         {
             await ConfigService.SetExportPathAsync(exportPath);
             await ConfigService.SetTemplatePathAsync(templatePath);
+            await ConfigService.SetConnectionsPathAsync(connectionsPath);
 
             successMessage = "Settings saved successfully!";
             
