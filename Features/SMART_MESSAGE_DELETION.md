@@ -10,14 +10,18 @@ Azure Service Bus does not provide direct message deletion by sequence number fo
 
 1. Receive messages in batches using `ReceiveMessagesAsync`
 2. Check each batch for the target message
-3. Abandon non-target messages back to the queue
+3. Handle non-target messages appropriately
 4. Complete (delete) the target message when found
 
-For messages deep in a large queue (e.g., position 10,000+), this process can take several minutes and is not user-friendly in a synchronous UI operation.
+**Initial Challenge:** When using `AbandonMessageAsync`, messages return to the front of the queue, causing `ReceiveMessagesAsync` to return the same messages repeatedly in an infinite loop.
+
+**Solution:** Use `DeferMessageAsync` to temporarily set aside non-target messages. Deferred messages don't return via regular receive operations, allowing the search to progress forward through the queue. After finding and deleting the target message, deferred messages are retrieved using `ReceiveDeferredMessagesAsync` and abandoned to restore them to their original state.
+
+For messages deep in a large queue (e.g., position 10,000+), this process can still take time, which is why background operations with progress tracking are used.
 
 ## The Solution
 
-SBInspector implements a **smart hybrid deletion strategy** that automatically chooses between foreground and background operations based on the message's estimated position.
+SBInspector implements a **smart hybrid deletion strategy** that automatically chooses between foreground and background operations based on the message's estimated position, and uses **message deferral** to efficiently navigate through the queue.
 
 ### Architecture
 
@@ -35,6 +39,10 @@ Operation   Operation
     ↓           ↓
 Quick       Shows Progress
 Delete      Can Cancel
+    ↓           ↓
+Defer non-target messages
+Find & delete target
+Restore deferred messages
 ```
 
 ### Components
@@ -65,9 +73,17 @@ Delete      Can Cancel
 
 **Technical Details:**
 - Searches up to 10,000 messages (100 batches × 100 messages)
-- 500ms delay between batches to avoid overwhelming the service
-- Infinite loop detection via sequence number tracking
-- Automatically abandons non-target messages
+- Uses `DeferMessageAsync` to set aside non-target messages (prevents infinite loops)
+- No delay needed between batches (deferred messages don't return)
+- After deletion, restores deferred messages using `ReceiveDeferredMessagesAsync` and `AbandonMessageAsync`
+
+**Deferral Approach:**
+1. Receive batch of messages
+2. Check for target message
+3. If found: Complete (delete) it, defer others
+4. If not found: Defer all messages
+5. Continue to next batch (deferred messages won't be received again)
+6. Once target is found/deleted, retrieve all deferred messages and abandon them
 
 #### 3. Background Deletion (Position > 1000)
 
@@ -87,10 +103,20 @@ Delete      Can Cancel
 
 **Technical Details:**
 - Searches up to 50,000 messages (500 batches × 100 messages)
-- 300ms delay between batches (faster than foreground)
+- Uses `DeferMessageAsync` to set aside non-target messages (prevents infinite loops)
+- No delay needed between batches (deferred messages don't return)
 - Reports progress after each batch
 - Supports cancellation via CancellationToken
+- After deletion, restores deferred messages using `ReceiveDeferredMessagesAsync` and `AbandonMessageAsync`
 - Cleans up properly on cancellation or completion
+
+**Deferral Approach (same as foreground):**
+1. Receive batch of messages
+2. Check for target message
+3. If found: Complete (delete) it, defer others, break
+4. If not found: Defer all messages
+5. Report progress and continue to next batch
+6. Once target is found/deleted or search exhausted, retrieve all deferred messages and abandon them
 
 ### Progress Reporting
 
