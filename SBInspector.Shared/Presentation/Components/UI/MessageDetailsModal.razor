@@ -58,8 +58,8 @@
                 </MudTable>
             }
             <MudText Typo="Typo.subtitle2" Class="mt-3"><MudIcon Icon="@Icons.Material.Filled.Description" /> Message Body</MudText>
-            <MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;font-size:0.85rem;">
-    <pre>@Message.Body</pre>
+            <MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;overflow-x:hidden;font-size:0.85rem;">
+    <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">@Message.Body</pre>
             </MudPaper>
             @if (showSaveTemplateForm)
             {
