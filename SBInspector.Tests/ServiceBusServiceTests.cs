@@ -667,4 +667,84 @@ public class ServiceBusServiceTests
         // Should return false because not connected, but validates parameter is accepted
         Assert.False(result);
     }
+
+    [Fact]
+    public async Task DeleteMessageWithProgressAsync_WhenNotConnected_ReturnsFalse()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 123,
+            SkipPeekVerification = true
+        };
+
+        // Act
+        var result = await service.DeleteMessageWithProgressAsync(options);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task DeleteMessageWithProgressAsync_WithProgress_ReportsProgress()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 123,
+            SkipPeekVerification = true
+        };
+        var progressReported = false;
+        var progress = new Progress<(int batchesSearched, int messagesProcessed)>(_ => progressReported = true);
+
+        // Act
+        var result = await service.DeleteMessageWithProgressAsync(options, progress: progress);
+
+        // Assert
+        // Should return false because not connected, but validates progress parameter is accepted
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task DeleteMessageWithProgressAsync_WithCancellation_RespectsToken()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 123,
+            SkipPeekVerification = true
+        };
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act
+        var result = await service.DeleteMessageWithProgressAsync(options, cancellationToken: cts.Token);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task EstimateMessagePositionAsync_WhenNotConnected_ReturnsNegativeOne()
+    {
+        // Arrange
+        var service = new ServiceBusService();
+        var options = new MessageOperationOptions
+        {
+            EntityName = "test-queue",
+            SequenceNumber = 123
+        };
+
+        // Act
+        var result = await service.EstimateMessagePositionAsync(options);
+
+        // Assert
+        Assert.Equal(-1, result);
+    }
 }

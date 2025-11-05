@@ -445,6 +445,129 @@ public class ServiceBusService : IServiceBusService
         }
     }
 
+    public async Task<bool> DeleteMessageWithProgressAsync(MessageOperationOptions options, CancellationToken cancellationToken = default, IProgress<(int batchesSearched, int messagesProcessed)>? progress = null)
+    {
+        if (_client == null) return false;
+
+        ServiceBusReceiver? receiver = null;
+
+        try
+        {
+            var receiverOptions = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Set SubQueue if it's a dead-letter queue
+            if (options.IsDeadLetterQueue)
+            {
+                receiverOptions.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receiver
+            if (options.IsSubscription && !string.IsNullOrEmpty(options.TopicName) && !string.IsNullOrEmpty(options.SubscriptionName))
+            {
+                receiver = _client.CreateReceiver(options.TopicName, options.SubscriptionName, receiverOptions);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(options.EntityName, receiverOptions);
+            }
+
+            // Track sequence numbers we've already seen to avoid infinite loops
+            var seenSequenceNumbers = new HashSet<long>();
+            const int receiveBatchSize = 100;
+            const int maxReceiveBatches = 500; // Allow up to 50,000 messages to be searched
+            int emptyBatchCount = 0;
+            const int maxEmptyBatches = 3;
+            int messagesProcessed = 0;
+            
+            for (int batchNumber = 0; batchNumber < maxReceiveBatches; batchNumber++)
+            {
+                // Check for cancellation
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                var messages = await receiver.ReceiveMessagesAsync(
+                    maxMessages: receiveBatchSize, 
+                    maxWaitTime: TimeSpan.FromSeconds(5)
+                );
+                
+                if (messages.Count == 0)
+                {
+                    emptyBatchCount++;
+                    if (emptyBatchCount >= maxEmptyBatches)
+                    {
+                        return false; // Message not available after multiple attempts
+                    }
+                    await Task.Delay(1000, cancellationToken);
+                    continue;
+                }
+                
+                emptyBatchCount = 0;
+                messagesProcessed += messages.Count;
+                
+                // Report progress
+                progress?.Report((batchNumber + 1, messagesProcessed));
+                
+                // Check if we've seen all these messages before (infinite loop detection)
+                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                if (allSeen)
+                {
+                    // We're stuck in a loop, abandon all and return false
+                    foreach (var msg in messages)
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    return false;
+                }
+                
+                var messageToDelete = messages.FirstOrDefault(m => m.SequenceNumber == options.SequenceNumber);
+
+                if (messageToDelete != null)
+                {
+                    // Found the message, delete it and abandon the rest
+                    await receiver.CompleteMessageAsync(messageToDelete);
+                    
+                    // Abandon other messages so they're available again
+                    foreach (var msg in messages.Where(m => m.SequenceNumber != options.SequenceNumber))
+                    {
+                        await receiver.AbandonMessageAsync(msg);
+                    }
+                    
+                    return true;
+                }
+                
+                // Track these sequence numbers and abandon all
+                foreach (var msg in messages)
+                {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
+                    await receiver.AbandonMessageAsync(msg);
+                }
+                
+                // Add a small delay to allow messages to become available again
+                await Task.Delay(300, cancellationToken);
+            }
+
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            // Return false if operation was cancelled
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
+        }
+    }
+
     public async Task<bool> RequeueDeadLetterMessageAsync(MessageOperationOptions options)
     {
         if (_client == null) return false;
@@ -1387,6 +1510,75 @@ public class ServiceBusService : IServiceBusService
         catch
         {
             return null;
+        }
+    }
+
+    public async Task<int> EstimateMessagePositionAsync(MessageOperationOptions options)
+    {
+        if (_client == null) return -1;
+
+        ServiceBusReceiver? receiver = null;
+
+        try
+        {
+            var receiverOptions = new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            };
+
+            // Set SubQueue if it's a dead-letter queue
+            if (options.IsDeadLetterQueue)
+            {
+                receiverOptions.SubQueue = SubQueue.DeadLetter;
+            }
+
+            // Create the appropriate receiver
+            if (options.IsSubscription && !string.IsNullOrEmpty(options.TopicName) && !string.IsNullOrEmpty(options.SubscriptionName))
+            {
+                receiver = _client.CreateReceiver(options.TopicName, options.SubscriptionName, receiverOptions);
+            }
+            else
+            {
+                receiver = _client.CreateReceiver(options.EntityName, receiverOptions);
+            }
+
+            // Peek messages to estimate position
+            int position = 0;
+            long? startSequence = null;
+            const int peekBatchSize = 256;
+            const int maxPeekBatches = 10; // Check up to 2560 messages for estimation
+            
+            for (int i = 0; i < maxPeekBatches; i++)
+            {
+                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                if (peekedMessages.Count == 0) break;
+                
+                foreach (var msg in peekedMessages)
+                {
+                    position++;
+                    if (msg.SequenceNumber == options.SequenceNumber)
+                    {
+                        return position; // Found exact position
+                    }
+                }
+                
+                startSequence = peekedMessages.Last().SequenceNumber + 1;
+            }
+            
+            // If not found in the first batches, return estimated position based on batches checked
+            // This indicates the message is likely beyond position 2560
+            return position + 1;
+        }
+        catch
+        {
+            return -1; // Error occurred
+        }
+        finally
+        {
+            if (receiver != null)
+            {
+                await receiver.DisposeAsync();
+            }
         }
     }
 }

@@ -797,51 +797,167 @@
 
         if (messageForOperation == null) return;
 
-        isOperationInProgress = true;
-        operationLoadingTitle = "Deleting Message";
-        operationLoadingMessage = "Please wait while the message is being deleted...";
+        var options = MessageOperationOptions.FromMessageInfo(
+            messageForOperation,
+            selectedEntity,
+            !string.IsNullOrEmpty(selectedSubscriptionName),
+            selectedTopic,
+            selectedSubscriptionName);
 
-        try
+        // Estimate message position to decide on deletion strategy
+        int estimatedPosition = await ServiceBusService.EstimateMessagePositionAsync(options);
+        
+        // Use background operation if message is beyond position 1000 or estimation failed
+        bool useBackgroundOperation = estimatedPosition > 1000 || estimatedPosition == -1;
+
+        if (useBackgroundOperation)
         {
-            bool success;
+            // Use background operation for deep messages
+            var operationId = $"{selectedEntity}_delete_{messageForOperation.SequenceNumber}_{Guid.NewGuid()}";
             
-            var options = MessageOperationOptions.FromMessageInfo(
-                messageForOperation,
-                selectedEntity,
-                !string.IsNullOrEmpty(selectedSubscriptionName),
-                selectedTopic,
-                selectedSubscriptionName);
-                
-            success = await ServiceBusService.DeleteMessageAsync(options);
+            var operation = new PurgeOperation
+            {
+                OperationId = operationId,
+                EntityName = selectedEntity,
+                MessageType = messageForOperation.State,
+                ProgressMessage = $"Searching for and deleting message '{messageForOperation.MessageId}'...",
+                Progress = 0,
+                CancellationTokenSource = new CancellationTokenSource(),
+                IsDeleteFiltered = false
+            };
+            
+            activeOperations[operationId] = operation;
+            StateHasChanged();
 
-            if (success)
+            // Run deletion in background
+            _ = Task.Run(async () =>
             {
-                messages.Remove(messageForOperation);
-                successMessage = "Message deleted successfully.";
-                
-                // Refresh entity counts to update the tree
-                await RefreshEntityCounts();
-                
-                await Task.Delay(3000);
-                successMessage = string.Empty;
+                try
+                {
+                    var capturedMessage = messageForOperation;
+                    var capturedOptions = options;
+                    
+                    var progress = new Progress<(int batchesSearched, int messagesProcessed)>(tuple =>
+                    {
+                        if (activeOperations.TryGetValue(operationId, out var op))
+                        {
+                            op.Progress = tuple.messagesProcessed;
+                            op.ProgressMessage = $"Searched {tuple.batchesSearched} batches ({tuple.messagesProcessed} messages)...";
+                        }
+                        InvokeAsync(StateHasChanged);
+                    });
+
+                    bool success = await ServiceBusService.DeleteMessageWithProgressAsync(
+                        capturedOptions,
+                        cancellationToken: operation.CancellationTokenSource.Token,
+                        progress: progress);
+
+                    await InvokeAsync(async () =>
+                    {
+                        // Remove from active operations
+                        activeOperations.Remove(operationId);
+                        
+                        bool wasCancelled = operation.CancellationTokenSource?.Token.IsCancellationRequested ?? false;
+                        
+                        if (wasCancelled)
+                        {
+                            successMessage = "Deletion cancelled.";
+                        }
+                        else if (success)
+                        {
+                            messages.Remove(capturedMessage);
+                            successMessage = $"Message '{capturedMessage.MessageId}' deleted successfully.";
+                            
+                            // Refresh entity counts to update the tree
+                            await RefreshEntityCounts();
+                        }
+                        else
+                        {
+                            operationErrorMessage = "Failed to delete message. It may have already been processed or the search was exhausted.";
+                        }
+                        
+                        StateHasChanged();
+                        
+                        await Task.Delay(3000);
+                        successMessage = string.Empty;
+                        operationErrorMessage = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+                catch (OperationCanceledException)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activeOperations.Remove(operationId);
+                        successMessage = "Deletion cancelled.";
+                        StateHasChanged();
+                    });
+                    
+                    await Task.Delay(3000);
+                    await InvokeAsync(() =>
+                    {
+                        successMessage = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activeOperations.Remove(operationId);
+                        operationErrorMessage = $"Error deleting message: {ex.Message}";
+                        StateHasChanged();
+                    });
+                    
+                    await Task.Delay(5000);
+                    await InvokeAsync(() =>
+                    {
+                        operationErrorMessage = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+            });
+        }
+        else
+        {
+            // Use foreground operation for messages near the front
+            isOperationInProgress = true;
+            operationLoadingTitle = "Deleting Message";
+            operationLoadingMessage = $"Deleting message at position ~{estimatedPosition}...";
+
+            try
+            {
+                bool success = await ServiceBusService.DeleteMessageAsync(options);
+
+                if (success)
+                {
+                    messages.Remove(messageForOperation);
+                    successMessage = "Message deleted successfully.";
+                    
+                    // Refresh entity counts to update the tree
+                    await RefreshEntityCounts();
+                    
+                    await Task.Delay(3000);
+                    successMessage = string.Empty;
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to delete message. It may have already been processed.";
+                    await Task.Delay(5000);
+                    operationErrorMessage = string.Empty;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                operationErrorMessage = "Failed to delete message. It may have already been processed.";
+                operationErrorMessage = $"Error deleting message: {ex.Message}";
                 await Task.Delay(5000);
                 operationErrorMessage = string.Empty;
             }
-        }
-        catch (Exception ex)
-        {
-            operationErrorMessage = $"Error deleting message: {ex.Message}";
-            await Task.Delay(5000);
-            operationErrorMessage = string.Empty;
-        }
-        finally
-        {
-            isOperationInProgress = false;
-            messageForOperation = null;
+            finally
+            {
+                isOperationInProgress = false;
+                messageForOperation = null;
+            }
         }
     }
 

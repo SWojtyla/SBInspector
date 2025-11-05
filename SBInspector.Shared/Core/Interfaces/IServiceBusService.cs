@@ -16,6 +16,7 @@ public interface IServiceBusService
     
     // CRUD operations
     Task<bool> DeleteMessageAsync(MessageOperationOptions options);
+    Task<bool> DeleteMessageWithProgressAsync(MessageOperationOptions options, CancellationToken cancellationToken = default, IProgress<(int batchesSearched, int messagesProcessed)>? progress = null);
     Task<bool> RequeueDeadLetterMessageAsync(MessageOperationOptions options);
     Task<bool> MoveActiveMessageToDeadLetterAsync(MessageOperationOptions options);
     Task<bool> SendMessageAsync(string entityName, string messageBody, string? subject = null, string? contentType = null, Dictionary<string, object>? properties = null, DateTime? scheduledEnqueueTime = null);
@@ -33,4 +34,7 @@ public interface IServiceBusService
     Task<EntityInfo?> GetQueueInfoAsync(string queueName);
     Task<EntityInfo?> GetTopicInfoAsync(string topicName);
     Task<SubscriptionInfo?> GetSubscriptionInfoAsync(string topicName, string subscriptionName);
+    
+    // Helper method to estimate message position
+    Task<int> EstimateMessagePositionAsync(MessageOperationOptions options);
 }
