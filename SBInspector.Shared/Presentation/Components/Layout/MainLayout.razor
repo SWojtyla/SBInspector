@@ -1,6 +1,7 @@
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Application.Services
+@using MudBlazor
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
@@ -8,7 +9,7 @@
 @inherits LayoutComponentBase
 
 @* Required *@
-<MudThemeProvider />
+<MudThemeProvider Theme="@_customTheme" />
 <MudPopoverProvider />
 
 @* Needed for dialogs *@
@@ -44,6 +45,27 @@
 
 @code {
     private NavMenu? navMenuRef;
+
+    // Custom theme configuration for consistent branding
+    // TODO: Consider moving to a separate theme configuration class for better maintainability
+    private readonly MudTheme _customTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#00836b",
+            Secondary = "#6c757d",
+            Background = "#f5f5f5",
+            Surface = "#ffffff",
+            AppbarBackground = "#00836b",
+            AppbarText = "#ffffff",
+            DrawerBackground = "#f8f9fa",
+            DrawerText = "#212529",
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "4px"
+        }
+    };
 
     private async Task HandleConnectionSelected(SavedConnection connection)
     {

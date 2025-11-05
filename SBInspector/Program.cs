@@ -7,12 +7,20 @@ using SBInspector.Shared.Core.Interfaces;
 using SBInspector.Shared.Infrastructure.Export;
 using SBInspector.Shared.Infrastructure.ServiceBus;
 using SBInspector.Shared.Infrastructure.Storage;
+using SBInspector.Shared.Infrastructure.Export;
+using SBInspector.Shared.Application.Services;
+using SBInspector.Shared.Core.Domain;
+using Microsoft.AspNetCore.DataProtection;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add MudBlazor services
+builder.Services.AddMudServices();
 
 // Add Data Protection for secure storage
 builder.Services.AddDataProtection()

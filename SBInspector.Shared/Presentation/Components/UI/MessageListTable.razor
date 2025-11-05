@@ -1,18 +1,18 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-<MudPaper Class="pa-2">
+<MudPaper Class="pa-2" Style="background-color: #e0e0e0;">
     <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<MessageInfo>>(this, HandleRowClick))">
         <HeaderContent>
             <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.MessageId)))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.Subject)))">Subject @GetSortIcon(nameof(MessageInfo.Subject))</MudButton></MudTh>
+            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn("OriginatingEndpoint"))">Originating Endpoint @GetSortIcon("OriginatingEndpoint")</MudButton></MudTh>
             <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime)))">Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))</MudButton></MudTh>
             <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.DeliveryCount)))">Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))</MudButton></MudTh>
             <MudTh Align="Center">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Message ID"><MudTooltip Text="@context.MessageId"><code style="max-width:200px;overflow-x:auto;display:inline-block;">@context.MessageId</code></MudTooltip></MudTd>
-            <MudTd DataLabel="Subject"><MudTooltip Text="@context.Subject"><span style="max-width:300px;overflow-x:auto;display:inline-block;">@(string.IsNullOrEmpty(context.Subject) ? "(no subject)" : context.Subject)</span></MudTooltip></MudTd>
+            <MudTd DataLabel="Originating Endpoint"><MudTooltip Text="@GetOriginatingEndpoint(context)"><span style="max-width:300px;overflow-x:auto;display:inline-block;">@GetOriginatingEndpoint(context)</span></MudTooltip></MudTd>
             <MudTd DataLabel="Enqueued Time"><span>@context.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span></MudTd>
             <MudTd DataLabel="Delivery" Align="Center"><MudChip T="int" Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)" Size="Size.Small">@context.DeliveryCount</MudChip></MudTd>
             <MudTd DataLabel="Actions" Align="Center">
@@ -76,6 +76,8 @@
     [Parameter]
     public EventCallback<MessageInfo> OnReschedule { get; set; }
 
+    private const string NotSetText = "(not set)";
+
     private IEnumerable<MessageInfo> SortedMessages
     {
         get
@@ -85,9 +87,9 @@
                 nameof(MessageInfo.MessageId) => SortAscending 
                     ? Messages.OrderBy(m => m.MessageId) 
                     : Messages.OrderByDescending(m => m.MessageId),
-                nameof(MessageInfo.Subject) => SortAscending 
-                    ? Messages.OrderBy(m => m.Subject) 
-                    : Messages.OrderByDescending(m => m.Subject),
+                "OriginatingEndpoint" => SortAscending 
+                    ? Messages.OrderBy(m => GetOriginatingEndpoint(m)) 
+                    : Messages.OrderByDescending(m => GetOriginatingEndpoint(m)),
                 nameof(MessageInfo.EnqueuedTime) => SortAscending 
                     ? Messages.OrderBy(m => m.EnqueuedTime) 
                     : Messages.OrderByDescending(m => m.EnqueuedTime),
@@ -99,6 +101,15 @@
             
             return sorted;
         }
+    }
+
+    private string GetOriginatingEndpoint(MessageInfo message)
+    {
+        if (message.Properties.TryGetValue("NServiceBus.OriginatingEndpoint", out var endpoint))
+        {
+            return endpoint?.ToString() ?? NotSetText;
+        }
+        return NotSetText;
     }
 
     private string GetSortIcon(string columnName)

@@ -34,7 +34,7 @@
     }
     else
     {
-        <MudPaper Class="pa-3" Elevation="1">
+        <MudPaper Class="pa-3" Elevation="1" Style="background-color: #e0e0e0;">
             <MudTable Items="@templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt)" Dense="true" Hover="true" Bordered="true" Striped="true">
                 <HeaderContent>
                     <MudTh>Name</MudTh>
@@ -145,9 +145,6 @@
         <DialogActions>
             <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CloseViewModal" StartIcon="@Icons.Material.Filled.Close">
                 Close
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => { CloseViewModal(); ShowEditModal(selectedTemplate); }" StartIcon="@Icons.Material.Filled.Edit">
-                Edit
             </MudButton>
         </DialogActions>
     </MudDialog>
