@@ -26,6 +26,14 @@ public class ServiceBusService : IServiceBusService
     private const int ReceiveBatchSize = 100;
     private const int MaxBatchesToSearch = 100;
     private const int MaxEmptyBatches = 3;
+    
+    // Constants for background deletion with progress
+    private const int BackgroundMaxBatchesToSearch = 500; // 50,000 messages
+    private const int BackgroundDelayBetweenBatchesMs = 300;
+    
+    // Constants for position estimation
+    private const int EstimationPeekBatchSize = 256;
+    private const int EstimationMaxPeekBatches = 10; // Check up to 2560 messages
 
     public bool IsConnected => _adminClient != null && _client != null;
 
@@ -477,12 +485,11 @@ public class ServiceBusService : IServiceBusService
             // Track sequence numbers we've already seen to avoid infinite loops
             var seenSequenceNumbers = new HashSet<long>();
             const int receiveBatchSize = 100;
-            const int maxReceiveBatches = 500; // Allow up to 50,000 messages to be searched
             int emptyBatchCount = 0;
             const int maxEmptyBatches = 3;
             int messagesProcessed = 0;
             
-            for (int batchNumber = 0; batchNumber < maxReceiveBatches; batchNumber++)
+            for (int batchNumber = 0; batchNumber < BackgroundMaxBatchesToSearch; batchNumber++)
             {
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
@@ -510,7 +517,14 @@ public class ServiceBusService : IServiceBusService
                 progress?.Report((batchNumber + 1, messagesProcessed));
                 
                 // Check if we've seen all these messages before (infinite loop detection)
-                bool allSeen = messages.All(m => seenSequenceNumbers.Contains(m.SequenceNumber));
+                // Optimize by checking if we added any new sequence numbers
+                int previousCount = seenSequenceNumbers.Count;
+                foreach (var msg in messages)
+                {
+                    seenSequenceNumbers.Add(msg.SequenceNumber);
+                }
+                bool allSeen = seenSequenceNumbers.Count == previousCount; // No new messages added
+                
                 if (allSeen)
                 {
                     // We're stuck in a loop, abandon all and return false
@@ -537,15 +551,14 @@ public class ServiceBusService : IServiceBusService
                     return true;
                 }
                 
-                // Track these sequence numbers and abandon all
+                // Messages already tracked in seenSequenceNumbers, now abandon all
                 foreach (var msg in messages)
                 {
-                    seenSequenceNumbers.Add(msg.SequenceNumber);
                     await receiver.AbandonMessageAsync(msg);
                 }
                 
                 // Add a small delay to allow messages to become available again
-                await Task.Delay(300, cancellationToken);
+                await Task.Delay(BackgroundDelayBetweenBatchesMs, cancellationToken);
             }
 
             return false;
@@ -1545,12 +1558,10 @@ public class ServiceBusService : IServiceBusService
             // Peek messages to estimate position
             int position = 0;
             long? startSequence = null;
-            const int peekBatchSize = 256;
-            const int maxPeekBatches = 10; // Check up to 2560 messages for estimation
             
-            for (int i = 0; i < maxPeekBatches; i++)
+            for (int i = 0; i < EstimationMaxPeekBatches; i++)
             {
-                var peekedMessages = await receiver.PeekMessagesAsync(peekBatchSize, startSequence);
+                var peekedMessages = await receiver.PeekMessagesAsync(EstimationPeekBatchSize, startSequence);
                 if (peekedMessages.Count == 0) break;
                 
                 foreach (var msg in peekedMessages)

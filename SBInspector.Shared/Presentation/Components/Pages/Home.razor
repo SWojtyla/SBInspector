@@ -769,6 +769,9 @@
     // Purge operation state - support for multiple concurrent purge operations
     private bool isDeleteFiltered = false; // Flag to differentiate between normal purge and filtered delete
     
+    // Configuration for smart deletion strategy
+    private const int MessagePositionThresholdForBackgroundDeletion = 1000;
+    
     private class PurgeOperation
     {
         public string OperationId { get; set; } = string.Empty;
@@ -807,8 +810,8 @@
         // Estimate message position to decide on deletion strategy
         int estimatedPosition = await ServiceBusService.EstimateMessagePositionAsync(options);
         
-        // Use background operation if message is beyond position 1000 or estimation failed
-        bool useBackgroundOperation = estimatedPosition > 1000 || estimatedPosition == -1;
+        // Use background operation if message is beyond threshold or estimation failed
+        bool useBackgroundOperation = estimatedPosition > MessagePositionThresholdForBackgroundDeletion || estimatedPosition == -1;
 
         if (useBackgroundOperation)
         {
