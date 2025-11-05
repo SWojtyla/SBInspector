@@ -1,13 +1,8 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-@if (IsVisible)
-{
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Open="true">
-<MudDialogTitle>
-<MudIcon Icon="@Icons.Material.Filled.Description" /> @(IsEditMode ? "Edit Template" : "New Template")
-</MudDialogTitle>
-<MudDialogContent>
+<MudDialog>
+<DialogContent>
 <MudTextField @bind-Value="templateName" Label="Template Name *" Required="true" Margin="Margin.Normal" />
 <MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Margin="Margin.Normal" Lines="8" />
 <MudGrid Class="mb-3">
@@ -25,29 +20,22 @@
 {
 <MudAlert Severity="Severity.Error" Dense="true"><MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage</MudAlert>
 }
-</MudDialogContent>
-<MudDialogActions>
-<MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleClose" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+</DialogContent>
+<DialogActions>
+<MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave" StartIcon="@Icons.Material.Filled.Check">Save</MudButton>
-</MudDialogActions>
+</DialogActions>
 </MudDialog>
-}
 
 @code {
-    [Parameter]
-    public bool IsVisible { get; set; }
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public bool IsEditMode { get; set; }
 
     [Parameter]
     public MessageTemplate? Template { get; set; }
-
-    [Parameter]
-    public EventCallback OnClose { get; set; }
-
-    [Parameter]
-    public EventCallback<MessageTemplate> OnSave { get; set; }
 
     private string templateName = string.Empty;
     private string messageBody = string.Empty;
@@ -56,9 +44,9 @@
     private string propertiesText = string.Empty;
     private string errorMessage = string.Empty;
 
-    protected override void OnParametersSet()
+    protected override void OnInitialized()
     {
-        if (IsVisible && Template != null && IsEditMode)
+        if (Template != null && IsEditMode)
         {
             // Load existing template for editing
             templateName = Template.Name;
@@ -71,25 +59,15 @@
                 propertiesText = string.Join("\n",
                     Template.Properties.Select(kvp => $"{kvp.Key}={kvp.Value}"));
             }
-            else
-            {
-                propertiesText = string.Empty;
-            }
-        }
-        else if (IsVisible && !IsEditMode)
-        {
-            // Reset for new template
-            ResetForm();
         }
     }
 
-    private async Task HandleClose()
+    private void Cancel()
     {
-        ResetForm();
-        await OnClose.InvokeAsync();
+        MudDialog.Cancel();
     }
 
-    private async Task HandleSave()
+    private void HandleSave()
     {
         errorMessage = string.Empty;
 
@@ -135,22 +113,11 @@
                 LastUsedAt = Template?.LastUsedAt
             };
 
-            await OnSave.InvokeAsync(template);
-            ResetForm();
+            MudDialog.Close(DialogResult.Ok(template));
         }
         catch (Exception ex)
         {
             errorMessage = $"Error: {ex.Message}";
         }
-    }
-
-    private void ResetForm()
-    {
-        templateName = string.Empty;
-        messageBody = string.Empty;
-        subject = string.Empty;
-        contentType = "text/plain";
-        propertiesText = string.Empty;
-        errorMessage = string.Empty;
     }
 }

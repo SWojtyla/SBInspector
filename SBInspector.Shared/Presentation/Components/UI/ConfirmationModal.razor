@@ -1,49 +1,27 @@
 @using MudBlazor
 
-@if (IsVisible)
-{
-    <MudDialog MaxWidth="MaxWidth.Small" FullWidth="true" Open="true" DisableBackdropClick="true">
-        <MudDialogTitle>
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    @if (!string.IsNullOrWhiteSpace(IconClass))
-                    {
-                        <i class="@IconClass me-2"></i>
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icon" Size="Size.Medium" Class="me-2" />
-                    }
-                    @Title
-                </div>
-                <button type="button" class="@CloseButtonClass" aria-label="Close" @onclick="HandleCancel"></button>
-            </div>
-        </MudDialogTitle>
-        <MudDialogContent>
-            @Message
-        </MudDialogContent>
-        <MudDialogActions>
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleCancel" Class="@CancelButtonClass" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
-            @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
-            {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" Class="@ConfirmButtonClass">
-                    <i class="@ConfirmIconClass me-2"></i>@ConfirmText
-                </MudButton>
-            }
-            else
-            {
-                <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="HandleConfirm" Class="@ConfirmButtonClass" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
-            }
-        </MudDialogActions>
-    </MudDialog>
-}
+<MudDialog>
+    <DialogContent>
+        @Message
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+        @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
+        {
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit">
+                <i class="@ConfirmIconClass me-2"></i>@ConfirmText
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
 
 @code {
-    [Parameter]
-    public bool IsVisible { get; set; }
-
-    [Parameter]
-    public string Title { get; set; } = "Confirm Action";
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public string Message { get; set; } = "Are you sure?";
@@ -51,47 +29,15 @@
     [Parameter]
     public string ConfirmText { get; set; } = "Confirm";
 
-    // Existing icon string for MudBlazor icons
-    [Parameter]
-    public string Icon { get; set; } = Icons.Material.Filled.HelpOutline;
-
-    // Existing confirm icon string for MudBlazor icons
     [Parameter]
     public string ConfirmIcon { get; set; } = Icons.Material.Filled.Check;
-
-    // Optional custom CSS icon class overrides (Bootstrap or other icon sets)
-    [Parameter]
-    public string IconClass { get; set; } = string.Empty;
 
     [Parameter]
     public string ConfirmIconClass { get; set; } = string.Empty;
 
-    // Button styling classes (for tests expecting Bootstrap classes)
-    [Parameter]
-    public string ConfirmButtonClass { get; set; } = "btn-primary";
-
-    [Parameter]
-    public string CancelButtonClass { get; set; } = "btn-secondary";
-
-    [Parameter]
-    public string CloseButtonClass { get; set; } = "btn-close";
-
     [Parameter]
     public Color ConfirmColor { get; set; } = Color.Primary;
 
-    [Parameter]
-    public EventCallback OnConfirm { get; set; }
-
-    [Parameter]
-    public EventCallback OnCancel { get; set; }
-
-    private async Task HandleConfirm()
-    {
-        await OnConfirm.InvokeAsync();
-    }
-
-    private async Task HandleCancel()
-    {
-        await OnCancel.InvokeAsync();
-    }
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    private void Cancel() => MudDialog.Cancel();
 }

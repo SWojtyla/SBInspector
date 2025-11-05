@@ -1,8 +1,10 @@
 @page "/templates"
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Presentation.Components.UI
 @using MudBlazor
 @inject IStorageService StorageService
+@inject IDialogService DialogService
 
 <PageTitle>Message Templates - SBInspector</PageTitle>
 
@@ -77,23 +79,9 @@
     }
 </MudContainer>
 
-<MessageTemplateEditorModal
-    IsVisible="@isEditorVisible"
-    IsEditMode="@isEditMode"
-    Template="@selectedTemplate"
-    OnClose="@HandleEditorClose"
-    OnSave="@HandleTemplateSave" />
-
-<ConfirmationModal
-    IsVisible="@isDeleteConfirmVisible"
-    Title="Delete Template"
-    Message="@deleteConfirmMessage"
-    OnConfirm="@HandleDeleteConfirm"
-    OnCancel="@HandleDeleteCancel" />
-
 @if (isViewModalVisible && selectedTemplate != null)
 {
-    <MudDialog @bind-IsVisible="isViewModalVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+    <MudDialog @bind-Visible="isViewModalVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true })">
         <TitleContent>
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Visibility" />
@@ -171,18 +159,9 @@
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
 
-    // Editor modal
-    private bool isEditorVisible = false;
-    private bool isEditMode = false;
-    private MessageTemplate? selectedTemplate = null;
-
-    // Delete confirmation
-    private bool isDeleteConfirmVisible = false;
-    private MessageTemplate? templateToDelete = null;
-    private string deleteConfirmMessage = string.Empty;
-
     // View modal
     private bool isViewModalVisible = false;
+    private MessageTemplate? selectedTemplate = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,18 +187,78 @@
         }
     }
 
-    private void ShowCreateModal()
+    private async Task ShowCreateModal()
     {
-        selectedTemplate = null;
-        isEditMode = false;
-        isEditorVisible = true;
+        var parameters = new DialogParameters<MessageTemplateEditorModal>
+        {
+            { x => x.IsEditMode, false },
+            { x => x.Template, null }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MessageTemplateEditorModal>(
+            "New Template",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is MessageTemplate template)
+        {
+            try
+            {
+                await StorageService.SaveMessageTemplateAsync(template);
+                await LoadTemplatesAsync();
+                successMessage = "Template created successfully!";
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error saving template: {ex.Message}";
+            }
+        }
     }
 
-    private void ShowEditModal(MessageTemplate template)
+    private async Task ShowEditModal(MessageTemplate template)
     {
-        selectedTemplate = template;
-        isEditMode = true;
-        isEditorVisible = true;
+        var parameters = new DialogParameters<MessageTemplateEditorModal>
+        {
+            { x => x.IsEditMode, true },
+            { x => x.Template, template }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MessageTemplateEditorModal>(
+            "Edit Template",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is MessageTemplate updatedTemplate)
+        {
+            try
+            {
+                await StorageService.SaveMessageTemplateAsync(updatedTemplate);
+                await LoadTemplatesAsync();
+                successMessage = "Template updated successfully!";
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error saving template: {ex.Message}";
+            }
+        }
     }
 
     private void ShowViewModal(MessageTemplate template)
@@ -234,61 +273,42 @@
         selectedTemplate = null;
     }
 
-    private void ShowDeleteConfirmation(MessageTemplate template)
+    private async Task ShowDeleteConfirmation(MessageTemplate template)
     {
-        templateToDelete = template;
-        deleteConfirmMessage = $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone.";
-        isDeleteConfirmVisible = true;
-    }
-
-    private Task HandleEditorClose()
-    {
-        isEditorVisible = false;
-        selectedTemplate = null;
-        return Task.CompletedTask;
-    }
-
-    private async Task HandleTemplateSave(MessageTemplate template)
-    {
-        try
+        var parameters = new DialogParameters<ConfirmationModal>
         {
-            await StorageService.SaveMessageTemplateAsync(template);
-            await LoadTemplatesAsync();
-            isEditorVisible = false;
-            selectedTemplate = null;
-            successMessage = isEditMode ? "Template updated successfully!" : "Template created successfully!";
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error saving template: {ex.Message}";
-        }
-    }
+            { x => x.Message, $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone." },
+            { x => x.ConfirmText, "Delete" },
+            { x => x.ConfirmColor, Color.Error },
+            { x => x.ConfirmIconClass, "bi-trash" }
+        };
 
-    private async Task HandleDeleteConfirm()
-    {
-        if (templateToDelete != null)
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            "Delete Template",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
         {
             try
             {
-                await StorageService.DeleteMessageTemplateAsync(templateToDelete.Id);
+                await StorageService.DeleteMessageTemplateAsync(template.Id);
                 await LoadTemplatesAsync();
-                successMessage = $"Template '{templateToDelete.Name}' deleted successfully!";
+                successMessage = $"Template '{template.Name}' deleted successfully!";
             }
             catch (Exception ex)
             {
                 errorMessage = $"Error deleting template: {ex.Message}";
             }
-            finally
-            {
-                templateToDelete = null;
-                isDeleteConfirmVisible = false;
-            }
         }
-    }
-
-    private void HandleDeleteCancel()
-    {
-        templateToDelete = null;
-        isDeleteConfirmVisible = false;
     }
 }
