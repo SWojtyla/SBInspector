@@ -85,3 +85,178 @@ For highly interactive applications like SBInspector, disabling prerendering:
 - `NavMenu.razor.css` - Navigation menu styling
 - `Home.razor` - Main page
 - `Templates.razor` - Templates page
+
+---
+
+## 4. Template View Modal Fixes (Latest Update)
+
+### Issue
+- The Edit button in the view template modal was causing issues (calling async method without await)
+- The button was not needed in view mode as users should use the dedicated Edit button from the table
+
+### Solution
+- Removed the Edit button from the view template modal dialog actions
+- Kept only the Close button for a cleaner, view-only experience
+- **Location:** `SBInspector.Shared/Presentation/Components/Pages/Templates.razor`
+
+### Benefits
+- Cleaner view-only modal interface
+- Fixes async/await warning
+- Better UX with clear separation between view and edit modes
+
+## 5. Message Body Text Wrapping
+
+### Issue
+- Long message bodies created horizontal scrollbars, making content difficult to read
+
+### Solution
+- Added CSS properties to wrap text properly:
+  - `white-space: pre-wrap`
+  - `word-wrap: break-word`
+  - `overflow-wrap: break-word`
+  - `overflow-x: hidden`
+- **Location:** `SBInspector.Shared/Presentation/Components/UI/MessageDetailsModal.razor`
+
+### Benefits
+- Improved readability for long messages
+- No horizontal scrolling needed
+- Better use of available space
+
+## 6. Column Change: Subject → Originating Endpoint
+
+### Issue
+- The Subject column was not useful when viewing Service Bus messages
+- NServiceBus users needed to see the originating endpoint instead
+
+### Solution
+- Replaced the "Subject" column with "Originating Endpoint"
+- Added logic to extract the `NServiceBus.OriginatingEndpoint` property from message properties
+- Shows "(not set)" if the property is not available
+- Implemented sorting support for the new column
+- **Location:** `SBInspector.Shared/Presentation/Components/UI/MessageListTable.razor`
+
+### Code Example
+```csharp
+private string GetOriginatingEndpoint(MessageInfo message)
+{
+    if (message.Properties.TryGetValue("NServiceBus.OriginatingEndpoint", out var endpoint))
+    {
+        return endpoint?.ToString() ?? "(not set)";
+    }
+    return "(not set)";
+}
+```
+
+### Benefits
+- More relevant information for NServiceBus users
+- Helps identify message sources quickly
+- Sortable column for better organization
+
+## 7. Improved Color Scheme
+
+### Issue
+- The UI was too white and lacked visual depth
+- Backgrounds needed more contrast for better visual hierarchy
+
+### Solution
+- Added darker background colors (`#e0e0e0`) to:
+  - Entity tree view panel
+  - Entity details panel
+  - Message list table
+  - Templates table
+- Kept message count cards with white background for better contrast
+- Created a custom MudBlazor theme with consistent primary color (`#00836b`)
+- **Locations:**
+  - `SBInspector.Shared/Presentation/Components/Layout/MainLayout.razor`
+  - `SBInspector.Shared/Presentation/Components/UI/EntityTreeView.razor`
+  - `SBInspector.Shared/Presentation/Components/UI/EntityDetailsPanel.razor`
+  - `SBInspector.Shared/Presentation/Components/UI/MessageListTable.razor`
+  - `SBInspector.Shared/Presentation/Components/Pages/Templates.razor`
+
+### Theme Configuration
+A custom MudBlazor theme was created with the following settings:
+
+```csharp
+private readonly MudTheme _customTheme = new MudTheme()
+{
+    PaletteLight = new PaletteLight()
+    {
+        Primary = "#00836b",
+        Secondary = "#6c757d",
+        Background = "#f5f5f5",
+        Surface = "#ffffff",
+        AppbarBackground = "#00836b",
+        AppbarText = "#ffffff",
+        DrawerBackground = "#f8f9fa",
+        DrawerText = "#212529",
+    },
+    LayoutProperties = new LayoutProperties()
+    {
+        DefaultBorderRadius = "4px"
+    }
+};
+```
+
+### Color Palette
+- **Primary**: `#00836b` (Teal green)
+- **Secondary**: `#6c757d` (Gray)
+- **Background Grey**: `#e0e0e0` (Light gray for panels)
+- **Surface**: `#ffffff` (White for cards)
+- **Background**: `#f5f5f5` (Very light gray for page background)
+
+### Benefits
+- Better visual hierarchy and depth
+- Improved readability with appropriate contrast
+- More modern and professional appearance
+- Consistent color scheme across the application
+
+## 8. MudBlazor Services Registration
+
+### Issue
+- MudBlazor services were not properly registered, causing runtime errors
+- Application would crash on startup with missing service dependencies
+
+### Solution
+- Added `builder.Services.AddMudServices();` to Program.cs
+- Added `using MudBlazor.Services;` import
+- **Location:** `SBInspector/Program.cs`
+
+### Benefits
+- Application starts without errors
+- All MudBlazor components work correctly
+- Proper dependency injection for MudBlazor services
+
+## Latest Testing Results
+
+The application was tested with the following validations:
+- ✅ Build succeeds without errors
+- ✅ Server starts and responds to requests
+- ✅ Blazor Server application loads correctly
+- ✅ MudBlazor components render without errors
+- ✅ Template view modal works with only Close button
+- ✅ Message body text wraps correctly
+- ✅ Originating Endpoint column displays and sorts correctly
+- ✅ Darker backgrounds applied to panels and tables
+
+## User Guide Updates
+
+### Viewing Templates
+1. Navigate to the Templates page
+2. Click the "View" button (eye icon) on any template
+3. The view modal will display all template details with darker background for better readability
+4. Click "Close" to dismiss the modal
+5. Use the "Edit" button from the table row to modify templates
+
+### Viewing Message Originating Endpoint
+1. Connect to a Service Bus namespace
+2. Select a queue or topic subscription
+3. View messages in the message table
+4. The "Originating Endpoint" column will show the NServiceBus originating endpoint if available
+5. Click the column header to sort by originating endpoint
+
+### Visual Improvements
+The darker backgrounds automatically apply to:
+- The entity tree view on the left panel
+- The entity details panel on the right
+- Message and template tables
+- Provides better visual separation and depth
