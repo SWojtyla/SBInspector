@@ -11,7 +11,7 @@
 @inherits LayoutComponentBase
 
 @* Required *@
-<MudThemeProvider Theme="@_currentTheme" />
+<MudThemeProvider Theme="@_currentTheme" @IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 
 @* Needed for dialogs *@
@@ -48,16 +48,19 @@
 @code {
     private NavMenu? navMenuRef;
     private MudTheme _currentTheme = new MudTheme();
+    private bool _isDarkMode = false;
 
     protected override void OnInitialized()
     {
         _currentTheme = ThemeService.GetCurrentTheme();
+        _isDarkMode = ThemeService.IsDarkMode();
         ThemeService.ThemeChanged += OnThemeChanged;
     }
 
     private void OnThemeChanged(object? sender, EventArgs e)
     {
         _currentTheme = ThemeService.GetCurrentTheme();
+        _isDarkMode = ThemeService.IsDarkMode();
         InvokeAsync(StateHasChanged);
     }
 

@@ -51,6 +51,16 @@ public class ThemeService
         };
     }
 
+    public bool IsDarkMode()
+    {
+        return CurrentPreset switch
+        {
+            ThemePreset.Dark => true,
+            ThemePreset.Custom => _customTheme.IsDarkMode,
+            _ => false
+        };
+    }
+
     public ThemeConfiguration GetCustomThemeConfiguration()
     {
         return _customTheme;
