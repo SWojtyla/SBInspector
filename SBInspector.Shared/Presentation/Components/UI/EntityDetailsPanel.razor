@@ -1,7 +1,7 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-<MudPaper Class="pa-2 mud-elevation-2" Style="background-color: #e0e0e0;">
+<MudPaper Class="pa-2 mud-elevation-2">
     @if (EntityType == "queue" && QueueInfo != null)
     {
         <MudStack Spacing="2">
@@ -22,7 +22,7 @@
             <MudText Typo="Typo.subtitle1" Class="mt-2">Message Counts</MudText>
             <MudGrid>
                 <MudItem xs="12" sm="4">
-                    <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer; background-color: #ffffff;" @onclick="@(() => OnViewMessages.InvokeAsync("Active"))">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer;" @onclick="@(() => OnViewMessages.InvokeAsync("Active"))">
                         <MudStack AlignItems="AlignItems.Center" Spacing="1">
                             <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Primary" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Active Messages</MudText>
@@ -34,9 +34,9 @@
                         </MudStack>
                     </MudPaper>
                 </MudItem>
-                
+
                 <MudItem xs="12" sm="4">
-                    <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer; background-color: #ffffff;" @onclick="@(() => OnViewMessages.InvokeAsync("Scheduled"))">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer;" @onclick="@(() => OnViewMessages.InvokeAsync("Scheduled"))">
                         <MudStack AlignItems="AlignItems.Center" Spacing="1">
                             <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Scheduled Messages</MudText>
@@ -48,9 +48,9 @@
                         </MudStack>
                     </MudPaper>
                 </MudItem>
-                
+
                 <MudItem xs="12" sm="4">
-                    <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer; background-color: #ffffff;" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer;" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
                         <MudStack AlignItems="AlignItems.Center" Spacing="1">
                             <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Error" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Dead Letter Messages</MudText>
@@ -119,7 +119,7 @@
                         </MudStack>
                     </MudPaper>
                 </MudItem>
-                
+
                 <MudItem xs="12" sm="6">
                     <MudPaper Class="pa-3" Elevation="2" Style="cursor:pointer;" @onclick="@(() => OnViewMessages.InvokeAsync("DeadLetter"))">
                         <MudStack AlignItems="AlignItems.Center" Spacing="1">
