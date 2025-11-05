@@ -260,3 +260,29 @@ The darker backgrounds automatically apply to:
 - The entity details panel on the right
 - Message and template tables
 - Provides better visual separation and depth
+
+### Colorful Property Display (Latest Update)
+When viewing message details, each property is now displayed in a colored background for better visual distinction:
+- **Message ID**: Light Blue (#e3f2fd)
+- **Subject**: Light Purple (#f3e5f5)
+- **Content Type**: Light Green (#e8f5e9)
+- **Delivery Count**: Light Orange (#fff3e0)
+- **Enqueued Time**: Light Pink (#fce4ec)
+- **Scheduled Enqueue Time**: Light Teal (#e0f2f1)
+- **Sequence Number**: Light Lime (#f1f8e9)
+
+This color-coding makes it easier to quickly identify specific properties at a glance.
+
+### Collapsible Application Properties
+The Application Properties section is now collapsible using MudExpansionPanel:
+- Initially expanded by default
+- Click the header to collapse/expand
+- Saves screen space when properties section is large
+- Maintains count in the header when collapsed
+
+### Improved Text Wrapping
+Message body text now uses `overflow-wrap: anywhere` which:
+- Wraps text properly even for extremely long words or URLs
+- Allows horizontal scrolling as a fallback for truly unbreakable content
+- Prevents layout breaking with very long strings
+- Applied to both modal and full-page message views
