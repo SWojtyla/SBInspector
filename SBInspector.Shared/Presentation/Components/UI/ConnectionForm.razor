@@ -13,7 +13,7 @@
 
         <MudTextField Value="@ConnectionString" ValueChanged="@((string val) => OnConnectionStringChanged(val))" Label="Connection String" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Normal" Placeholder="Endpoint=sb://..." />
 
-        <MudCheckBox T="bool" @bind-Checked="shouldSaveConnection" Label="Save this connection for later use" />
+        <MudCheckBox T="bool" @bind-Value="shouldSaveConnection" Label="Save this connection for later use" />
         @if (shouldSaveConnection)
         {
             <MudTextField Value="@connectionName" ValueChanged="@((string val) => connectionName = val)" Label="Enter a name for this connection" Variant="Variant.Outlined" Margin="Margin.Dense" />
