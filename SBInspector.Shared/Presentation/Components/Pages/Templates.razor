@@ -34,7 +34,7 @@
     }
     else
     {
-        <MudPaper Class="pa-3" Elevation="1" Style="background-color: #e0e0e0;">
+        <MudPaper Class="pa-3" Elevation="1" >
             <MudTable Items="@templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt)" Dense="true" Hover="true" Bordered="true" Striped="true">
                 <HeaderContent>
                     <MudTh>Name</MudTh>
@@ -97,7 +97,7 @@
 
                 <div>
                     <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Message Body</strong></MudText>
-                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey); max-height: 300px; overflow-y: auto;">
+                    <MudPaper Class="pa-3" Elevation="0" Style="max-height: 300px; overflow-y: auto;">
                         <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">@selectedTemplate.MessageBody</pre>
                     </MudPaper>
                 </div>
@@ -117,7 +117,7 @@
                 {
                     <div>
                         <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>Application Properties</strong></MudText>
-                        <MudPaper Class="pa-2" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                        <MudPaper Class="pa-2" Elevation="0" >
                             @foreach (var prop in selectedTemplate.Properties)
                             {
                                 <MudStack Row="true" Spacing="1" Class="mb-1">

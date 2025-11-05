@@ -1,7 +1,7 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-<MudPaper Class="pa-2" Style="background-color: #e0e0e0;">
+<MudPaper Class="pa-2">
     <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<MessageInfo>>(this, HandleRowClick))">
         <HeaderContent>
             <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.MessageId)))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>

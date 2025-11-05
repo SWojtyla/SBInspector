@@ -11,7 +11,7 @@
 @inherits LayoutComponentBase
 
 @* Required *@
-<MudThemeProvider Theme="@_currentTheme" @IsDarkMode="@_isDarkMode" />
+<MudThemeProvider Theme="@_currentTheme" IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 
 @* Needed for dialogs *@
@@ -28,10 +28,7 @@
             @ref="navMenuRef" />
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+    <main>       
 
         <article class="content px-4">
             @Body

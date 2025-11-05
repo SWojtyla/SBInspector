@@ -14,31 +14,31 @@
 <MudCardContent>
 <MudGrid>
 <MudItem xs="6">
-<MudPaper Class="pa-2" Style="background-color: #e3f2fd;">
+<MudPaper Class="pa-2">
 <MudText Typo="Typo.subtitle2"><b>Message ID:</b></MudText>
 <MudText><code>@Message.MessageId</code></MudText>
 </MudPaper>
 </MudItem>
 <MudItem xs="6">
-<MudPaper Class="pa-2" Style="background-color: #f3e5f5;">
+<MudPaper Class="pa-2">
 <MudText Typo="Typo.subtitle2"><b>Subject:</b></MudText>
 <MudText>@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</MudText>
 </MudPaper>
 </MudItem>
 <MudItem xs="6">
-<MudPaper Class="pa-2" Style="background-color: #e8f5e9;">
+<MudPaper Class="pa-2">
 <MudText Typo="Typo.subtitle2"><b>Content Type:</b></MudText>
 <MudText>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)</MudText>
 </MudPaper>
 </MudItem>
 <MudItem xs="6">
-<MudPaper Class="pa-2" Style="background-color: #fff3e0;">
+<MudPaper Class="pa-2" >
 <MudText Typo="Typo.subtitle2"><b>Delivery Count:</b></MudText>
 <MudChip T="object" Color="@(Message.DeliveryCount >0 ? Color.Warning : Color.Success)">@Message.DeliveryCount</MudChip>
 </MudPaper>
 </MudItem>
 <MudItem xs="6">
-<MudPaper Class="pa-2" Style="background-color: #fce4ec;">
+<MudPaper Class="pa-2">
 <MudText Typo="Typo.subtitle2"><b>Enqueued Time:</b></MudText>
 <MudText>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
 </MudPaper>
@@ -46,14 +46,14 @@
 @if (Message.ScheduledEnqueueTime.HasValue)
 {
 <MudItem xs="6">
-<MudPaper Class="pa-2" Style="background-color: #e0f2f1;">
+<MudPaper Class="pa-2" >
 <MudText Typo="Typo.subtitle2"><b>Scheduled Enqueue Time:</b></MudText>
 <MudText>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
 </MudPaper>
 </MudItem>
 }
 <MudItem xs="12">
-<MudPaper Class="pa-2" Style="background-color: #f1f8e9;">
+<MudPaper Class="pa-2" >
 <MudText Typo="Typo.subtitle2"><b>Sequence Number:</b></MudText>
 <MudText>@Message.SequenceNumber</MudText>
 </MudPaper>
