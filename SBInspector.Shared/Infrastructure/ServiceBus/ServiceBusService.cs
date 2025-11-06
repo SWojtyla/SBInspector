@@ -1306,6 +1306,9 @@ public class ServiceBusService : IServiceBusService
             // Create a filter service to check messages
             var filterService = new Application.Services.MessageFilterService();
 
+            // Track deferred messages so we can restore them at the end
+            var deferredSequenceNumbers = new List<long>();
+            
             // Keep receiving and filtering messages in batches until no more messages
             int emptyBatchCount = 0;
             const int maxEmptyBatches = 3;
@@ -1315,7 +1318,7 @@ public class ServiceBusService : IServiceBusService
                 // Check for cancellation
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                // Receive messages with PeekLock mode - increased timeout
+                // Receive messages with PeekLock mode
                 var receivedMessages = await receiver.ReceiveMessagesAsync(maxMessages: 100, maxWaitTime: TimeSpan.FromSeconds(5));
                 
                 if (receivedMessages.Count == 0)
@@ -1363,7 +1366,7 @@ public class ServiceBusService : IServiceBusService
                 // Apply filters to find matching messages
                 var matchingMessages = filterService.ApplyFilters(messageInfos, filters).ToList();
                 
-                // Delete (complete) only the matching messages, abandon the rest
+                // Delete (complete) matching messages
                 foreach (var matchingMsg in matchingMessages)
                 {
                     if (messageMap.TryGetValue(matchingMsg.SequenceNumber, out var serviceBusMessage))
@@ -1376,17 +1379,34 @@ public class ServiceBusService : IServiceBusService
                     }
                 }
                 
-                // Abandon non-matching messages so they can be received again
+                // Defer non-matching messages so they don't block our search
                 foreach (var msg in receivedMessages)
                 {
                     if (!matchingMessages.Any(m => m.SequenceNumber == msg.SequenceNumber))
                     {
-                        await receiver.AbandonMessageAsync(msg);
+                        await receiver.DeferMessageAsync(msg, cancellationToken: cancellationToken);
+                        deferredSequenceNumbers.Add(msg.SequenceNumber);
                     }
                 }
                 
-                // Add a delay to allow abandoned messages to become available again
-                await Task.Delay(500, cancellationToken);
+                // No delay needed since deferred messages don't come back
+            }
+            
+            // Restore deferred messages by receiving and abandoning them
+            if (deferredSequenceNumbers.Count > 0)
+            {
+                // Process deferred messages in batches
+                const int deferredBatchSize = 100;
+                for (int i = 0; i < deferredSequenceNumbers.Count; i += deferredBatchSize)
+                {
+                    var batch = deferredSequenceNumbers.Skip(i).Take(deferredBatchSize).ToList();
+                    var deferredMessages = await receiver.ReceiveDeferredMessagesAsync(batch, cancellationToken);
+                    
+                    foreach (var deferredMsg in deferredMessages)
+                    {
+                        await receiver.AbandonMessageAsync(deferredMsg, cancellationToken: cancellationToken);
+                    }
+                }
             }
 
             return totalDeleted;

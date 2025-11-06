@@ -23,6 +23,8 @@ For messages deep in a large queue (e.g., position 10,000+), this process can st
 
 SBInspector implements a **smart hybrid deletion strategy** that automatically chooses between foreground and background operations based on the message's estimated position, and uses **message deferral** to efficiently navigate through the queue.
 
+**Note:** The deferral approach is used for both single message deletion and filtered message deletion to avoid infinite loops and ensure all messages in the queue are properly examined.
+
 ### Architecture
 
 ```
@@ -118,6 +120,34 @@ Restore deferred messages
 5. Report progress and continue to next batch
 6. Once target is found/deleted or search exhausted, retrieve all deferred messages and abandon them
 
+#### 4. Filtered Message Deletion
+
+**Method:** `DeleteFilteredMessagesAsync(string entityName, string messageType, List<MessageFilter> filters, ...)`
+
+**When Used:**
+- Deleting multiple messages that match specific filter criteria
+- User applies filters (e.g., property value, enqueued time) and clicks "Delete Filtered"
+- Background operation with progress tracking
+
+**Technical Details:**
+- Uses the same defer/restore pattern as single message deletion
+- Receives batches of 100 messages
+- Applies filters to identify matching messages
+- Deletes (completes) matching messages
+- Defers non-matching messages to continue search
+- After processing all messages, restores all deferred messages
+
+**Deferral Approach:**
+1. Receive batch of messages
+2. Apply filters to identify matches
+3. Complete (delete) all matching messages
+4. Defer all non-matching messages
+5. Continue to next batch (deferred messages won't be received again)
+6. Once search is exhausted, retrieve all deferred messages and abandon them
+
+**Why Deferral is Critical:**
+Without deferral, using `AbandonMessageAsync` on non-matching messages causes them to return to the front of the queue, creating an infinite loop where the same non-matching messages are received repeatedly, preventing progress through the queue.
+
 ### Progress Reporting
 
 The background deletion reports progress as a tuple:
@@ -138,7 +168,7 @@ Background deletions can be cancelled at any time:
 
 1. User clicks "Cancel" button on the background operation panel
 2. CancellationToken is triggered
-3. Current batch completes abandoning non-target messages
+3. Current batch completes processing (deferred messages will still be restored)
 4. Operation terminates cleanly
 5. User is notified of cancellation
 
