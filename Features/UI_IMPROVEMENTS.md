@@ -286,3 +286,110 @@ Message body text now uses `overflow-wrap: anywhere` which:
 - Allows horizontal scrolling as a fallback for truly unbreakable content
 - Prevents layout breaking with very long strings
 - Applied to both modal and full-page message views
+
+## 9. SendMessageModal UI Improvements (Latest Update)
+
+### Issues
+- Template selector section was cramped with all elements in a single row
+- Template names with "last used" dates caused text to overlap in the dropdown
+- Poor visual separation between form sections
+- Inconsistent spacing throughout the form
+
+### Solutions
+**Template Selection Section:**
+- Now contained in a dedicated `MudPaper` with elevation for better visual separation
+- Template dropdown shows name and "last used" date on separate lines using `MudStack` (no more overlapping text)
+- Load and Delete buttons are now full-width for better mobile responsiveness
+- Added icon to section header for better visual hierarchy
+
+**Form Sections:**
+- Added icons next to section headers (Edit icon for Message Content, Settings icon for Application Properties)
+- Added `MudDivider` components between major sections
+- Consistent use of `Variant.Outlined` for form fields
+
+**Improved Spacing:**
+- Changed from `Margin.Normal` to `Margin.Dense` for more compact layout
+- Added proper spacing between sections with `Class="mt-3"` and `Class="my-4"`
+- Better grid layouts for Subject and Content Type fields
+
+**Location:** `SBInspector.Shared/Presentation/Components/UI/SendMessageModal.razor`
+
+### Benefits
+- No more overlapping text in template dropdowns
+- Clear visual hierarchy and sections
+- Better mobile responsiveness
+- More intuitive and organized layout
+
+## 10. Template Management - Pages Instead of Modals (Latest Update)
+
+### Issue
+- Template view and edit operations used modal dialogs
+- This was inconsistent with message viewing, which uses dedicated pages
+- Modals felt cramped for viewing/editing large templates
+
+### Solution
+Created dedicated pages for template management, following the same pattern as message viewing:
+
+**New Pages:**
+
+1. **TemplateView.razor** (`/templates/view/{TemplateId}`)
+   - Full-page view for viewing template details
+   - Back button to return to templates list
+   - Edit and Delete action buttons
+   - Well-organized sections with icons
+   - Proper spacing and visual hierarchy
+   - Shows all template information: name, message body, subject, content type, properties, created date, last used date
+
+2. **TemplateEditor.razor** (`/templates/new` and `/templates/edit/{TemplateId}`)
+   - Full-page editor for creating and editing templates
+   - Back button to return to templates list
+   - Support for both create and edit modes via route parameters
+   - Well-organized form with clear sections
+   - Validation and error handling
+   - Consistent styling with other forms in the application
+
+**Templates.razor Updates:**
+- Changed "New Template" button to navigate to `/templates/new`
+- Changed View action icon button to navigate to `/templates/view/{id}`
+- Changed Edit action icon button to navigate to `/templates/edit/{id}`
+- Removed the inline view modal code
+- Simplified code by removing modal-related methods (`ShowCreateModal`, `ShowEditModal`, `ShowViewModal`, `CloseViewModal`)
+
+**Locations:**
+- `SBInspector.Shared/Presentation/Components/Pages/TemplateView.razor` (NEW)
+- `SBInspector.Shared/Presentation/Components/Pages/TemplateEditor.razor` (NEW)
+- `SBInspector.Shared/Presentation/Components/Pages/Templates.razor` (UPDATED)
+
+### Benefits
+- **Consistent Navigation**: Template view/edit now follows the same pattern as message viewing
+- **Better User Experience**: More space for viewing/editing large templates
+- **Cleaner Code**: Dedicated pages instead of complex modal logic
+- **Easier Maintenance**: Better separation of concerns, easier to test and modify
+- **Improved Accessibility**: Better mobile and keyboard navigation with proper page routing
+
+### How to Use
+
+**Adding a New Message:**
+1. Click "Send Message" button
+2. (Optional) Select a template from the "Load from Template" section
+3. Click "Load Template" to populate the form (dropdown shows name and date on separate lines)
+4. Fill in the message details with improved spacing and sections
+5. (Optional) Save the message as a new template
+6. Click "Send" to send the message
+
+**Managing Templates:**
+1. Navigate to the Templates page
+2. Click "New Template" to create a new template (opens dedicated page with back button)
+3. Click the eye icon to view a template (opens dedicated page with back button)
+4. Click the edit icon to edit a template (opens dedicated page with back button)
+5. Click the delete icon to delete a template (shows confirmation dialog)
+6. Use the back button on view/edit pages to return to the templates list
+
+### Testing
+The changes have been verified to:
+- ✅ Build successfully without errors
+- ✅ Maintain existing functionality
+- ✅ Follow consistent navigation patterns
+- ✅ Provide better user experience
+- ✅ Work in both Blazor Server and MAUI applications (pages are shared components)
+
