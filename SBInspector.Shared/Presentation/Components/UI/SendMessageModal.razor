@@ -233,17 +233,45 @@
         {
             // Parse properties
             var properties = new Dictionary<string, object>();
+            var invalidLines = new List<string>();
+            
             if (!string.IsNullOrWhiteSpace(propertiesText))
             {
                 var lines = propertiesText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var line in lines)
                 {
-                    var parts = line.Split('=', 2);
+                    var trimmedLine = line.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmedLine))
+                        continue;
+                        
+                    var parts = trimmedLine.Split('=', 2);
                     if (parts.Length == 2)
                     {
-                        properties[parts[0].Trim()] = parts[1].Trim();
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+                        
+                        if (!string.IsNullOrWhiteSpace(key))
+                        {
+                            properties[key] = value;
+                        }
+                        else
+                        {
+                            invalidLines.Add(trimmedLine);
+                        }
+                    }
+                    else
+                    {
+                        invalidLines.Add(trimmedLine);
                     }
                 }
+            }
+            
+            // Warn about invalid lines
+            if (invalidLines.Any())
+            {
+                errorMessage = $"Warning: {invalidLines.Count} property line(s) have invalid format. Expected format: key=value";
+                isSending = false;
+                return;
             }
 
             // Save as template if requested

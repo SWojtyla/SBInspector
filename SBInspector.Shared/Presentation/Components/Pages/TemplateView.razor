@@ -1,11 +1,11 @@
 @page "/templates/view/{TemplateId}"
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Presentation.Components.UI
 @using MudBlazor
-@using Microsoft.JSInterop
 @inject IStorageService StorageService
 @inject NavigationManager NavigationManager
-@inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
 
 <PageTitle>View Template - SBInspector</PageTitle>
 
@@ -218,9 +218,29 @@
         if (template == null)
             return;
 
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone.");
+        var parameters = new DialogParameters<ConfirmationModal>
+        {
+            { x => x.Message, $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone." },
+            { x => x.ConfirmText, "Delete" },
+            { x => x.ConfirmColor, Color.Error },
+            { x => x.ConfirmIcon, Icons.Material.Filled.Delete }
+        };
 
-        if (confirmed)
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            "Delete Template",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
         {
             try
             {
