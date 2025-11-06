@@ -1,50 +1,44 @@
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Application.Services
+@using MudBlazor
 @inject IStorageService StorageService
 @inject IServiceBusService ServiceBusService
 @inject ConnectionStateService ConnectionState
 @inject ConnectionStringEncryptionService EncryptionService
 @implements IDisposable
 
-<div class="connection-tree-container">
-    <div class="connection-tree-header">
-        <h6 class="mb-2"><i class="bi bi-plug"></i> Connections</h6>
-    </div>
-
+<MudPaper Class="pa-2 mud-elevation-1">
+    <MudText Typo="Typo.subtitle1" Class="mb-2"><MudIcon Icon="@Icons.Material.Filled.ElectricalServices" Size="Size.Small" /> Connections</MudText>
     @if (isLoading)
     {
-        <div class="text-center py-2">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
+        <MudStack AlignItems="AlignItems.Center" Class="py-1">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
+        </MudStack>
     }
     else if (savedConnections.Any())
     {
-        <div class="connection-tree-content">
+        <MudList T=SavedConnection Dense="true" Class="py-0">
             @foreach (var connection in savedConnections)
             {
-                <div class="connection-tree-node @(IsConnected(connection) ? "active-connection" : "")" 
-                     @onclick="() => HandleConnectionClick(connection)"
-                     title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
-                    <i class="bi @(IsConnected(connection) ? "bi-plug-fill" : "bi-plug")"></i>
-                    <span class="connection-name">@connection.Name</span>
-                    @if (IsConnected(connection))
-                    {
-                        <span class="connection-status-indicator"></span>
-                    }
-                </div>
+                <MudListItem Class="@((IsConnected(connection) ? "mud-selected" : ""))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => HandleConnectionClick(connection)" Title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@(IsConnected(connection) ? Icons.Material.Filled.ElectricalServices : Icons.Material.Outlined.ElectricalServices)" Color="@(IsConnected(connection) ? Color.Success : Color.Default)" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">@connection.Name</MudText>
+                        @if (IsConnected(connection))
+                        {
+                            <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Connected</MudChip>
+                        }
+                    </MudStack>
+                </MudListItem>
             }
-        </div>
+        </MudList>
     }
     else
     {
-        <div class="connection-tree-empty">
-            <small class="text-muted">No saved connections</small>
-        </div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">No saved connections</MudText>
     }
-</div>
+</MudPaper>
 
 @code {
     [Parameter]
@@ -69,11 +63,10 @@
         try
         {
             savedConnections = await StorageService.GetSavedConnectionsAsync();
-            // Sort by last used (most recent first), then by name
             savedConnections = savedConnections
-                .OrderByDescending(c => c.LastUsedAt ?? DateTime.MinValue)
-                .ThenBy(c => c.Name)
-                .ToList();
+            .OrderByDescending(c => c.LastUsedAt ?? DateTime.MinValue)
+            .ThenBy(c => c.Name)
+            .ToList();
         }
         finally
         {
@@ -103,12 +96,9 @@
         {
             return false;
         }
-
-        // Get the decrypted connection string for comparison
-        var connectionString = connection.IsEncrypted 
-            ? EncryptionService.Decrypt(connection.ConnectionString)
-            : connection.ConnectionString;
-
+        var connectionString = connection.IsEncrypted
+        ? EncryptionService.Decrypt(connection.ConnectionString)
+        : connection.ConnectionString;
         return connectionString == ConnectionState.CurrentConnectionString;
     }
 
@@ -116,12 +106,10 @@
     {
         if (IsConnected(connection))
         {
-            // Disconnect if already connected to this connection
             await OnDisconnect.InvokeAsync();
         }
         else
         {
-            // Connect to the selected connection
             await OnConnect.InvokeAsync(connection);
         }
     }

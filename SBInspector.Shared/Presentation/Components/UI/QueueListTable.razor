@@ -1,122 +1,71 @@
 @using SBInspector.Shared.Core.Domain
+@using MudBlazor
 
-<div class="mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Queues (@FilteredQueues.Count())</h3>
+<MudPaper Class="pa-2 mb-3">
+    <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5">Queues (@FilteredQueues.Count())</MudText>
         @if (Queues.Any())
         {
-            <div class="search-box">
-                <input type="text" class="form-control" placeholder="Search queues..." 
-                       @bind="searchTerm" @bind:event="oninput" />
-            </div>
+            <MudTextField @bind-Value="searchTerm" Placeholder="Search queues..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" />
         }
-    </div>
+    </MudStack>
     
     @if (Queues.Any())
     {
-        <div class="table-responsive scrollable-content">
-            <table class="table table-striped table-hover table-enhanced">
-                <thead>
-                    <tr>
-                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.Name))" class="sortable-header">
-                            Name @GetSortIcon(nameof(EntityInfo.Name))
-                        </th>
-                        <th class="text-center">Status</th>
-                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ActiveMessageCount))" class="sortable-header text-center">
-                            Active @GetSortIcon(nameof(EntityInfo.ActiveMessageCount))
-                        </th>
-                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.ScheduledMessageCount))" class="sortable-header text-center">
-                            Scheduled @GetSortIcon(nameof(EntityInfo.ScheduledMessageCount))
-                        </th>
-                        <th @onclick="() => HandleSortColumn(nameof(EntityInfo.DeadLetterMessageCount))" class="sortable-header text-center">
-                            Dead Letter @GetSortIcon(nameof(EntityInfo.DeadLetterMessageCount))
-                        </th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var queue in FilteredQueues)
+        <MudTable Items="@FilteredQueues" Dense="true" Hover="true" Bordered="true" Striped="true">
+            <HeaderContent>
+                <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.Name))">Name @GetSortIcon(nameof(EntityInfo.Name))</MudButton></MudTh>
+                <MudTh Align="Center">Status</MudTh>
+                <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.ActiveMessageCount))">Active @GetSortIcon(nameof(EntityInfo.ActiveMessageCount))</MudButton></MudTh>
+                <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.ScheduledMessageCount))">Scheduled @GetSortIcon(nameof(EntityInfo.ScheduledMessageCount))</MudButton></MudTh>
+                <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.DeadLetterMessageCount))">Dead Letter @GetSortIcon(nameof(EntityInfo.DeadLetterMessageCount))</MudButton></MudTh>
+                <MudTh Align="Center">Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><MudText Typo="Typo.subtitle2">@context.Name</MudText></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.Status == "Active" ? Color.Success : Color.Default)">@context.Status</MudChip></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.ActiveMessageCount >0 ? Color.Primary : Color.Default)">@context.ActiveMessageCount</MudChip></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.ScheduledMessageCount >0 ? Color.Warning : Color.Default)">@context.ScheduledMessageCount</MudChip></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.DeadLetterMessageCount >0 ? Color.Error : Color.Default)">@context.DeadLetterMessageCount</MudChip></MudTd>
+                <MudTd Align="Center">
+                    @if (context.Status == "Active")
                     {
-                        <tr>
-                            <td><strong>@queue.Name</strong></td>
-                            <td class="text-center">
-                                <span class="badge @(queue.Status == "Active" ? "bg-success" : "bg-secondary")">
-                                    @queue.Status
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <span class="message-badge @(queue.ActiveMessageCount > 0 ? "active" : "zero")">
-                                    @queue.ActiveMessageCount
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <span class="message-badge @(queue.ScheduledMessageCount > 0 ? "scheduled" : "zero")">
-                                    @queue.ScheduledMessageCount
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <span class="message-badge @(queue.DeadLetterMessageCount > 0 ? "deadletter" : "zero")">
-                                    @queue.DeadLetterMessageCount
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons justify-content-center">
-                                    @if (queue.Status == "Active")
-                                    {
-                                        <button class="btn btn-sm btn-secondary" @onclick="@(() => OnToggleStatus.InvokeAsync(queue.Name))" title="Disable Queue">
-                                            <i class="bi bi-pause-circle"></i> <span class="d-none d-md-inline">Disable</span>
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-sm btn-success" @onclick="@(() => OnToggleStatus.InvokeAsync(queue.Name))" title="Enable Queue">
-                                            <i class="bi bi-play-circle"></i> <span class="d-none d-md-inline">Enable</span>
-                                        </button>
-                                    }
-                                    @if (queue.ActiveMessageCount > 0)
-                                    {
-                                        <button class="btn btn-sm btn-primary" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Active")))" title="View Active Messages">
-                                            <span class="d-none d-md-inline">View </span>Active
-                                        </button>
-                                    }
-                                    @if (queue.ScheduledMessageCount > 0)
-                                    {
-                                        <button class="btn btn-sm btn-warning" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "Scheduled")))" title="View Scheduled Messages">
-                                            <span class="d-none d-md-inline">View </span>Scheduled
-                                        </button>
-                                    }
-                                    @if (queue.DeadLetterMessageCount > 0)
-                                    {
-                                        <button class="btn btn-sm btn-danger" @onclick="@(() => OnViewMessages.InvokeAsync((queue.Name, "DeadLetter")))" title="View Dead Letter Messages">
-                                            <span class="d-none d-md-inline">View </span>DLQ
-                                        </button>
-                                    }
-                                    @if (queue.ActiveMessageCount == 0 && queue.ScheduledMessageCount == 0 && queue.DeadLetterMessageCount == 0)
-                                    {
-                                        <small class="text-muted">No messages</small>
-                                    }
-                                </div>
-                            </td>
-                        </tr>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync(context.Name))" StartIcon="@Icons.Material.Filled.PauseCircle">Disable</MudButton>
                     }
-                </tbody>
-            </table>
-        </div>
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync(context.Name))" StartIcon="@Icons.Material.Filled.PlayCircle">Enable</MudButton>
+                    }
+                    @if (context.ActiveMessageCount >0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((context.Name, "Active")))">Active</MudButton>
+                    }
+                    @if (context.ScheduledMessageCount >0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((context.Name, "Scheduled")))">Scheduled</MudButton>
+                    }
+                    @if (context.DeadLetterMessageCount >0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((context.Name, "DeadLetter")))">DLQ</MudButton>
+                    }
+                    @if (context.ActiveMessageCount ==0 && context.ScheduledMessageCount ==0 && context.DeadLetterMessageCount ==0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">No messages</MudText>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
         
         @if (!FilteredQueues.Any())
         {
-            <div class="alert alert-info mt-3">
-                No queues match your search criteria.
-            </div>
+            <MudAlert Severity="Severity.Info" Class="mt-3">No queues match your search criteria.</MudAlert>
         }
     }
     else
     {
-        <div class="alert alert-warning">
-            <i class="bi bi-info-circle"></i> No queues found in this namespace.
-        </div>
+        <MudAlert Severity="Severity.Warning"><MudIcon Icon="@Icons.Material.Filled.Info" /> No queues found in this namespace.</MudAlert>
     }
-</div>
+</MudPaper>
 
 @code {
     [Parameter]

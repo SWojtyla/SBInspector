@@ -1,36 +1,27 @@
-@if (IsVisible)
-{
-    <div class="modal show d-block modal-enhanced" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi @IconClass"></i> @Title
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="HandleCancel"></button>
-                </div>
-                <div class="modal-body">
-                    @Message
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
-                        <i class="bi bi-x-lg"></i> Cancel
-                    </button>
-                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">
-                        <i class="bi @ConfirmIconClass"></i> @ConfirmText
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        @Message
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+        @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
+        {
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit">
+                <i class="@ConfirmIconClass me-2"></i>@ConfirmText
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
 
 @code {
-    [Parameter]
-    public bool IsVisible { get; set; }
-
-    [Parameter]
-    public string Title { get; set; } = "Confirm Action";
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public string Message { get; set; } = "Are you sure?";
@@ -39,27 +30,14 @@
     public string ConfirmText { get; set; } = "Confirm";
 
     [Parameter]
-    public string IconClass { get; set; } = "bi-question-circle";
+    public string ConfirmIcon { get; set; } = Icons.Material.Filled.Check;
 
     [Parameter]
-    public string ConfirmIconClass { get; set; } = "bi-check-lg";
+    public string ConfirmIconClass { get; set; } = string.Empty;
 
     [Parameter]
-    public string ConfirmButtonClass { get; set; } = "btn-primary";
+    public Color ConfirmColor { get; set; } = Color.Primary;
 
-    [Parameter]
-    public EventCallback OnConfirm { get; set; }
-
-    [Parameter]
-    public EventCallback OnCancel { get; set; }
-
-    private async Task HandleConfirm()
-    {
-        await OnConfirm.InvokeAsync();
-    }
-
-    private async Task HandleCancel()
-    {
-        await OnCancel.InvokeAsync();
-    }
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    private void Cancel() => MudDialog.Cancel();
 }

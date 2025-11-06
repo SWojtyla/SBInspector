@@ -1,175 +1,129 @@
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Core.Interfaces
+@using MudBlazor
 @inject IStorageService StorageService
 
 @if (Message != null)
 {
-    <div class="card card-enhanced">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-                <i class="bi bi-info-circle"></i> Message Details
-            </h4>
-            <button type="button" class="btn btn-secondary" @onclick="HandleBack">
-                <i class="bi bi-arrow-left"></i> Back to Messages
-            </button>
-        </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <div class="info-section">
-                        <div class="mb-2">
-                            <strong>Message ID:</strong>
-                            <div style="word-break: break-all; overflow-wrap: break-word;"><code>@Message.MessageId</code></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="info-section">
-                        <div class="mb-2">
-                            <strong>Subject:</strong>
-                            <div style="word-break: break-word; overflow-wrap: break-word;">@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <div class="info-section">
-                        <div class="mb-2">
-                            <strong>Content Type:</strong>
-                            <div>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="info-section">
-                        <div class="mb-2">
-                            <strong>Delivery Count:</strong>
-                            <div>
-                                <span class="badge @(Message.DeliveryCount > 0 ? "bg-warning text-dark" : "bg-success")">
-                                    @Message.DeliveryCount
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <div class="info-section">
-                        <div class="mb-2">
-                            <strong>Enqueued Time:</strong>
-                            <div>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</div>
-                        </div>
-                    </div>
-                </div>
+    <MudCard Class="mud-elevation-2">
+        <MudCardHeader>
+            <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.Info" /> Message Details</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="HandleBack" StartIcon="@Icons.Material.Filled.ArrowBack">Back to Messages</MudButton>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-2">
+                        <MudText Typo="Typo.subtitle2"><b>Message ID:</b></MudText>
+                        <MudText><code>@Message.MessageId</code></MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-2">
+                        <MudText Typo="Typo.subtitle2"><b>Subject:</b></MudText>
+                        <MudText>@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-2">
+                        <MudText Typo="Typo.subtitle2"><b>Content Type:</b></MudText>
+                        <MudText>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-2">
+                        <MudText Typo="Typo.subtitle2"><b>Delivery Count:</b></MudText>
+                        <MudChip T="object" Color="@(Message.DeliveryCount > 0 ? Color.Warning : Color.Success)">@Message.DeliveryCount</MudChip>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-2">
+                        <MudText Typo="Typo.subtitle2"><b>Enqueued Time:</b></MudText>
+                        <MudText>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                    </MudPaper>
+                </MudItem>
                 @if (Message.ScheduledEnqueueTime.HasValue)
                 {
-                    <div class="col-md-6">
-                        <div class="info-section">
-                            <div class="mb-2">
-                                <strong>Scheduled Enqueue Time:</strong>
-                                <div>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</div>
-                            </div>
-                        </div>
-                    </div>
+                    <MudItem xs="6">
+                        <MudPaper Class="pa-2">
+                            <MudText Typo="Typo.subtitle2"><b>Scheduled Enqueue Time:</b></MudText>
+                            <MudText>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                        </MudPaper>
+                    </MudItem>
                 }
-            </div>
-
-            <div class="info-section mb-3">
-                <div class="mb-2">
-                    <strong>Sequence Number:</strong>
-                    <div>@Message.SequenceNumber</div>
-                </div>
-            </div>
-
+                <MudItem xs="12">
+                    <MudPaper Class="pa-2">
+                        <MudText Typo="Typo.subtitle2"><b>Sequence Number:</b></MudText>
+                        <MudText>@Message.SequenceNumber</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
             @if (Message.Properties.Any())
             {
-                <div class="mb-3">
-                    <h6><i class="bi bi-tags"></i> Application Properties (@Message.Properties.Count)</h6>
-                    <div class="info-section">
-                        <table class="table table-sm mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width: 30%;">Key</th>
-                                    <th>Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var prop in Message.Properties)
-                                {
-                                    <tr>
-                                        <td><code>@prop.Key</code></td>
-                                        <td>@prop.Value</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <MudExpansionPanels Class="mt-3">
+                    <MudExpansionPanel Text="@($"Application Properties ({Message.Properties.Count})")" IsInitiallyExpanded="true">
+                        <TitleContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" />
+                                <MudText Typo="Typo.subtitle2">Application Properties (@Message.Properties.Count)</MudText>
+                            </MudStack>
+                        </TitleContent>
+                        <ChildContent>
+                            <MudTable Items="@Message.Properties" Dense="true">
+                                <HeaderContent>
+                                    <MudTh>Key</MudTh>
+                                    <MudTh>Value</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd><code>@context.Key</code></MudTd>
+                                    <MudTd>@context.Value</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
             }
-
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0"><i class="bi bi-file-text"></i> Message Body</h6>
-                    @if (IsJsonContent)
-                    {
-                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="ToggleJsonFormatting">
-                            <i class="bi @(isJsonFormatted ? "bi-code" : "bi-braces")"></i> @(isJsonFormatted ? "Raw" : "Format JSON")
-                        </button>
-                    }
-                </div>
-                <div class="info-section">
-                    <pre class="mb-0" style="max-height: 300px; overflow-y: auto; overflow-x: auto; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word;">@DisplayedMessageBody</pre>
-                </div>
-            </div>
-
+            <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Class="mt-3">
+                <MudText Typo="Typo.subtitle2"><MudIcon Icon="@Icons.Material.Filled.Description" /> Message Body</MudText>
+                @if (IsJsonContent)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ToggleJsonFormatting" StartIcon="@(isJsonFormatted? Icons.Material.Filled.Code : Icons.Material.Filled.DataObject)">@(isJsonFormatted ? "Raw" : "Format JSON")</MudButton>
+                }
+            </MudStack>
+            <MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
+    <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@DisplayedMessageBody</pre>
+            </MudPaper>
             @if (showSaveTemplateForm)
             {
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h6><i class="bi bi-bookmark-plus"></i> Save as Template</h6>
-                        <div class="mb-2">
-                            <input type="text" class="form-control" @bind="templateName" placeholder="Enter template name" />
-                        </div>
+                <MudCard Class="mt-3">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle2"><MudIcon Icon="@Icons.Material.Filled.BookmarkAdd" /> Save as Template</MudText>
+                        <MudTextField @bind-Value="templateName" Label="Template Name" Required="true" Margin="Margin.Dense" />
                         @if (!string.IsNullOrEmpty(saveMessage))
                         {
-                            <div class="alert alert-success alert-sm mb-2">
-                                <i class="bi bi-check-circle"></i> @saveMessage
-                            </div>
+                            <MudAlert Severity="Severity.Success" Dense="true">@saveMessage</MudAlert>
                         }
                         @if (!string.IsNullOrEmpty(saveError))
                         {
-                            <div class="alert alert-danger alert-sm mb-2">
-                                <i class="bi bi-exclamation-triangle"></i> @saveError
-                            </div>
+                            <MudAlert Severity="Severity.Error" Dense="true">@saveError</MudAlert>
                         }
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAsTemplate" disabled="@string.IsNullOrWhiteSpace(templateName)">
-                                <i class="bi bi-save"></i> Save
-                            </button>
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { showSaveTemplateForm = false; templateName = string.Empty; saveMessage = string.Empty; saveError = string.Empty; }">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                        <MudStack Direction="Row" Spacing="2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsTemplate" Disabled="@string.IsNullOrWhiteSpace(templateName)"><MudIcon Icon="@Icons.Material.Filled.Save" /> Save</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => { showSaveTemplateForm = false; templateName = string.Empty; saveMessage = string.Empty; saveError = string.Empty; })">Cancel</MudButton>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
             }
-        </div>
-        <div class="card-footer d-flex justify-content-between">
-            <button type="button" class="btn btn-secondary" @onclick="HandleBack">
-                <i class="bi bi-arrow-left"></i> Back to Messages
-            </button>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="HandleBack" StartIcon="@Icons.Material.Filled.ArrowBack">Back to Messages</MudButton>
             @if (!showSaveTemplateForm)
             {
-                <button type="button" class="btn btn-outline-primary" @onclick="() => showSaveTemplateForm = true">
-                    <i class="bi bi-bookmark-plus"></i> Save as Template
-                </button>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => showSaveTemplateForm = true)"><MudIcon Icon="@Icons.Material.Filled.BookmarkAdd" /> Save as Template</MudButton>
             }
-        </div>
-    </div>
+        </MudCardActions>
+    </MudCard>
 }
 
 @code {
@@ -223,7 +177,7 @@
                 {
                     WriteIndented = true
                 };
-                return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options);               
+                return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options);
 
             }
             catch
@@ -274,7 +228,7 @@
             await StorageService.SaveMessageTemplateAsync(template);
             saveMessage = $"Template '{templateName}' saved successfully!";
             templateName = string.Empty;
-            
+
             // Auto-hide form after configured delay
             await Task.Delay(SuccessMessageAutoHideDelayMs);
             showSaveTemplateForm = false;

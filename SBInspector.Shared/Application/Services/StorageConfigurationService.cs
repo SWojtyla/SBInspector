@@ -47,6 +47,12 @@ public class StorageConfigurationService
         await SaveConfigurationAsync();
     }
 
+    public async Task SetConnectionsPathAsync(string connectionsPath)
+    {
+        _configuration.ConnectionsPath = connectionsPath;
+        await SaveConfigurationAsync();
+    }
+
     public string GetDefaultExportPath()
     {
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Exports");
@@ -55,6 +61,11 @@ public class StorageConfigurationService
     public string GetDefaultTemplatePath()
     {
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Templates");
+    }
+
+    public string GetDefaultConnectionsPath()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "SBInspector");
     }
 
     private StorageConfiguration LoadConfiguration()

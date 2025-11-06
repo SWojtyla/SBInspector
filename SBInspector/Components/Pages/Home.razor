@@ -5,7 +5,9 @@
 @using SBInspector.Shared.Core.Interfaces
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Presentation.Components.UI
+@using MudBlazor
 @inject SBInspector.Shared.Core.Interfaces.IServiceBusService ServiceBusService
+@inject IDialogService DialogService
 
 <PageTitle>Service Bus Inspector</PageTitle>
 
@@ -116,13 +118,6 @@
             ConfirmText="Purge All"
             OnConfirm="@ConfirmPurge"
             OnCancel="@CancelPurge" />
-
-        <SendMessageModal
-            IsVisible="@showSendModal"
-            Title="@sendModalTitle"
-            IsReschedule="@isRescheduleMode"
-            OnClose="@CloseSendModal"
-            OnSend="@HandleSendMessage" />
 
         @if (!string.IsNullOrEmpty(successMessage))
         {
@@ -530,9 +525,6 @@
     private bool showDeleteConfirmation = false;
     private bool showRequeueConfirmation = false;
     private bool showPurgeConfirmation = false;
-    private bool showSendModal = false;
-    private bool isRescheduleMode = false;
-    private string sendModalTitle = "Send Message";
     private MessageInfo? messageForOperation = null;
     private string deleteConfirmationMessage = string.Empty;
     private string purgeConfirmationMessage = string.Empty;
@@ -692,33 +684,34 @@
         messageForOperation = null;
     }
 
-    private void HandleRescheduleMessage(MessageInfo message)
+    private async Task HandleRescheduleMessage(MessageInfo message)
     {
-        messageForOperation = message;
-        isRescheduleMode = true;
-        sendModalTitle = "Reschedule Message";
-        showSendModal = true;
-    }
-
-    private void HandleSendNewMessage()
-    {
-        messageForOperation = null;
-        isRescheduleMode = false;
-        sendModalTitle = "Send New Message";
-        showSendModal = true;
-    }
-
-    private async Task HandleSendMessage(SendMessageModal.MessageData data)
-    {
-        showSendModal = false;
-        operationErrorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        try
+        var parameters = new DialogParameters<SendMessageModal>
         {
-            bool success;
+            { x => x.IsReschedule, true },
+            { x => x.ExistingMessage, message }
+        };
 
-            if (isRescheduleMode && messageForOperation != null)
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<SendMessageModal>(
+            "Reschedule Message",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is SendMessageModal.MessageData data)
+        {
+            operationErrorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            try
             {
                 // Reschedule existing message
                 if (!data.ScheduledTime.HasValue)
@@ -727,27 +720,69 @@
                     return;
                 }
 
-                var options = MessageOperationOptions.FromMessageInfo(
-                    messageForOperation,
+                var msgOptions = MessageOperationOptions.FromMessageInfo(
+                    message,
                     selectedEntity,
                     !string.IsNullOrEmpty(selectedSubscriptionName),
                     selectedTopic,
                     selectedSubscriptionName);
                     
-                success = await ServiceBusService.RescheduleMessageAsync(options, data.ScheduledTime.Value);
+                bool success = await ServiceBusService.RescheduleMessageAsync(msgOptions, data.ScheduledTime.Value);
 
                 if (success)
                 {
-                    messages.Remove(messageForOperation);
+                    messages.Remove(message);
                     successMessage = $"Message rescheduled for {data.ScheduledTime.Value:yyyy-MM-dd HH:mm:ss}.";
                 }
                 else
                 {
                     operationErrorMessage = "Failed to reschedule message. It may have already been processed.";
                 }
+
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+                operationErrorMessage = string.Empty;
             }
-            else
+            catch (Exception ex)
             {
+                operationErrorMessage = $"Error: {ex.Message}";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
+        }
+    }
+
+    private async Task HandleSendNewMessage()
+    {
+        var parameters = new DialogParameters<SendMessageModal>
+        {
+            { x => x.IsReschedule, false },
+            { x => x.ExistingMessage, null }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<SendMessageModal>(
+            "Send New Message",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is SendMessageModal.MessageData data)
+        {
+            operationErrorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            try
+            {
+                bool success;
+
                 // Send new message
                 var entityToSendTo = !string.IsNullOrEmpty(selectedSubscriptionName) ? selectedTopic : selectedEntity;
                 
@@ -774,32 +809,18 @@
                 {
                     operationErrorMessage = "Failed to send message.";
                 }
+
+                await Task.Delay(3000);
+                successMessage = string.Empty;
+                operationErrorMessage = string.Empty;
             }
-
-            await Task.Delay(3000);
-            successMessage = string.Empty;
-            operationErrorMessage = string.Empty;
+            catch (Exception ex)
+            {
+                operationErrorMessage = $"Error: {ex.Message}";
+                await Task.Delay(5000);
+                operationErrorMessage = string.Empty;
+            }
         }
-        catch (Exception ex)
-        {
-            operationErrorMessage = $"Error: {ex.Message}";
-            await Task.Delay(5000);
-            operationErrorMessage = string.Empty;
-        }
-        finally
-        {
-            messageForOperation = null;
-            isRescheduleMode = false;
-            sendModalTitle = "Send Message";
-        }
-    }
-
-    private void CloseSendModal()
-    {
-        showSendModal = false;
-        messageForOperation = null;
-        isRescheduleMode = false;
-        sendModalTitle = "Send Message";
     }
 
     private void HandlePurgeMessages()

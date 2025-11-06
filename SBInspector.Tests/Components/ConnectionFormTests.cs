@@ -78,10 +78,6 @@ public class ConnectionFormTests : TestContext
     [Fact]
     public void ConnectionForm_RendersInitially()
     {
-        // Arrange
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
-
         // Act
         var cut = RenderComponent<ConnectionForm>();
 
@@ -91,40 +87,12 @@ public class ConnectionFormTests : TestContext
         Assert.Contains("Connect", cut.Markup);
     }
 
-    [Fact]
-    public void ConnectionForm_WithSavedConnections_RendersDropdown()
-    {
-        // Arrange
-        var savedConnections = new List<SavedConnection>
-        {
-            new SavedConnection
-            {
-                Name = "Test Connection",
-                ConnectionString = "encrypted_test",
-                IsEncrypted = true,
-                LastUsedAt = DateTime.UtcNow
-            }
-        };
-
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(savedConnections));
-
-        // Act
-        var cut = RenderComponent<ConnectionForm>();
-        cut.WaitForAssertion(() => cut.Find("select"));
-
-        // Assert
-        Assert.Contains("Saved Connections", cut.Markup);
-        Assert.Contains("Test Connection", cut.Markup);
-    }
+    // Test removed - saved connections dropdown no longer exists in ConnectionForm
+    // Connections are now managed via the left menu
 
     [Fact]
     public void ConnectionForm_EmptyConnectionString_ShowsPlaceholder()
     {
-        // Arrange
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
-
         // Act
         var cut = RenderComponent<ConnectionForm>();
 
@@ -138,8 +106,6 @@ public class ConnectionFormTests : TestContext
     {
         // Arrange
         const string errorMessage = "Connection failed";
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
 
         // Act
         var cut = RenderComponent<ConnectionForm>(parameters => parameters
@@ -159,8 +125,6 @@ public class ConnectionFormTests : TestContext
 
         A.CallTo(() => _mockServiceBusService.ConnectAsync(A<string>._))
             .Returns(Task.FromResult(true));
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
 
         var cut = RenderComponent<ConnectionForm>(parameters => parameters
             .Add(p => p.ConnectionString, connectionString)
@@ -185,8 +149,6 @@ public class ConnectionFormTests : TestContext
 
         A.CallTo(() => _mockServiceBusService.ConnectAsync(A<string>._))
             .Returns(Task.FromResult(false));
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
 
         var cut = RenderComponent<ConnectionForm>(parameters => parameters
             .Add(p => p.ConnectionString, connectionString)
@@ -204,10 +166,7 @@ public class ConnectionFormTests : TestContext
     [Fact]
     public void ConnectionForm_SaveConnectionCheckbox_ShowsNameInput()
     {
-        // Arrange
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
-
+        // Act
         var cut = RenderComponent<ConnectionForm>();
 
         // Act
@@ -231,8 +190,6 @@ public class ConnectionFormTests : TestContext
 
         A.CallTo(() => _mockServiceBusService.ConnectAsync(A<string>._))
             .Returns(Task.FromResult(true));
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
 
         var cut = RenderComponent<ConnectionForm>(parameters => parameters
             .Add(p => p.ConnectionString, connectionString));
@@ -263,10 +220,7 @@ public class ConnectionFormTests : TestContext
     [Fact]
     public void ConnectionForm_ConnectButton_DisabledWhileConnecting()
     {
-        // Arrange
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(new List<SavedConnection>()));
-
+        // Act
         var cut = RenderComponent<ConnectionForm>(parameters => parameters
             .Add(p => p.IsConnecting, true));
 
@@ -276,37 +230,6 @@ public class ConnectionFormTests : TestContext
         Assert.Contains("Connecting...", cut.Markup);
     }
 
-    [Fact]
-    public async Task ConnectionForm_DeleteConnection_RemovesFromStorage()
-    {
-        // Arrange
-        const string connectionName = "Test Connection";
-        var savedConnections = new List<SavedConnection>
-        {
-            new SavedConnection
-            {
-                Name = connectionName,
-                ConnectionString = "encrypted_test",
-                IsEncrypted = true
-            }
-        };
-
-        A.CallTo(() => _mockStorageService.GetSavedConnectionsAsync())
-            .Returns(Task.FromResult(savedConnections));
-
-        var cut = RenderComponent<ConnectionForm>();
-        cut.WaitForAssertion(() => cut.Find("select"));
-
-        // Select the connection
-        var select = cut.Find("select");
-        await cut.InvokeAsync(() => select.Change(connectionName));
-
-        // Act
-        var deleteButton = cut.Find("button.btn-outline-danger");
-        await cut.InvokeAsync(() => deleteButton.Click());
-
-        // Assert
-        A.CallTo(() => _mockStorageService.DeleteConnectionAsync(connectionName))
-            .MustHaveHappenedOnceExactly();
-    }
+    // Test removed - delete connection functionality no longer exists in ConnectionForm
+    // Connection deletion is now handled via the left menu
 }

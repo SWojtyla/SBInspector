@@ -1,88 +1,36 @@
+@using MudBlazor
+
 @if (IsVisible)
 {
-    <div class="background-operation-panel">
-        <div class="background-operation-card">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">
-                        <i class="bi bi-arrow-repeat spinning"></i> @Title
-                    </h6>
-                    @if (!string.IsNullOrEmpty(Message))
-                    {
-                        <p class="mb-2 text-muted small">@Message</p>
-                    }
-                    @if (Progress > 0)
-                    {
-                        <div class="progress mb-2" style="height: 20px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" 
-                                 style="width: 100%">
-                                @Progress deleted
-                            </div>
-                        </div>
-                    }
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="HandleCancel" title="Cancel operation">
-                    <i class="bi bi-x-circle"></i> Cancel
-                </button>
-            </div>
-        </div>
-    </div>
+    <MudPaper Class="mud-elevation-24" Style="position:fixed;bottom:20px;right:20px;z-index:1300;max-width:400px;min-width:300px;">
+        <MudCard>
+            <MudCardContent>
+                <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Start" JustifyContent="JustifyContent.SpaceBetween">
+                    <MudStack Spacing="1" Style="flex:1;">
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.Autorenew" Class="mud-animate-spin" /> @Title
+                        </MudText>
+                        @if (!string.IsNullOrEmpty(Message))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@Message</MudText>
+                        }
+                        @if (Progress > 0)
+                        {
+                            <MudProgressLinear Value="@Progress" Color="Color.Primary" Height="20" Class="my-2">
+                                <ChildContent>
+                                    <MudText Typo="Typo.caption">@Progress deleted</MudText>
+                                </ChildContent>
+                            </MudProgressLinear>
+                        }
+                    </MudStack>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="HandleCancel" Title="Cancel operation">
+                        <MudIcon Icon="@Icons.Material.Filled.Cancel" /> Cancel
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudPaper>
 }
-
-<style>
-    .background-operation-panel {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1050;
-        max-width: 400px;
-        animation: slideInRight 0.3s ease-out;
-    }
-
-    .background-operation-card {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .background-operation-card h6 {
-        margin: 0;
-        font-weight: 600;
-        color: #333;
-    }
-
-    .background-operation-card p {
-        margin: 0;
-    }
-
-    @@keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @@keyframes spinning {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .spinning {
-        display: inline-block;
-        animation: spinning 1s linear infinite;
-    }
-</style>
 
 @code {
     [Parameter]

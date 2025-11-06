@@ -1,11 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Logging;
+using MudBlazor.Services;
+using SBInspector.Shared.Application.Services;
+using SBInspector.Shared.Core.Domain;
 using SBInspector.Shared.Core.Interfaces;
 using SBInspector.Shared.Infrastructure.ServiceBus;
 using SBInspector.Shared.Infrastructure.Storage;
-using SBInspector.Shared.Application.Services;
-using SBInspector.Shared.Core.Domain;
 using SEBInspector.Maui.Services;
-using Microsoft.AspNetCore.DataProtection;
 
 namespace SEBInspector.Maui
 {
@@ -23,8 +24,11 @@ namespace SEBInspector.Maui
 
             builder.Services.AddMauiBlazorWebView();
 
+            builder.Services.AddMudServices();
+
+
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
 
@@ -39,6 +43,7 @@ namespace SEBInspector.Maui
             builder.Services.AddSingleton<MessageFilterService>();
             builder.Services.AddSingleton<ConnectionStateService>();
             builder.Services.AddSingleton<ConnectionStringEncryptionService>();
+            builder.Services.AddSingleton<ThemeService>();
 
             // Register storage configuration service with FileSystem as default for MAUI
             builder.Services.AddSingleton<StorageConfigurationService>(sp => 

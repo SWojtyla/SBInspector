@@ -1,124 +1,86 @@
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Application.Services
+@using MudBlazor
 @inject MessageFilterService FilterService
 
-<div class="card card-enhanced mt-4">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-        <div class="mb-2 mb-md-0">
-            <h4 class="mb-0">
-                <i class="bi bi-envelope-open"></i> @EntityName
-            </h4>
-            <small class="text-muted">
-                <span class="badge @GetMessageTypeBadgeClass()">@MessageType Messages</span>
-            </small>
-        </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <button class="btn btn-sm btn-primary" @onclick="HandleRefresh" title="Refresh messages">
-                <i class="bi bi-arrow-clockwise"></i> Refresh
-            </button>
-            <button class="btn btn-sm btn-success" @onclick="HandleSendNew">
-                <i class="bi bi-plus-circle"></i> Send New
-            </button>
-            <button class="btn btn-sm btn-primary" @onclick="HandleExportFiltered" title="Download messages matching current filters to Downloads folder">
-                <i class="bi bi-download"></i> Export Filtered
-            </button>
-            <button class="btn btn-sm btn-warning" @onclick="HandleDeleteFiltered" title="Delete messages matching current filters">
-                <i class="bi bi-trash"></i> Delete Filtered
-            </button>
-            <button class="btn btn-sm btn-danger" @onclick="HandlePurge" title="Delete all messages">
-                <i class="bi bi-trash-fill"></i> Purge All
-            </button>
-            <label class="mb-0 me-2 d-none d-md-inline">Page Size:</label>
-            <select class="form-select form-select-sm" style="width: auto;" value="@PageSize" @onchange="HandlePageSizeChanged">
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="500">500</option>
-            </select>
-            <button class="btn btn-sm btn-secondary" @onclick="HandleClose">
-                <i class="bi bi-x-lg"></i> Close
-            </button>
-        </div>
-    </div>
-    <div class="card-body">
+<MudCard Class="mud-elevation-1 mt-2">
+    <MudCardHeader Class="py-2">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Medium" />
+                    <MudText Typo="Typo.h6">@EntityName</MudText>
+                    <MudChip T="string" Color="@(GetMessageTypeBadgeColor())" Size="Size.Small">@MessageType</MudChip>
+                </MudStack>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap" Class="ml-auto">
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="HandleRefresh" Size="Size.Small" Title="Refresh" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Success" OnClick="HandleSendNew" Size="Size.Small" Title="Send New" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Info" OnClick="HandleExportFiltered" Size="Size.Small" Title="Export Filtered" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Warning" OnClick="HandleDeleteFiltered" Size="Size.Small" Title="Delete Filtered" />
+                    <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Error" OnClick="HandlePurge" Size="Size.Small" Title="Purge All" />
+                    <MudSelect T="int" Value="@PageSize" ValueChanged="@OnPageSizeChanged" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="width:80px;" Label="Page">
+                        <MudSelectItem Value="50">50</MudSelectItem>
+                        <MudSelectItem Value="100">100</MudSelectItem>
+                        <MudSelectItem Value="200">200</MudSelectItem>
+                        <MudSelectItem Value="500">500</MudSelectItem>
+                    </MudSelect>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="HandleClose" Size="Size.Small" Title="Close" />
+                </MudStack>
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
         @if (IsLoading)
         {
-            <div class="loading-container">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading messages...</span>
-                </div>
-                <div class="loading-text">Loading messages...</div>
-            </div>
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="my-4">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.body1">Loading messages...</MudText>
+            </MudStack>
         }
         else if (SelectedMessage != null)
         {
-            <MessageDetailsView 
-                Message="@SelectedMessage"
-                OnBack="@HandleBackToList" />
+            <MessageDetailsView Message="@SelectedMessage" OnBack="@HandleBackToList" />
         }
         else if (Messages.Any())
         {
-            <div class="stats-container mb-3">
-                <div class="stat-card">
-                    <div class="stat-label">Total Messages</div>
-                    <div class="stat-value">@Messages.Count</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Filtered</div>
-                    <div class="stat-value">@FilteredMessages.Count()</div>
-                </div>
-            </div>
+            <MudStack Row="true" Spacing="2" Class="mb-2" AlignItems="AlignItems.Center">
+                <MudChip T="string" Icon="@Icons.Material.Filled.Dns" Color="Color.Info" Size="Size.Small">Total: @Messages.Count</MudChip>
+                <MudChip T="string" Icon="@Icons.Material.Filled.FilterList" Color="Color.Primary" Size="Size.Small">Filtered: @FilteredMessages.Count()</MudChip>
+            </MudStack>
 
-            <MessageFilterPanel 
-                Filters="@Filters" 
-                FiltersChanged="@FiltersChanged"
-                FilteredCount="@FilteredMessages.Count()"
-                TotalCount="@Messages.Count" />
+            <MessageFilterPanel Filters="@Filters" FiltersChanged="@FiltersChanged" FilteredCount="@FilteredMessages.Count()" TotalCount="@Messages.Count" />
 
-            <MessageListTable 
-                Messages="@FilteredMessages"
-                SortColumn="@SortColumn"
-                SortColumnChanged="@SortColumnChanged"
-                SortAscending="@SortAscending"
-                SortAscendingChanged="@SortAscendingChanged"
-                OnViewDetails="@HandleViewDetails"
-                OnExport="@OnExportMessage"
-                OnDelete="@OnDeleteMessage"
-                OnRequeue="@OnRequeueMessage"
-                OnMoveToDeadLetter="@OnMoveToDeadLetterMessage"
-                OnReschedule="@OnRescheduleMessage" />
+            <MessageListTable Messages="@FilteredMessages" SortColumn="@SortColumn" SortColumnChanged="@SortColumnChanged" SortAscending="@SortAscending" SortAscendingChanged="@SortAscendingChanged" OnViewDetails="@HandleViewDetails" OnExport="@OnExportMessage" OnDelete="@OnDeleteMessage" OnRequeue="@OnRequeueMessage" OnMoveToDeadLetter="@OnMoveToDeadLetterMessage" OnReschedule="@OnRescheduleMessage" />
 
             @if (HasMoreMessages)
             {
-                <div class="text-center mt-3">
-                    <button class="btn btn-primary" @onclick="HandleLoadMore" disabled="@IsLoadingMore">
+                <MudStack AlignItems="AlignItems.Center" Class="mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleLoadMore" Disabled="@IsLoadingMore" StartIcon="@Icons.Material.Filled.KeyboardArrowDown">
                         @if (IsLoadingMore)
                         {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
                             <span>Loading more messages...</span>
                         }
                         else
                         {
-                            <span><i class="bi bi-arrow-down-circle"></i> Load More Messages</span>
+                            <span>Load More Messages</span>
                         }
-                    </button>
-                </div>
+                    </MudButton>
+                </MudStack>
             }
             else if (Messages.Count >= PageSize)
             {
-                <div class="text-center mt-3">
-                    <span class="text-muted"><i class="bi bi-check-circle"></i> All available messages loaded</span>
-                </div>
+                <MudStack AlignItems="AlignItems.Center" Class="mt-3">
+                    <MudText Color="Color.Success"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> All available messages loaded</MudText>
+                </MudStack>
             }
         }
         else
         {
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No messages found in this queue/subscription.
-            </div>
+            <MudAlert Severity="Severity.Info"><MudIcon Icon="@Icons.Material.Filled.Info" /> No messages found in this queue/subscription.</MudAlert>
         }
-    </div>
-</div>
+    </MudCardContent>
+</MudCard>
 
 @code {
     [Parameter]
@@ -152,7 +114,7 @@
     public EventCallback<bool> SortAscendingChanged { get; set; }
 
     [Parameter]
-    public int PageSize { get; set; } = 100;
+    public int PageSize { get; set; } =100;
 
     [Parameter]
     public EventCallback<int> PageSizeChanged { get; set; }
@@ -250,22 +212,20 @@
         StateHasChanged();
     }
 
-    private async Task HandlePageSizeChanged(ChangeEventArgs e)
+    private async Task OnPageSizeChanged(int newSize)
     {
-        if (int.TryParse(e.Value?.ToString(), out int newSize))
-        {
-            await PageSizeChanged.InvokeAsync(newSize);
-        }
+        PageSize = newSize;
+        await PageSizeChanged.InvokeAsync(newSize);
     }
 
-    private string GetMessageTypeBadgeClass()
+    private Color GetMessageTypeBadgeColor()
     {
         return MessageType.ToLower() switch
         {
-            "active" => "bg-primary",
-            "scheduled" => "bg-warning text-dark",
-            "deadletter" => "bg-danger",
-            _ => "bg-secondary"
+            "active" => Color.Primary,
+            "scheduled" => Color.Warning,
+            "deadletter" => Color.Error,
+            _ => Color.Secondary
         };
     }
 }
