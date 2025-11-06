@@ -693,6 +693,9 @@
     // Purge operation state - support for multiple concurrent purge operations
     private bool isDeleteFiltered = false; // Flag to differentiate between normal purge and filtered delete
     
+    // Configuration for smart deletion strategy
+    private const int MessagePositionThresholdForBackgroundDeletion = 1000;
+    
     private class PurgeOperation
     {
         public string OperationId { get; set; } = string.Empty;
