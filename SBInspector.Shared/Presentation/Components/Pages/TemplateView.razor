@@ -60,8 +60,8 @@
                         <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
                         <strong>Message Body</strong>
                     </MudText>
-                    <MudPaper Class="pa-3" Elevation="1" Style="max-height: 400px; overflow-y: auto; background-color: #f5f5f5;">
-                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 0.9rem;">@template.MessageBody</pre>
+                    <MudPaper Class="pa-2" Elevation="1" Style="max-height:400px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
+                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@template.MessageBody</pre>
                     </MudPaper>
                 </div>
 
@@ -92,18 +92,16 @@
                             <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" />
                             <strong>Application Properties</strong>
                         </MudText>
-                        <MudPaper Class="pa-3" Elevation="1">
-                            <MudStack Spacing="2">
-                                @foreach (var prop in template.Properties)
-                                {
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">@prop.Key</MudChip>
-                                        <MudText>=</MudText>
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@prop.Value</MudChip>
-                                    </MudStack>
-                                }
-                            </MudStack>
-                        </MudPaper>
+                        <MudTable Items="@template.Properties" Dense="true" Elevation="1">
+                            <HeaderContent>
+                                <MudTh>Key</MudTh>
+                                <MudTh>Value</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><code>@context.Key</code></MudTd>
+                                <MudTd Style="word-break: break-word; white-space: normal;">@context.Value</MudTd>
+                            </RowTemplate>
+                        </MudTable>
                     </div>
                 }
 
