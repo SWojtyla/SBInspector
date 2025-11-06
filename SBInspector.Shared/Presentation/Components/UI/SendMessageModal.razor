@@ -7,59 +7,87 @@
 <DialogContent>
     @if (!IsReschedule && messageTemplates.Any())
     {
-        <MudText Typo="Typo.subtitle2">Message Templates</MudText>
-        <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
-            <MudSelect T="string" @bind-Value="selectedTemplateId" Label="Select a template" Dense="true" Margin="Margin.Dense">
-                <MudSelectItem Value="string.Empty">-- Select a template --</MudSelectItem>
-                @foreach (var template in messageTemplates)
-                {
-                    <MudSelectItem Value="@template.Id">@template.Name @(template.LastUsedAt.HasValue ? $"(last used: {template.LastUsedAt.Value.ToLocalTime():g})" : "")</MudSelectItem>
-                }
-            </MudSelect>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Download">Load</MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Delete">Delete</MudButton>
-        </MudStack>
+        <MudPaper Class="pa-3 mb-4" Elevation="1">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
+                    <strong>Load from Template</strong>
+                </MudText>
+                <MudSelect T="string" @bind-Value="selectedTemplateId" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="string.Empty">-- Select a template --</MudSelectItem>
+                    @foreach (var template in messageTemplates)
+                    {
+                        <MudSelectItem Value="@template.Id">
+                            <MudStack Row="false" Spacing="0">
+                                <MudText Typo="Typo.body2"><strong>@template.Name</strong></MudText>
+                                @if (template.LastUsedAt.HasValue)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Last used: @template.LastUsedAt.Value.ToLocalTime().ToString("g")</MudText>
+                                }
+                            </MudStack>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Download" FullWidth="true">Load Template</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Delete" FullWidth="true">Delete</MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
     }
-    <MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Margin="Margin.Normal" Lines="6" />
-    <MudGrid>
-        <MudItem xs="6">
-            <MudTextField @bind-Value="subject" Label="Subject" Margin="Margin.Normal" />
+    <MudText Typo="Typo.subtitle1" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Class="mr-1" />
+        <strong>Message Content</strong>
+    </MudText>
+    <MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="6" />
+    <MudGrid Spacing="2" Class="mt-2">
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="subject" Label="Subject" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="6">
-            <MudTextField @bind-Value="contentType" Label="Content Type" Margin="Margin.Normal" Placeholder="e.g., application/json" />
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="contentType" Label="Content Type" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="e.g., application/json" />
         </MudItem>
     </MudGrid>
     @if (IsReschedule)
     {
-        <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Margin="Margin.Normal" InputType="InputType.DateTimeLocal" />
+        <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.DateTimeLocal" Class="mt-3" />
     }
     else
     {
-        <MudCheckBox T="bool" @bind-Value="isScheduled" Label="Schedule message for later delivery" Disabled="@sendToDeadLetter" />
-        @if (isScheduled)
-        {
-            <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Margin="Margin.Normal" InputType="InputType.DateTimeLocal" />
-        }
-        <MudCheckBox T="bool" @bind-Value="sendToDeadLetter" Label="Send directly to dead-letter queue" />
+        <MudStack Spacing="2" Class="mt-3">
+            <MudCheckBox T="bool" @bind-Value="isScheduled" Label="Schedule message for later delivery" Disabled="@sendToDeadLetter" />
+            @if (isScheduled)
+            {
+                <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.DateTimeLocal" />
+            }
+            <MudCheckBox T="bool" @bind-Value="sendToDeadLetter" Label="Send directly to dead-letter queue" />
+        </MudStack>
     }
-    <MudText Typo="Typo.subtitle2">Application Properties</MudText>
-    <MudText Typo="Typo.caption" Color="Color.Secondary">Add key-value pairs (one per line, format: key=value)</MudText>
-    <MudTextField @bind-Value="propertiesText" Label="Application Properties" Margin="Margin.Normal" Lines="4" />
+    <MudDivider Class="my-4" />
+    <MudText Typo="Typo.subtitle1" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Class="mr-1" />
+        <strong>Application Properties</strong>
+    </MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Add key-value pairs (one per line, format: key=value)</MudText>
+    <MudTextField @bind-Value="propertiesText" Label="Application Properties" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="4" />
     @if (!IsReschedule)
     {
-        <MudCheckBox T="bool" @bind-Value="shouldSaveTemplate" Label="Save as template for later use" />
-        @if (shouldSaveTemplate)
-        {
-            <MudTextField @bind-Value="templateName" Label="Template Name" Margin="Margin.Normal" />
-        }
+        <MudDivider Class="my-4" />
+        <MudStack Spacing="2">
+            <MudCheckBox T="bool" @bind-Value="shouldSaveTemplate" Label="Save as template for later use" />
+            @if (shouldSaveTemplate)
+            {
+                <MudTextField @bind-Value="templateName" Label="Template Name" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter a name for this template" />
+            }
+        </MudStack>
     }
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <MudAlert Severity="Severity.Error" Dense="true"><MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage</MudAlert>
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3"><MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage</MudAlert>
     }
     @if (!string.IsNullOrEmpty(successMessage))
     {
-        <MudAlert Severity="Severity.Success" Dense="true" CloseIconClicked="@(() => successMessage = string.Empty)"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage</MudAlert>
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3" CloseIconClicked="@(() => successMessage = string.Empty)" ShowCloseIcon="true"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage</MudAlert>
     }
 </DialogContent>
 <DialogActions>
@@ -205,17 +233,45 @@
         {
             // Parse properties
             var properties = new Dictionary<string, object>();
+            var invalidLines = new List<string>();
+            
             if (!string.IsNullOrWhiteSpace(propertiesText))
             {
                 var lines = propertiesText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var line in lines)
                 {
-                    var parts = line.Split('=', 2);
+                    var trimmedLine = line.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmedLine))
+                        continue;
+                        
+                    var parts = trimmedLine.Split('=', 2);
                     if (parts.Length == 2)
                     {
-                        properties[parts[0].Trim()] = parts[1].Trim();
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+                        
+                        if (!string.IsNullOrWhiteSpace(key))
+                        {
+                            properties[key] = value;
+                        }
+                        else
+                        {
+                            invalidLines.Add(trimmedLine);
+                        }
+                    }
+                    else
+                    {
+                        invalidLines.Add(trimmedLine);
                     }
                 }
+            }
+            
+            // Warn about invalid lines
+            if (invalidLines.Any())
+            {
+                errorMessage = $"Warning: {invalidLines.Count} property line(s) have invalid format. Expected format: key=value";
+                isSending = false;
+                return;
             }
 
             // Save as template if requested

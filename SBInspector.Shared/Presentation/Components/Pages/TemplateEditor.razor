@@ -1,0 +1,316 @@
+@page "/templates/new"
+@page "/templates/edit/{TemplateId}"
+@using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Core.Domain
+@using MudBlazor
+@inject IStorageService StorageService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@(IsEditMode ? "Edit Template" : "New Template") - SBInspector</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-5">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.body1">Loading template...</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@(IsEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Size="Size.Large" />
+                <MudText Typo="Typo.h4">@(IsEditMode ? "Edit Template" : "New Template")</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Back to Templates
+            </MudButton>
+        </MudStack>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudForm @ref="form" Model="@this">
+                <MudStack Spacing="3">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" />
+                            <strong>Template Information</strong>
+                        </MudText>
+                        <MudTextField @bind-Value="templateName" 
+                                      Label="Template Name *" 
+                                      Required="true" 
+                                      RequiredError="Template name is required"
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense" />
+                    </div>
+
+                    <MudDivider />
+
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                            <strong>Message Content</strong>
+                        </MudText>
+                        <MudTextField @bind-Value="messageBody" 
+                                      Label="Message Body *" 
+                                      Required="true" 
+                                      RequiredError="Message body is required"
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense" 
+                                      Lines="10" 
+                                      Placeholder="Enter the message content..." />
+                    </div>
+
+                    <MudDivider />
+
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                            <strong>Message Metadata</strong>
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="subject" 
+                                              Label="Subject" 
+                                              Variant="Variant.Outlined" 
+                                              Margin="Margin.Dense"
+                                              Placeholder="Optional message subject" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="contentType" 
+                                              Label="Content Type" 
+                                              Variant="Variant.Outlined" 
+                                              Margin="Margin.Dense" 
+                                              Placeholder="e.g., application/json" />
+                            </MudItem>
+                        </MudGrid>
+                    </div>
+
+                    <MudDivider />
+
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" />
+                            <strong>Application Properties</strong>
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                            Add key-value pairs (one per line, format: key=value)
+                        </MudText>
+                        <MudTextField @bind-Value="propertiesText" 
+                                      Label="Application Properties" 
+                                      Variant="Variant.Outlined" 
+                                      Margin="Margin.Dense" 
+                                      Lines="5"
+                                      Placeholder="key1=value1&#10;key2=value2" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" ShowCloseIcon="true" CloseIconClicked="() => errorMessage = string.Empty">
+                            @errorMessage
+                        </MudAlert>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" ShowCloseIcon="true" CloseIconClicked="() => successMessage = string.Empty">
+                            @successMessage
+                        </MudAlert>
+                    }
+                </MudStack>
+            </MudForm>
+        </MudPaper>
+
+        <MudStack Row="true" Spacing="2" Class="mt-4" Justify="Justify.SpaceBetween">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Cancel
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave" Disabled="@isSaving" StartIcon="@Icons.Material.Filled.Save">
+                @if (isSaving)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                    <span>Saving...</span>
+                }
+                else
+                {
+                    <span>@(IsEditMode ? "Update Template" : "Create Template")</span>
+                }
+            </MudButton>
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string? TemplateId { get; set; }
+
+    private MudForm form = null!;
+    private bool IsEditMode => !string.IsNullOrEmpty(TemplateId);
+
+    private string templateName = string.Empty;
+    private string messageBody = string.Empty;
+    private string subject = string.Empty;
+    private string contentType = "text/plain";
+    private string propertiesText = string.Empty;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isLoading = false;
+    private bool isSaving = false;
+
+    private MessageTemplate? originalTemplate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode)
+        {
+            await LoadTemplateAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditMode && (originalTemplate == null || originalTemplate.Id != TemplateId))
+        {
+            await LoadTemplateAsync();
+        }
+    }
+
+    private async Task LoadTemplateAsync()
+    {
+        if (string.IsNullOrEmpty(TemplateId))
+            return;
+
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var templates = await StorageService.GetMessageTemplatesAsync();
+            originalTemplate = templates.FirstOrDefault(t => t.Id == TemplateId);
+
+            if (originalTemplate != null)
+            {
+                templateName = originalTemplate.Name;
+                messageBody = originalTemplate.MessageBody;
+                subject = originalTemplate.Subject ?? string.Empty;
+                contentType = originalTemplate.ContentType ?? "text/plain";
+
+                if (originalTemplate.Properties?.Any() == true)
+                {
+                    propertiesText = string.Join("\n",
+                        originalTemplate.Properties.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+                }
+            }
+            else
+            {
+                errorMessage = "Template not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading template: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        // Validate
+        if (string.IsNullOrWhiteSpace(templateName))
+        {
+            errorMessage = "Template name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(messageBody))
+        {
+            errorMessage = "Message body is required.";
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            // Parse properties
+            var properties = new Dictionary<string, object>();
+            var invalidLines = new List<string>();
+            
+            if (!string.IsNullOrWhiteSpace(propertiesText))
+            {
+                var lines = propertiesText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmedLine))
+                        continue;
+                        
+                    var parts = trimmedLine.Split('=', 2);
+                    if (parts.Length == 2)
+                    {
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+                        
+                        if (!string.IsNullOrWhiteSpace(key))
+                        {
+                            properties[key] = value;
+                        }
+                        else
+                        {
+                            invalidLines.Add(trimmedLine);
+                        }
+                    }
+                    else
+                    {
+                        invalidLines.Add(trimmedLine);
+                    }
+                }
+            }
+            
+            // Warn about invalid lines
+            if (invalidLines.Any())
+            {
+                errorMessage = $"Warning: {invalidLines.Count} property line(s) were skipped due to invalid format. Expected format: key=value";
+                return;
+            }
+
+            var template = new MessageTemplate
+            {
+                Id = IsEditMode ? TemplateId! : Guid.NewGuid().ToString(),
+                Name = templateName.Trim(),
+                MessageBody = messageBody,
+                Subject = subject,
+                ContentType = contentType,
+                Properties = properties.Count > 0 ? properties : null,
+                CreatedAt = originalTemplate?.CreatedAt ?? DateTime.UtcNow,
+                LastUsedAt = originalTemplate?.LastUsedAt
+            };
+
+            await StorageService.SaveMessageTemplateAsync(template);
+            successMessage = $"Template '{templateName}' {(IsEditMode ? "updated" : "created")} successfully!";
+
+            // Navigate back after a short delay
+            await Task.Delay(1500);
+            NavigateBack();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving template: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/templates");
+    }
+}
