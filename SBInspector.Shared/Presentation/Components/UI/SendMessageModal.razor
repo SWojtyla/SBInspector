@@ -13,7 +13,7 @@
                     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
                     <strong>Load from Template</strong>
                 </MudText>
-                <MudSelect T="string" @bind-Value="selectedTemplateId" Label="Select a template" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelect T="string" @bind-Value="selectedTemplateId" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="string.Empty">-- Select a template --</MudSelectItem>
                     @foreach (var template in messageTemplates)
                     {
