@@ -5,6 +5,7 @@
 @using MudBlazor
 @inject IStorageService StorageService
 @inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 
 <PageTitle>Message Templates - SBInspector</PageTitle>
 
@@ -14,7 +15,7 @@
             <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" />
             <MudText Typo="Typo.h4">Message Templates</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ShowCreateModal" StartIcon="@Icons.Material.Filled.Add">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToCreate" StartIcon="@Icons.Material.Filled.Add">
             New Template
         </MudButton>
     </MudStack>
@@ -53,9 +54,9 @@
                     <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Last Used">@(context.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudTd>
                     <MudTd DataLabel="Actions">
-                        <MudStack Row="true" Spacing="0">
-                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => ShowViewModal(context))" Title="View" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => ShowEditModal(context))" Title="Edit" />
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => NavigateToView(context))" Title="View" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToEdit(context))" Title="Edit" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => ShowDeleteConfirmation(context))" Title="Delete" />
                         </MudStack>
                     </MudTd>
@@ -79,86 +80,11 @@
     }
 </MudContainer>
 
-@if (isViewModalVisible && selectedTemplate != null)
-{
-    <MudDialog @bind-Visible="isViewModalVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true })">
-        <TitleContent>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.Visibility" />
-                <MudText Typo="Typo.h6">View Template: @selectedTemplate.Name</MudText>
-            </MudStack>
-        </TitleContent>
-        <DialogContent>
-            <MudStack Spacing="3">
-                <div>
-                    <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Template Name</strong></MudText>
-                    <MudText>@selectedTemplate.Name</MudText>
-                </div>
-
-                <div>
-                    <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Message Body</strong></MudText>
-                    <MudPaper Class="pa-3" Elevation="0" Style="max-height: 300px; overflow-y: auto;">
-                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">@selectedTemplate.MessageBody</pre>
-                    </MudPaper>
-                </div>
-
-                <MudGrid>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Subject</strong></MudText>
-                        <MudText>@(selectedTemplate.Subject ?? "-")</MudText>
-                    </MudItem>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Content Type</strong></MudText>
-                        <MudText>@(selectedTemplate.ContentType ?? "text/plain")</MudText>
-                    </MudItem>
-                </MudGrid>
-
-                @if (selectedTemplate.Properties?.Any() == true)
-                {
-                    <div>
-                        <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>Application Properties</strong></MudText>
-                        <MudPaper Class="pa-2" Elevation="0" >
-                            @foreach (var prop in selectedTemplate.Properties)
-                            {
-                                <MudStack Row="true" Spacing="1" Class="mb-1">
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@prop.Key</MudChip>
-                                    <MudText>=</MudText>
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">@prop.Value</MudChip>
-                                </MudStack>
-                            }
-                        </MudPaper>
-                    </div>
-                }
-
-                <MudGrid>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Created</strong></MudText>
-                        <MudText>@selectedTemplate.CreatedAt.ToLocalTime().ToString("g")</MudText>
-                    </MudItem>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Last Used</strong></MudText>
-                        <MudText>@(selectedTemplate.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudStack>
-        </DialogContent>
-        <DialogActions>
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="CloseViewModal" StartIcon="@Icons.Material.Filled.Close">
-                Close
-            </MudButton>
-        </DialogActions>
-    </MudDialog>
-}
-
 @code {
     private List<MessageTemplate> templates = new();
     private bool isLoading = false;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
-
-    // View modal
-    private bool isViewModalVisible = false;
-    private MessageTemplate? selectedTemplate = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,90 +110,19 @@
         }
     }
 
-    private async Task ShowCreateModal()
+    private void NavigateToCreate()
     {
-        var parameters = new DialogParameters<MessageTemplateEditorModal>
-        {
-            { x => x.IsEditMode, false },
-            { x => x.Template, null }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<MessageTemplateEditorModal>(
-            "New Template",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is MessageTemplate template)
-        {
-            try
-            {
-                await StorageService.SaveMessageTemplateAsync(template);
-                await LoadTemplatesAsync();
-                successMessage = "Template created successfully!";
-            }
-            catch (Exception ex)
-            {
-                errorMessage = $"Error saving template: {ex.Message}";
-            }
-        }
+        NavigationManager.NavigateTo("/templates/new");
     }
 
-    private async Task ShowEditModal(MessageTemplate template)
+    private void NavigateToView(MessageTemplate template)
     {
-        var parameters = new DialogParameters<MessageTemplateEditorModal>
-        {
-            { x => x.IsEditMode, true },
-            { x => x.Template, template }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<MessageTemplateEditorModal>(
-            "Edit Template",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is MessageTemplate updatedTemplate)
-        {
-            try
-            {
-                await StorageService.SaveMessageTemplateAsync(updatedTemplate);
-                await LoadTemplatesAsync();
-                successMessage = "Template updated successfully!";
-            }
-            catch (Exception ex)
-            {
-                errorMessage = $"Error saving template: {ex.Message}";
-            }
-        }
+        NavigationManager.NavigateTo($"/templates/view/{template.Id}");
     }
 
-    private void ShowViewModal(MessageTemplate template)
+    private void NavigateToEdit(MessageTemplate template)
     {
-        selectedTemplate = template;
-        isViewModalVisible = true;
-    }
-
-    private void CloseViewModal()
-    {
-        isViewModalVisible = false;
-        selectedTemplate = null;
+        NavigationManager.NavigateTo($"/templates/edit/{template.Id}");
     }
 
     private async Task ShowDeleteConfirmation(MessageTemplate template)

@@ -1,0 +1,238 @@
+@page "/templates/view/{TemplateId}"
+@using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Core.Domain
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IStorageService StorageService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>View Template - SBInspector</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-5">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.body1">Loading template...</MudText>
+        </MudStack>
+    }
+    else if (template == null)
+    {
+        <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error">
+            Template not found.
+        </MudAlert>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-3">
+            Back to Templates
+        </MudButton>
+    }
+    else
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Large" />
+                <MudText Typo="Typo.h4">View Template</MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEdit" StartIcon="@Icons.Material.Filled.Edit">
+                    Edit Template
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack">
+                    Back to Templates
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="3">
+                <div>
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" />
+                        <strong>Template Name</strong>
+                    </MudText>
+                    <MudText Typo="Typo.h6">@template.Name</MudText>
+                </div>
+
+                <MudDivider />
+
+                <div>
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                        <strong>Message Body</strong>
+                    </MudText>
+                    <MudPaper Class="pa-3" Elevation="1" Style="max-height: 400px; overflow-y: auto; background-color: #f5f5f5;">
+                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 0.9rem;">@template.MessageBody</pre>
+                    </MudPaper>
+                </div>
+
+                <MudDivider />
+
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Subject" Size="Size.Small" />
+                            <strong>Subject</strong>
+                        </MudText>
+                        <MudText>@(template.Subject ?? "-")</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
+                            <strong>Content Type</strong>
+                        </MudText>
+                        <MudText>@(template.ContentType ?? "text/plain")</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                @if (template.Properties?.Any() == true)
+                {
+                    <MudDivider />
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" />
+                            <strong>Application Properties</strong>
+                        </MudText>
+                        <MudPaper Class="pa-3" Elevation="1">
+                            <MudStack Spacing="2">
+                                @foreach (var prop in template.Properties)
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">@prop.Key</MudChip>
+                                        <MudText>=</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@prop.Value</MudChip>
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    </div>
+                }
+
+                <MudDivider />
+
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                            <strong>Created</strong>
+                        </MudText>
+                        <MudText>@template.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" />
+                            <strong>Last Used</strong>
+                        </MudText>
+                        <MudText>@(template.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <MudStack Row="true" Spacing="2" Class="mt-4" Justify="Justify.SpaceBetween">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Back to Templates
+            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEdit" StartIcon="@Icons.Material.Filled.Edit">
+                    Edit Template
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ShowDeleteConfirmation" StartIcon="@Icons.Material.Filled.Delete">
+                    Delete
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" Class="mt-3" CloseIconClicked="() => successMessage = string.Empty" ShowCloseIcon="true">@successMessage</MudAlert>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3" CloseIconClicked="() => errorMessage = string.Empty" ShowCloseIcon="true">@errorMessage</MudAlert>
+        }
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string TemplateId { get; set; } = string.Empty;
+
+    private MessageTemplate? template;
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplateAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadTemplateAsync();
+    }
+
+    private async Task LoadTemplateAsync()
+    {
+        if (string.IsNullOrEmpty(TemplateId))
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var templates = await StorageService.GetMessageTemplatesAsync();
+            template = templates.FirstOrDefault(t => t.Id == TemplateId);
+
+            if (template == null)
+            {
+                errorMessage = "Template not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading template: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/templates");
+    }
+
+    private void NavigateToEdit()
+    {
+        NavigationManager.NavigateTo($"/templates/edit/{TemplateId}");
+    }
+
+    private async Task ShowDeleteConfirmation()
+    {
+        if (template == null)
+            return;
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone.");
+
+        if (confirmed)
+        {
+            try
+            {
+                await StorageService.DeleteMessageTemplateAsync(TemplateId);
+                successMessage = $"Template '{template.Name}' deleted successfully!";
+                await Task.Delay(1500);
+                NavigateBack();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error deleting template: {ex.Message}";
+            }
+        }
+    }
+}
