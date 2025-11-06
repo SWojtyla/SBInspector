@@ -86,39 +86,6 @@
             </div>
         </div>
 
-        <ConfirmationModal
-            IsVisible="@showDeleteConfirmation"
-            Title="Delete Message"
-            Message="@deleteConfirmationMessage"
-            IconClass="bi-exclamation-triangle"
-            ConfirmIconClass="bi-trash"
-            ConfirmButtonClass="btn-danger"
-            ConfirmText="Delete"
-            OnConfirm="@ConfirmDelete"
-            OnCancel="@CancelDelete" />
-
-        <ConfirmationModal 
-            IsVisible="@showRequeueConfirmation"
-            Title="Requeue Message"
-            Message="Are you sure you want to requeue this message from the dead-letter queue to the active queue?"
-            IconClass="bi-arrow-counterclockwise"
-            ConfirmIconClass="bi-check-lg"
-            ConfirmButtonClass="btn-success"
-            ConfirmText="Requeue"
-            OnConfirm="@ConfirmRequeue"
-            OnCancel="@CancelRequeue" />
-
-        <ConfirmationModal 
-            IsVisible="@showPurgeConfirmation"
-            Title="Purge All Messages"
-            Message="@purgeConfirmationMessage"
-            IconClass="bi-exclamation-triangle-fill"
-            ConfirmIconClass="bi-trash-fill"
-            ConfirmButtonClass="btn-danger"
-            ConfirmText="Purge All"
-            OnConfirm="@ConfirmPurge"
-            OnCancel="@CancelPurge" />
-
         @if (!string.IsNullOrEmpty(successMessage))
         {
             <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
@@ -522,12 +489,6 @@
     }
 
     // CRUD operation state
-    private bool showDeleteConfirmation = false;
-    private bool showRequeueConfirmation = false;
-    private bool showPurgeConfirmation = false;
-    private MessageInfo? messageForOperation = null;
-    private string deleteConfirmationMessage = string.Empty;
-    private string purgeConfirmationMessage = string.Empty;
     private string successMessage = string.Empty;
     private string operationErrorMessage = string.Empty;
     
@@ -549,139 +510,154 @@
     
     private Dictionary<string, PurgeOperation> activeOperations = new Dictionary<string, PurgeOperation>();
 
-    private void HandleDeleteMessage(MessageInfo message)
+    private async Task HandleDeleteMessage(MessageInfo message)
     {
-        messageForOperation = message;
-        deleteConfirmationMessage = $"Are you sure you want to delete message '{message.MessageId}'? This action cannot be undone.";
-        showDeleteConfirmation = true;
-    }
-
-    private async Task ConfirmDelete()
-    {
-        showDeleteConfirmation = false;
-        operationErrorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        if (messageForOperation == null) return;
-
-        isOperationInProgress = true;
-        operationLoadingTitle = "Deleting Message";
-        operationLoadingMessage = "Please wait while the message is being deleted...";
-
-        try
+        var parameters = new DialogParameters<ConfirmationModal>
         {
-            bool success;
-            
-            var options = MessageOperationOptions.FromMessageInfo(
-                messageForOperation,
-                selectedEntity,
-                !string.IsNullOrEmpty(selectedSubscriptionName),
-                selectedTopic,
-                selectedSubscriptionName);
-                
-            success = await ServiceBusService.DeleteMessageAsync(options);
+            { x => x.Message, $"Are you sure you want to delete message '{message.MessageId}'? This action cannot be undone." },
+            { x => x.ConfirmText, "Delete" },
+            { x => x.ConfirmColor, Color.Error },
+            { x => x.ConfirmIconClass, "bi-trash" }
+        };
 
-            if (success)
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            "Delete Message",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            operationErrorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            isOperationInProgress = true;
+            operationLoadingTitle = "Deleting Message";
+            operationLoadingMessage = "Please wait while the message is being deleted...";
+
+            try
             {
-                messages.Remove(messageForOperation);
-                successMessage = "Message deleted successfully.";
-                
-                // Refresh entity counts to update the tree
-                await RefreshEntityCounts();
-                
-                await Task.Delay(3000);
-                successMessage = string.Empty;
+                var msgOptions = MessageOperationOptions.FromMessageInfo(
+                    message,
+                    selectedEntity,
+                    !string.IsNullOrEmpty(selectedSubscriptionName),
+                    selectedTopic,
+                    selectedSubscriptionName);
+                    
+                bool success = await ServiceBusService.DeleteMessageAsync(msgOptions);
+
+                if (success)
+                {
+                    messages.Remove(message);
+                    successMessage = "Message deleted successfully.";
+                    
+                    // Refresh entity counts to update the tree
+                    await RefreshEntityCounts();
+                    
+                    await Task.Delay(3000);
+                    successMessage = string.Empty;
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to delete message. It may have already been processed.";
+                    await Task.Delay(5000);
+                    operationErrorMessage = string.Empty;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                operationErrorMessage = "Failed to delete message. It may have already been processed.";
+                operationErrorMessage = $"Error deleting message: {ex.Message}";
                 await Task.Delay(5000);
                 operationErrorMessage = string.Empty;
             }
-        }
-        catch (Exception ex)
-        {
-            operationErrorMessage = $"Error deleting message: {ex.Message}";
-            await Task.Delay(5000);
-            operationErrorMessage = string.Empty;
-        }
-        finally
-        {
-            isOperationInProgress = false;
-            messageForOperation = null;
-        }
-    }
-
-    private void CancelDelete()
-    {
-        showDeleteConfirmation = false;
-        messageForOperation = null;
-    }
-
-    private void HandleRequeueMessage(MessageInfo message)
-    {
-        messageForOperation = message;
-        showRequeueConfirmation = true;
-    }
-
-    private async Task ConfirmRequeue()
-    {
-        showRequeueConfirmation = false;
-        operationErrorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        if (messageForOperation == null) return;
-
-        isOperationInProgress = true;
-        operationLoadingTitle = "Requeuing Message";
-        operationLoadingMessage = "Please wait while the message is being moved back to the active queue...";
-
-        try
-        {
-            var options = MessageOperationOptions.FromMessageInfo(
-                messageForOperation,
-                selectedEntity,
-                !string.IsNullOrEmpty(selectedSubscriptionName),
-                selectedTopic,
-                selectedSubscriptionName);
-                
-            bool success = await ServiceBusService.RequeueDeadLetterMessageAsync(options);
-
-            if (success)
+            finally
             {
-                messages.Remove(messageForOperation);
-                successMessage = "Message requeued successfully.";
-                
-                // Refresh entity counts to update the tree
-                await RefreshEntityCounts();
-                
-                await Task.Delay(3000);
-                successMessage = string.Empty;
+                isOperationInProgress = false;
             }
-            else
+        }
+    }
+
+    private async Task HandleRequeueMessage(MessageInfo message)
+    {
+        var parameters = new DialogParameters<ConfirmationModal>
+        {
+            { x => x.Message, "Are you sure you want to requeue this message from the dead-letter queue to the active queue?" },
+            { x => x.ConfirmText, "Requeue" },
+            { x => x.ConfirmColor, Color.Success },
+            { x => x.ConfirmIconClass, "bi-check-lg" }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            "Requeue Message",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            operationErrorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            isOperationInProgress = true;
+            operationLoadingTitle = "Requeuing Message";
+            operationLoadingMessage = "Please wait while the message is being moved back to the active queue...";
+
+            try
             {
-                operationErrorMessage = "Failed to requeue message. It may have already been processed.";
+                var msgOptions = MessageOperationOptions.FromMessageInfo(
+                    message,
+                    selectedEntity,
+                    !string.IsNullOrEmpty(selectedSubscriptionName),
+                    selectedTopic,
+                    selectedSubscriptionName);
+                    
+                bool success = await ServiceBusService.RequeueDeadLetterMessageAsync(msgOptions);
+
+                if (success)
+                {
+                    messages.Remove(message);
+                    successMessage = "Message requeued successfully.";
+                    
+                    // Refresh entity counts to update the tree
+                    await RefreshEntityCounts();
+                    
+                    await Task.Delay(3000);
+                    successMessage = string.Empty;
+                }
+                else
+                {
+                    operationErrorMessage = "Failed to requeue message. It may have already been processed.";
+                    await Task.Delay(5000);
+                    operationErrorMessage = string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                operationErrorMessage = $"Error requeuing message: {ex.Message}";
                 await Task.Delay(5000);
                 operationErrorMessage = string.Empty;
             }
+            finally
+            {
+                isOperationInProgress = false;
+            }
         }
-        catch (Exception ex)
-        {
-            operationErrorMessage = $"Error requeuing message: {ex.Message}";
-            await Task.Delay(5000);
-            operationErrorMessage = string.Empty;
-        }
-        finally
-        {
-            isOperationInProgress = false;
-            messageForOperation = null;
-        }
-    }
-
-    private void CancelRequeue()
-    {
-        showRequeueConfirmation = false;
-        messageForOperation = null;
     }
 
     private async Task HandleRescheduleMessage(MessageInfo message)
@@ -823,7 +799,7 @@
         }
     }
 
-    private void HandlePurgeMessages()
+    private async Task HandlePurgeMessages()
     {
         var messageTypeDisplay = selectedMessageType switch
         {
@@ -833,162 +809,171 @@
             _ => selectedMessageType.ToLower()
         };
 
-        purgeConfirmationMessage = $"Are you sure you want to PURGE ALL {messageTypeDisplay} messages from '{selectedEntity}'? " +
-            $"This will permanently delete ALL messages and cannot be undone. Type 'PURGE' to confirm.";
-        showPurgeConfirmation = true;
-    }
-
-    private async Task ConfirmPurge()
-    {
-        showPurgeConfirmation = false;
-        operationErrorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        // Create a unique operation ID for this purge operation
-        var operationId = $"{selectedEntity}_{selectedMessageType}_{Guid.NewGuid()}";
-        
-        var messageTypeDisplay = selectedMessageType switch
+        var parameters = new DialogParameters<ConfirmationModal>
         {
-            "Active" => "active",
-            "Scheduled" => "scheduled",
-            "DeadLetter" => "dead-letter",
-            _ => selectedMessageType.ToLower()
+            { x => x.Message, $"Are you sure you want to PURGE ALL {messageTypeDisplay} messages from '{selectedEntity}'? This will permanently delete ALL messages and cannot be undone. Type 'PURGE' to confirm." },
+            { x => x.ConfirmText, "Purge All" },
+            { x => x.ConfirmColor, Color.Error },
+            { x => x.ConfirmIconClass, "bi-trash-fill" }
         };
-        
-        var operation = new PurgeOperation
+
+        var options = new DialogOptions
         {
-            OperationId = operationId,
-            EntityName = selectedEntity,
-            MessageType = selectedMessageType,
-            ProgressMessage = $"Deleting {messageTypeDisplay} messages from '{selectedEntity}'...",
-            Progress = 0,
-            CancellationTokenSource = new CancellationTokenSource()
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
         };
-        
-        activeOperations[operationId] = operation;
-        
-        StateHasChanged();
 
-        // Capture current entity context for the background task
-        var capturedEntity = selectedEntity;
-        var capturedMessageType = selectedMessageType;
-        var capturedSubscriptionName = selectedSubscriptionName;
-        var capturedTopic = selectedTopic;
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            $"Purge All {messageTypeDisplay} Messages",
+            parameters,
+            options);
 
-        // Run purge in background
-        _ = Task.Run(async () =>
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
         {
-            try
+            operationErrorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            // Create a unique operation ID for this purge operation
+            var operationId = $"{selectedEntity}_{selectedMessageType}_{Guid.NewGuid()}";
+            
+            var operation = new PurgeOperation
             {
-                var progress = new Progress<int>(count =>
-                {
-                    if (activeOperations.TryGetValue(operationId, out var op))
-                    {
-                        op.Progress = count;
-                    }
-                    InvokeAsync(StateHasChanged);
-                });
+                OperationId = operationId,
+                EntityName = selectedEntity,
+                MessageType = selectedMessageType,
+                ProgressMessage = $"Deleting {messageTypeDisplay} messages from '{selectedEntity}'...",
+                Progress = 0,
+                CancellationTokenSource = new CancellationTokenSource()
+            };
+            
+            activeOperations[operationId] = operation;
+            
+            StateHasChanged();
 
-                int deletedCount;
+            // Capture current entity context for the background task
+            var capturedEntity = selectedEntity;
+            var capturedMessageType = selectedMessageType;
+            var capturedSubscriptionName = selectedSubscriptionName;
+            var capturedTopic = selectedTopic;
 
-                if (!string.IsNullOrEmpty(capturedSubscriptionName))
+            // Run purge in background
+            _ = Task.Run(async () =>
+            {
+                try
                 {
-                    // It's a subscription
-                    deletedCount = await ServiceBusService.PurgeMessagesAsync(
-                        capturedEntity,
-                        capturedMessageType,
-                        isSubscription: true,
-                        topicName: capturedTopic,
-                        subscriptionName: capturedSubscriptionName,
-                        cancellationToken: operation.CancellationTokenSource.Token,
-                        progress: progress);
-                }
-                else
-                {
-                    // It's a queue
-                    deletedCount = await ServiceBusService.PurgeMessagesAsync(
-                        capturedEntity,
-                        capturedMessageType,
-                        cancellationToken: operation.CancellationTokenSource.Token,
-                        progress: progress);
-                }
-
-                await InvokeAsync(async () =>
-                {
-                    // Remove from active operations
-                    activeOperations.Remove(operationId);
-                    
-                    // Null-safe check for cancellation token
-                    bool wasCancelled = operation.CancellationTokenSource?.Token.IsCancellationRequested ?? false;
-                    
-                    if (wasCancelled)
+                    var progress = new Progress<int>(count =>
                     {
-                        successMessage = $"Purge cancelled. Deleted {deletedCount} message(s) before cancellation.";
-                    }
-                    else if (deletedCount > 0)
-                    {
-                        // Only clear messages if this purge was for the currently selected entity
-                        if (capturedEntity == selectedEntity && capturedMessageType == selectedMessageType)
+                        if (activeOperations.TryGetValue(operationId, out var op))
                         {
-                            messages.Clear();
-                            hasMoreMessages = false;
+                            op.Progress = count;
                         }
-                        
-                        // Refresh entity counts to update the tree
-                        await RefreshEntityCounts();
-                        
-                        successMessage = $"Successfully purged {deletedCount} message(s) from {capturedEntity}.";
+                        InvokeAsync(StateHasChanged);
+                    });
+
+                    int deletedCount;
+
+                    if (!string.IsNullOrEmpty(capturedSubscriptionName))
+                    {
+                        // It's a subscription
+                        deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                            capturedEntity,
+                            capturedMessageType,
+                            isSubscription: true,
+                            topicName: capturedTopic,
+                            subscriptionName: capturedSubscriptionName,
+                            cancellationToken: operation.CancellationTokenSource.Token,
+                            progress: progress);
                     }
                     else
                     {
-                        operationErrorMessage = $"No messages were found to purge in {capturedEntity}.";
+                        // It's a queue
+                        deletedCount = await ServiceBusService.PurgeMessagesAsync(
+                            capturedEntity,
+                            capturedMessageType,
+                            cancellationToken: operation.CancellationTokenSource.Token,
+                            progress: progress);
                     }
-                    
-                    StateHasChanged();
+
+                    await InvokeAsync(async () =>
+                    {
+                        // Remove from active operations
+                        activeOperations.Remove(operationId);
+                        
+                        // Null-safe check for cancellation token
+                        bool wasCancelled = operation.CancellationTokenSource?.Token.IsCancellationRequested ?? false;
+                        
+                        if (wasCancelled)
+                        {
+                            successMessage = $"Purge cancelled. Deleted {deletedCount} message(s) before cancellation.";
+                        }
+                        else if (deletedCount > 0)
+                        {
+                            // Only clear messages if this purge was for the currently selected entity
+                            if (capturedEntity == selectedEntity && capturedMessageType == selectedMessageType)
+                            {
+                                messages.Clear();
+                                hasMoreMessages = false;
+                            }
+                            
+                            // Refresh entity counts to update the tree
+                            await RefreshEntityCounts();
+                            
+                            successMessage = $"Successfully purged {deletedCount} message(s) from {capturedEntity}.";
+                        }
+                        else
+                        {
+                            operationErrorMessage = $"No messages were found to purge in {capturedEntity}.";
+                        }
+                        
+                        StateHasChanged();
+                        
+                        await Task.Delay(3000);
+                        successMessage = string.Empty;
+                        operationErrorMessage = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+                catch (OperationCanceledException)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        activeOperations.Remove(operationId);
+                        successMessage = $"Purge cancelled. Deleted {operation.Progress} message(s) before cancellation.";
+                        StateHasChanged();
+                    });
                     
                     await Task.Delay(3000);
-                    successMessage = string.Empty;
-                    operationErrorMessage = string.Empty;
-                    StateHasChanged();
-                });
-            }
-            catch (OperationCanceledException)
-            {
-                await InvokeAsync(() =>
+                    await InvokeAsync(() =>
+                    {
+                        successMessage = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
                 {
-                    activeOperations.Remove(operationId);
-                    successMessage = $"Purge cancelled. Deleted {operation.Progress} message(s) before cancellation.";
-                    StateHasChanged();
-                });
-                
-                await Task.Delay(3000);
-                await InvokeAsync(() =>
+                    await InvokeAsync(() =>
+                    {
+                        activeOperations.Remove(operationId);
+                        operationErrorMessage = $"Error purging messages from {capturedEntity}: {ex.Message}";
+                        StateHasChanged();
+                    });
+                    
+                    await Task.Delay(5000);
+                    await InvokeAsync(() =>
+                    {
+                        operationErrorMessage = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+                finally
                 {
-                    successMessage = string.Empty;
-                    StateHasChanged();
-                });
-            }
-            catch (Exception ex)
-            {
-                await InvokeAsync(() =>
-                {
-                    activeOperations.Remove(operationId);
-                    operationErrorMessage = $"Error purging messages from {capturedEntity}: {ex.Message}";
-                    StateHasChanged();
-                });
-                
-                await Task.Delay(5000);
-                await InvokeAsync(() =>
-                {
-                    operationErrorMessage = string.Empty;
-                    StateHasChanged();
-                });
-            }
-            finally
-            {
-                operation.CancellationTokenSource?.Dispose();
-            }
-        });
+                    operation.CancellationTokenSource?.Dispose();
+                }
+            });
+        }
     }
 
     private void CancelPurgeOperation(string operationId)
@@ -996,15 +981,6 @@
         if (activeOperations.TryGetValue(operationId, out var operation))
         {
             operation.CancellationTokenSource?.Cancel();
-        }
-    }
-
-    private void CancelPurge()
-    {
-        if (showPurgeConfirmation)
-        {
-            // Cancel the confirmation dialog
-            showPurgeConfirmation = false;
         }
     }
 
