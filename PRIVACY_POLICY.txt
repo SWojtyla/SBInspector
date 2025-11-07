@@ -1,0 +1,83 @@
+PRIVACY POLICY FOR SBINSPECTOR
+
+Last Updated: November 7, 2025
+
+SUMMARY
+SBInspector does not collect, use, or share any user data. All data (Azure Service Bus connection strings and message templates) is stored locally on the user's device in encrypted form. The application connects directly to the user's Azure Service Bus namespace and does not transmit any data to third parties or our servers. No analytics, tracking, or advertising services are used.
+
+INTRODUCTION
+SBInspector is an Azure Service Bus Inspector application available as both a Blazor web application and a .NET MAUI desktop application. This Privacy Policy describes how the App handles your information.
+
+DEVELOPER INFORMATION
+Developer: SWojtyla
+Contact: https://github.com/SWojtyla/SBInspector
+
+DATA COLLECTION AND USAGE
+The App accesses the following information solely for inspecting and managing your Azure Service Bus resources:
+- Azure Service Bus connection strings (required to connect to your namespace)
+- Azure Service Bus messages (content, metadata, and properties)
+- Message templates (custom templates you create)
+- Application settings (preferences and saved connections)
+
+HOW DATA IS STORED
+
+Desktop Application (.NET MAUI):
+- Connection strings: Encrypted and stored in Desktop/SBInspector/connections.json
+- Message templates: Stored in Documents/SBInspector/Templates/templates.json
+- Exported messages: Saved to Documents/SBInspector/Exports/ when you export
+
+Web Application (Blazor Server):
+- Connection strings: Encrypted and stored in browser local storage
+- Message templates: Stored in browser local storage
+- All data remains in your browser
+
+DATA SECURITY
+- All connection strings are encrypted using Microsoft's Data Protection API
+- All data is stored locally on your device or in your browser
+- No information is transmitted to our servers or third-party services
+- Direct connection to your Azure Service Bus namespace
+
+THIRD-PARTY SERVICES
+The App does NOT share any data with third parties. The only external connection is directly to your Azure Service Bus namespace, which you control.
+
+DATA RETENTION
+- Desktop: Data remains on your file system until you delete it
+- Web: Data remains in browser storage until you clear it or delete connections
+- You can delete individual connections and templates through the App interface
+
+YOUR RIGHTS AND CONTROL
+- Access: All data is stored locally and accessible to you
+- Deletion: Delete connections and templates anytime through the App
+- Portability: Data is stored in standard JSON format
+- Control: Clear all data via browser storage (web) or file deletion (desktop)
+
+ANALYTICS AND TRACKING
+The App does NOT:
+- Collect usage analytics
+- Track your behavior
+- Use cookies (except basic web functionality cookies in Blazor)
+- Share information with advertising networks
+- Transmit telemetry data
+
+FILE SYSTEM ACCESS (Desktop Application)
+Required for:
+- Storing encrypted connection strings
+- Saving message templates
+- Exporting messages when you choose
+
+OPEN SOURCE
+SBInspector is open source software. Review the source code at:
+https://github.com/SWojtyla/SBInspector
+
+CONTACT
+For questions about this Privacy Policy:
+GitHub Issues: https://github.com/SWojtyla/SBInspector/issues
+
+LEGAL COMPLIANCE
+This Privacy Policy complies with:
+- General Data Protection Regulation (GDPR)
+- California Consumer Privacy Act (CCPA)
+- Microsoft Store Privacy Requirements
+
+CONSENT
+By using the App, you consent to this Privacy Policy.
