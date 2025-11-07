@@ -198,6 +198,10 @@ For details on the MAUI implementation, see [MAUI_IMPLEMENTATION.md](Features/MA
 
 The application supports advanced filtering of messages by application properties, enqueued time, delivery count, and sequence number. You can also perform bulk operations on filtered messages including delete and export. See [FILTERING.md](FILTERING.md) and [FILTER_BASED_OPERATIONS.md](Features/FILTER_BASED_OPERATIONS.md) for detailed documentation.
 
+## Privacy
+
+SBInspector respects your privacy. All data (connection strings and templates) is stored locally on your device in encrypted form. No data is collected, tracked, or transmitted to third parties. For complete details, see [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
+
 ## License
 
 MIT
