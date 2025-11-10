@@ -13,7 +13,7 @@
   <Properties>
     <DisplayName>SEBInspector</DisplayName>
     <PublisherDisplayName>Sebastien Wojtyla</PublisherDisplayName>
-    <Logo>Platforms\Windows\Assets\$placeholder$.png</Logo>
+    <Logo>Platforms\Windows\Assets\PackageLogo.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -30,18 +30,18 @@
       <uap:VisualElements
         DisplayName="SEBInspector"
         Description="Azure Service Bus Inspector"
-        Square150x150Logo="Platforms\Windows\Assets\$placeholder$.png"
-        Square44x44Logo="Platforms\Windows\Assets\$placeholder$.png"
+        Square150x150Logo="Platforms\Windows\Assets\MediumTile.png"
+        Square44x44Logo="Platforms\Windows\Assets\AppIcon.png"
         BackgroundColor="transparent">
-        <uap:DefaultTile Wide310x150Logo="Platforms\Windows\Assets\$placeholder$.png" Square310x310Logo="Platforms\Windows\Assets\$placeholder$.png"  ShortName="SEBInspector" Square71x71Logo="Platforms\Windows\Assets\$placeholder$.png">
+        <uap:DefaultTile Wide310x150Logo="Platforms\Windows\Assets\WideTile.png" Square310x310Logo="Platforms\Windows\Assets\LargeTile.png"  ShortName="SEBInspector" Square71x71Logo="Platforms\Windows\Assets\SmallTile.png">
           <uap:ShowNameOnTiles>
             <uap:ShowOn Tile="square310x310Logo"/>
             <uap:ShowOn Tile="wide310x150Logo"/>
             <uap:ShowOn Tile="square150x150Logo"/>
           </uap:ShowNameOnTiles>
         </uap:DefaultTile >
-        <uap:SplashScreen Image="Platforms\Windows\Assets\$placeholder$.png" />
-        <uap:LockScreen BadgeLogo="Platforms\Windows\Assets\$placeholder$.png" Notification="badge"/>
+        <uap:SplashScreen Image="Platforms\Windows\Assets\SplashScreen.png" />
+        <uap:LockScreen BadgeLogo="Platforms\Windows\Assets\BadgeLogo.png" Notification="badge"/>
       </uap:VisualElements>
     </Application>
   </Applications>
