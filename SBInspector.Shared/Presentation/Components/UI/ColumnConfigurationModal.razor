@@ -1,0 +1,133 @@
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Application.Services
+@using MudBlazor
+@inject ColumnConfigurationService ColumnConfigService
+
+<MudDialog>
+    <DialogContent>
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.ViewColumn" /> Configure Table Columns</MudText>
+            
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Default Columns</MudText>
+            <MudList T="string" Dense="true">
+                @foreach (var column in Columns.Where(c => c.IsSystemColumn).OrderBy(c => c.Order))
+                {
+                    <MudListItem T="string">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudCheckBox T="bool" Checked="@column.IsVisible" CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))" Color="Color.Primary" />
+                            <MudText>@column.DisplayName</MudText>
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+
+            @if (Columns.Any(c => !c.IsSystemColumn))
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Custom Columns</MudText>
+                <MudList T="string" Dense="true">
+                    @foreach (var column in Columns.Where(c => !c.IsSystemColumn).OrderBy(c => c.Order))
+                    {
+                        <MudListItem T="string">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.NoWrap">
+                                <MudCheckBox T="bool" Checked="@column.IsVisible" CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))" Color="Color.Primary" />
+                                <MudText Style="flex-grow:1;">@column.DisplayName</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveCustomColumn(column))" Title="Remove" />
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Add Custom Column</MudText>
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="newPropertyKey" Label="Property Key" Placeholder="e.g., NServiceBus.MessageIntent" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="newDisplayName" Label="Display Name" Placeholder="e.g., Message Intent" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCustomColumn" Disabled="@(string.IsNullOrWhiteSpace(newPropertyKey) || string.IsNullOrWhiteSpace(newDisplayName))" StartIcon="@Icons.Material.Filled.Add">
+                    Add Custom Column
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="ResetToDefault" Color="Color.Warning" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.RestartAlt">Reset to Default</MudButton>
+        <MudSpacer />
+        <MudButton OnClick="Cancel" Color="Color.Default" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="Save" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public List<ColumnDefinition> Columns { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<ColumnDefinition>> OnSave { get; set; }
+
+    private string newPropertyKey = string.Empty;
+    private string newDisplayName = string.Empty;
+
+    private void ToggleColumnVisibility(ColumnDefinition column, bool isVisible)
+    {
+        column.IsVisible = isVisible;
+    }
+
+    private void RemoveCustomColumn(ColumnDefinition column)
+    {
+        if (!column.IsSystemColumn)
+        {
+            Columns.Remove(column);
+        }
+    }
+
+    private void AddCustomColumn()
+    {
+        if (string.IsNullOrWhiteSpace(newPropertyKey) || string.IsNullOrWhiteSpace(newDisplayName))
+            return;
+
+        var newColumn = new ColumnDefinition
+        {
+            Id = $"Custom_{newPropertyKey}",
+            DisplayName = newDisplayName.Trim(),
+            IsVisible = true,
+            Type = ColumnType.CustomProperty,
+            PropertyKey = newPropertyKey.Trim(),
+            Order = Columns.Any() ? Columns.Max(c => c.Order) + 1 : 0,
+            IsSystemColumn = false
+        };
+
+        // Check if column with same property key already exists
+        if (!Columns.Any(c => c.PropertyKey == newColumn.PropertyKey))
+        {
+            Columns.Add(newColumn);
+            newPropertyKey = string.Empty;
+            newDisplayName = string.Empty;
+        }
+    }
+
+    private async Task ResetToDefault()
+    {
+        var defaultColumns = ColumnConfigService.GetDefaultColumns();
+        Columns.Clear();
+        Columns.AddRange(defaultColumns);
+    }
+
+    private async Task Save()
+    {
+        // Save to the service
+        var config = new ColumnConfiguration { Columns = Columns };
+        await ColumnConfigService.SaveConfigurationAsync(config);
+        
+        await OnSave.InvokeAsync(Columns);
+        MudDialog?.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}
