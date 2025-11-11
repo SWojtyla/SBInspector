@@ -71,6 +71,19 @@ public class LocalStorageService : IStorageService
         }
     }
 
+    public async Task RenameConnectionAsync(string oldName, string newName)
+    {
+        var connections = await GetSavedConnectionsAsync();
+        var connection = connections.FirstOrDefault(c => c.Name.Equals(oldName, StringComparison.OrdinalIgnoreCase));
+        
+        if (connection != null)
+        {
+            connection.Name = newName;
+            var json = JsonSerializer.Serialize(connections);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", ConnectionsKey, json);
+        }
+    }
+
     // Template management
     public async Task<List<MessageTemplate>> GetMessageTemplatesAsync()
     {

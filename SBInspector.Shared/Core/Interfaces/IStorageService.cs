@@ -9,6 +9,7 @@ public interface IStorageService
     Task SaveConnectionAsync(SavedConnection connection);
     Task DeleteConnectionAsync(string name);
     Task UpdateLastUsedAsync(string name);
+    Task RenameConnectionAsync(string oldName, string newName);
 
     // Template management
     Task<List<MessageTemplate>> GetMessageTemplatesAsync();
