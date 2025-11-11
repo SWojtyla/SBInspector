@@ -29,8 +29,28 @@
                     }
                 </MudSelect>
                 <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Download" FullWidth="true">Load Template</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedTemplate" Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Delete" FullWidth="true">Delete</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSelectedTemplate" Disabled="@(string.IsNullOrEmpty(selectedTemplateId) || isLoadingTemplate)" StartIcon="@Icons.Material.Filled.Download" FullWidth="true">
+                        @if (isLoadingTemplate)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                            <span>Loading...</span>
+                        }
+                        else
+                        {
+                            <span>Load Template</span>
+                        }
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedTemplate" Disabled="@(string.IsNullOrEmpty(selectedTemplateId) || isDeletingTemplate)" StartIcon="@Icons.Material.Filled.Delete" FullWidth="true">
+                        @if (isDeletingTemplate)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                            <span>Deleting...</span>
+                        }
+                        else
+                        {
+                            <span>Delete</span>
+                        }
+                    </MudButton>
                 </MudStack>
             </MudStack>
         </MudPaper>
@@ -131,6 +151,8 @@
     private bool shouldSaveTemplate = false;
     private string templateName = string.Empty;
     private string successMessage = string.Empty;
+    private bool isLoadingTemplate = false;
+    private bool isDeletingTemplate = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,34 +189,64 @@
 
     private async Task LoadSelectedTemplate()
     {
-        var template = messageTemplates.FirstOrDefault(t => t.Id == selectedTemplateId);
-        if (template != null)
+        isLoadingTemplate = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        
+        try
         {
-            messageBody = template.MessageBody;
-            subject = template.Subject ?? string.Empty;
-            contentType = template.ContentType ?? "text/plain";
-            
-            if (template.Properties?.Any() == true)
+            var template = messageTemplates.FirstOrDefault(t => t.Id == selectedTemplateId);
+            if (template != null)
             {
-                propertiesText = string.Join("\n", 
-                    template.Properties.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-            }
+                messageBody = template.MessageBody;
+                subject = template.Subject ?? string.Empty;
+                contentType = template.ContentType ?? "text/plain";
+                
+                if (template.Properties?.Any() == true)
+                {
+                    propertiesText = string.Join("\n", 
+                        template.Properties.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+                }
 
-            templateName = template.Name;
-            await StorageService.UpdateTemplateLastUsedAsync(template.Id);
-            await LoadMessageTemplatesAsync();
-            successMessage = $"Loaded template '{template.Name}'";
+                templateName = template.Name;
+                await StorageService.UpdateTemplateLastUsedAsync(template.Id);
+                await LoadMessageTemplatesAsync();
+                successMessage = $"Loaded template '{template.Name}'";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading template: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingTemplate = false;
         }
     }
 
     private async Task DeleteSelectedTemplate()
     {
-        if (!string.IsNullOrEmpty(selectedTemplateId))
+        isDeletingTemplate = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        
+        try
         {
-            await StorageService.DeleteMessageTemplateAsync(selectedTemplateId);
-            await LoadMessageTemplatesAsync();
-            selectedTemplateId = string.Empty;
-            successMessage = "Template deleted successfully";
+            if (!string.IsNullOrEmpty(selectedTemplateId))
+            {
+                await StorageService.DeleteMessageTemplateAsync(selectedTemplateId);
+                await LoadMessageTemplatesAsync();
+                selectedTemplateId = string.Empty;
+                successMessage = "Template deleted successfully";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting template: {ex.Message}";
+        }
+        finally
+        {
+            isDeletingTemplate = false;
         }
     }
 
