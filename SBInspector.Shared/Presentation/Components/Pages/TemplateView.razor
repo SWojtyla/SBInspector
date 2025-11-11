@@ -56,13 +56,7 @@
                 <MudDivider />
 
                 <div>
-                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
-                        <strong>Message Body</strong>
-                    </MudText>
-                    <MudPaper Class="pa-2" Elevation="1" Style="max-height:400px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
-                        <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@template.MessageBody</pre>
-                    </MudPaper>
+                    <MessageBodyDisplay MessageBody="@template.MessageBody" Title="Message Body" />
                 </div>
 
                 <MudDivider />
