@@ -24,15 +24,15 @@
             {
                 <MudListItem Class="@((IsConnected(connection) ? "mud-selected" : ""))" Style="padding:4px 8px;">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.SpaceBetween">
-                        <div style="cursor:pointer;flex-grow:1;display:flex;align-items:center;gap:4px;" @onclick="() => HandleConnectionClick(connection)" @onclick:stopPropagation="false" title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="cursor:pointer;flex-grow:1;" @onclick="() => HandleConnectionClick(connection)" Title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
                             <MudIcon Icon="@(IsConnected(connection) ? Icons.Material.Filled.ElectricalServices : Icons.Material.Outlined.ElectricalServices)" Color="@(IsConnected(connection) ? Color.Success : Color.Default)" Size="Size.Small" />
                             <MudText Typo="Typo.body2">@connection.Name</MudText>
                             @if (IsConnected(connection))
                             {
                                 <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Connected</MudChip>
                             }
-                        </div>
-                        <MudStack Row="true" Spacing="0" @onclick:stopPropagation="true">
+                        </MudStack>
+                        <MudStack Row="true" Spacing="0">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default" OnClick="@(() => ShowRenameDialog(connection))" Title="Rename connection" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => ShowDeleteConfirmation(connection))" Title="Delete connection" />
                         </MudStack>
