@@ -74,6 +74,7 @@
     private void ToggleColumnVisibility(ColumnDefinition column, bool isVisible)
     {
         column.IsVisible = isVisible;
+        StateHasChanged();
     }
 
     private void RemoveCustomColumn(ColumnDefinition column)
@@ -81,6 +82,7 @@
         if (!column.IsSystemColumn)
         {
             Columns.Remove(column);
+            StateHasChanged();
         }
     }
 
@@ -106,6 +108,7 @@
             Columns.Add(newColumn);
             newPropertyKey = string.Empty;
             newDisplayName = string.Empty;
+            StateHasChanged();
         }
     }
 
@@ -114,6 +117,7 @@
         var defaultColumns = ColumnConfigService.GetDefaultColumns();
         Columns.Clear();
         Columns.AddRange(defaultColumns);
+        StateHasChanged();
     }
 
     private async Task Save()
