@@ -1,0 +1,79 @@
+@using MudBlazor
+
+<MudStack Direction="Row" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3">
+    <MudText Typo="Typo.subtitle2"><MudIcon Icon="@Icons.Material.Filled.Description" /> @Title</MudText>
+    @if (IsJsonContent)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ToggleJsonFormatting" StartIcon="@(isJsonFormatted ? Icons.Material.Filled.Code : Icons.Material.Filled.DataObject)">@(isJsonFormatted ? "Raw" : "Format JSON")</MudButton>
+    }
+</MudStack>
+<MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
+    <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@DisplayedMessageBody</pre>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public string? MessageBody { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Message Body";
+
+    private bool isJsonFormatted = false;
+
+    private bool IsJsonContent
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(MessageBody))
+                return false;
+
+            var trimmedBody = MessageBody.Trim();
+            return (trimmedBody.StartsWith("{") && trimmedBody.EndsWith("}")) ||
+                   (trimmedBody.StartsWith("[") && trimmedBody.EndsWith("]"));
+        }
+    }
+
+    private string DisplayedMessageBody
+    {
+        get
+        {
+            if (MessageBody == null)
+                return string.Empty;
+
+            if (!isJsonFormatted || !IsJsonContent)
+                return MessageBody;
+
+            try
+            {
+                string jsonBody = MessageBody;
+                if (jsonBody.StartsWith("\uFEFF"))
+                {
+                    jsonBody = jsonBody.Substring(1);
+                }
+                using var doc = System.Text.Json.JsonDocument.Parse(jsonBody);
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options);
+
+            }
+            catch
+            {
+                // If parsing fails, return the original body
+                return MessageBody;
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Reset formatting state when message body changes
+        isJsonFormatted = false;
+    }
+
+    private void ToggleJsonFormatting()
+    {
+        isJsonFormatted = !isJsonFormatted;
+    }
+}

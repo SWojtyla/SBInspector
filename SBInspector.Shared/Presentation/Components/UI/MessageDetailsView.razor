@@ -84,16 +84,7 @@
                     </MudExpansionPanel>
                 </MudExpansionPanels>
             }
-            <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Class="mt-3">
-                <MudText Typo="Typo.subtitle2"><MudIcon Icon="@Icons.Material.Filled.Description" /> Message Body</MudText>
-                @if (IsJsonContent)
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ToggleJsonFormatting" StartIcon="@(isJsonFormatted? Icons.Material.Filled.Code : Icons.Material.Filled.DataObject)">@(isJsonFormatted ? "Raw" : "Format JSON")</MudButton>
-                }
-            </MudStack>
-            <MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
-    <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@DisplayedMessageBody</pre>
-            </MudPaper>
+            <MessageBodyDisplay MessageBody="@Message.Body" Title="Message Body" />
             @if (showSaveTemplateForm)
             {
                 <MudCard Class="mt-3">
@@ -140,53 +131,6 @@
     private string templateName = string.Empty;
     private string saveMessage = string.Empty;
     private string saveError = string.Empty;
-    private bool isJsonFormatted = false;
-
-    private bool IsJsonContent
-    {
-        get
-        {
-            if (Message == null || string.IsNullOrWhiteSpace(Message.Body))
-                return false;
-
-            var trimmedBody = Message.Body.Trim();
-            return (trimmedBody.StartsWith("{") && trimmedBody.EndsWith("}")) ||
-                   (trimmedBody.StartsWith("[") && trimmedBody.EndsWith("]"));
-        }
-    }
-
-    private string DisplayedMessageBody
-    {
-        get
-        {
-            if (Message == null)
-                return string.Empty;
-
-            if (!isJsonFormatted || !IsJsonContent)
-                return Message.Body;
-
-            try
-            {
-                string jsonBody = Message.Body;
-                if (jsonBody.StartsWith("\uFEFF"))
-                {
-                    jsonBody = jsonBody.Substring(1);
-                }
-                using var doc = System.Text.Json.JsonDocument.Parse(jsonBody);
-                var options = new System.Text.Json.JsonSerializerOptions
-                {
-                    WriteIndented = true
-                };
-                return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options);
-
-            }
-            catch
-            {
-                // If parsing fails, return the original body
-                return Message.Body;
-            }
-        }
-    }
 
     protected override void OnParametersSet()
     {
@@ -195,12 +139,6 @@
         templateName = string.Empty;
         saveMessage = string.Empty;
         saveError = string.Empty;
-        isJsonFormatted = false;
-    }
-
-    private void ToggleJsonFormatting()
-    {
-        isJsonFormatted = !isJsonFormatted;
     }
 
     private async Task SaveAsTemplate()
