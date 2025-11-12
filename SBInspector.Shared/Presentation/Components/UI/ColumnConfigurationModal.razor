@@ -14,7 +14,7 @@
                 {
                     <MudListItem T="string">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudCheckBox T="bool" @bind-Checked="@column.IsVisible" Color="Color.Primary" />
+                            <MudCheckBox T="bool" @bind-Value="@column.IsVisible" Color="Color.Primary" />
                             <MudText>@column.DisplayName</MudText>
                         </MudStack>
                     </MudListItem>
@@ -30,7 +30,7 @@
                     {
                         <MudListItem T="string">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.NoWrap">
-                                <MudCheckBox T="bool" @bind-Checked="@column.IsVisible" Color="Color.Primary" />
+                                <MudCheckBox T="bool" @bind-Value="@column.IsVisible" Color="Color.Primary" />
                                 <MudText Style="flex-grow:1;">@column.DisplayName</MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveCustomColumn(column))" Title="Remove" />
                             </MudStack>
