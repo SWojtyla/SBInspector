@@ -14,7 +14,7 @@
                 {
                     <MudListItem T="string">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudCheckBox T="bool" Checked="@column.IsVisible" CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))" Color="Color.Primary" />
+                            <MudCheckBox T="bool" @bind-Value="@column.IsVisible" Color="Color.Primary" />
                             <MudText>@column.DisplayName</MudText>
                         </MudStack>
                     </MudListItem>
@@ -30,7 +30,7 @@
                     {
                         <MudListItem T="string">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.NoWrap">
-                                <MudCheckBox T="bool" Checked="@column.IsVisible" CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))" Color="Color.Primary" />
+                                <MudCheckBox T="bool" @bind-Value="@column.IsVisible" Color="Color.Primary" />
                                 <MudText Style="flex-grow:1;">@column.DisplayName</MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveCustomColumn(column))" Title="Remove" />
                             </MudStack>
@@ -71,9 +71,15 @@
     private string newPropertyKey = string.Empty;
     private string newDisplayName = string.Empty;
 
-    private void ToggleColumnVisibility(ColumnDefinition column, bool isVisible)
+    protected override void OnParametersSet()
     {
-        column.IsVisible = isVisible;
+        base.OnParametersSet();
+        // Ensure we have columns - if not provided, load from service
+        if (Columns == null || !Columns.Any())
+        {
+            var config = ColumnConfigService.GetConfiguration();
+            Columns = config.Columns.ToList();
+        }
     }
 
     private void RemoveCustomColumn(ColumnDefinition column)
@@ -81,6 +87,7 @@
         if (!column.IsSystemColumn)
         {
             Columns.Remove(column);
+            StateHasChanged();
         }
     }
 
@@ -106,6 +113,7 @@
             Columns.Add(newColumn);
             newPropertyKey = string.Empty;
             newDisplayName = string.Empty;
+            StateHasChanged();
         }
     }
 
@@ -114,6 +122,7 @@
         var defaultColumns = ColumnConfigService.GetDefaultColumns();
         Columns.Clear();
         Columns.AddRange(defaultColumns);
+        StateHasChanged();
     }
 
     private async Task Save()
