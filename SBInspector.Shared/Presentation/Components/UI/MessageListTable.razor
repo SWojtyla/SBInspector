@@ -1,20 +1,33 @@
 @using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Application.Services
 @using MudBlazor
+@inject ColumnConfigurationService ColumnConfigService
+@inject IDialogService DialogService
 
 <MudPaper Class="pa-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary" OnClick="OpenColumnSettings" Title="Configure Columns" />
+    </MudStack>
     <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<MessageInfo>>(this, HandleRowClick))">
         <HeaderContent>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.MessageId)))">Message ID @GetSortIcon(nameof(MessageInfo.MessageId))</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn("OriginatingEndpoint"))">Originating Endpoint @GetSortIcon("OriginatingEndpoint")</MudButton></MudTh>
-            <MudTh><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.EnqueuedTime)))">Enqueued Time @GetSortIcon(nameof(MessageInfo.EnqueuedTime))</MudButton></MudTh>
-            <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(nameof(MessageInfo.DeliveryCount)))">Delivery @GetSortIcon(nameof(MessageInfo.DeliveryCount))</MudButton></MudTh>
+            @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
+            {
+                <MudTh Align="@GetColumnAlignment(column)">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(GetColumnSortKey(column)))">
+                        @column.DisplayName @GetSortIcon(GetColumnSortKey(column))
+                    </MudButton>
+                </MudTh>
+            }
             <MudTh Align="Center">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Message ID"><MudTooltip Text="@context.MessageId"><code style="max-width:200px;overflow-x:auto;display:inline-block;">@context.MessageId</code></MudTooltip></MudTd>
-            <MudTd DataLabel="Originating Endpoint"><MudTooltip Text="@GetOriginatingEndpoint(context)"><span style="max-width:300px;overflow-x:auto;display:inline-block;">@GetOriginatingEndpoint(context)</span></MudTooltip></MudTd>
-            <MudTd DataLabel="Enqueued Time"><span>@context.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</span></MudTd>
-            <MudTd DataLabel="Delivery" Align="Center"><MudChip T="int" Color="@(context.DeliveryCount >0 ? Color.Warning : Color.Secondary)" Size="Size.Small">@context.DeliveryCount</MudChip></MudTd>
+            @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
+            {
+                <MudTd DataLabel="@column.DisplayName" Align="@GetColumnAlignment(column)">
+                    @RenderColumnValue(context, column)
+                </MudTd>
+            }
             <MudTd DataLabel="Actions" Align="Center">
                 <div style="white-space:nowrap;" @onclick:stopPropagation="true">
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context))" Title="View Details" />
@@ -77,6 +90,20 @@
     public EventCallback<MessageInfo> OnReschedule { get; set; }
 
     private const string NotSetText = "(not set)";
+    private List<ColumnDefinition> _columns = new();
+
+    private IEnumerable<ColumnDefinition> VisibleColumns => _columns.Where(c => c.IsVisible);
+
+    protected override void OnInitialized()
+    {
+        LoadColumnConfiguration();
+    }
+
+    private void LoadColumnConfiguration()
+    {
+        var config = ColumnConfigService.GetConfiguration();
+        _columns = config.Columns.ToList();
+    }
 
     private IEnumerable<MessageInfo> SortedMessages
     {
@@ -96,6 +123,15 @@
                 nameof(MessageInfo.DeliveryCount) => SortAscending 
                     ? Messages.OrderBy(m => m.DeliveryCount) 
                     : Messages.OrderByDescending(m => m.DeliveryCount),
+                nameof(MessageInfo.Subject) => SortAscending 
+                    ? Messages.OrderBy(m => m.Subject) 
+                    : Messages.OrderByDescending(m => m.Subject),
+                nameof(MessageInfo.ContentType) => SortAscending 
+                    ? Messages.OrderBy(m => m.ContentType) 
+                    : Messages.OrderByDescending(m => m.ContentType),
+                nameof(MessageInfo.SequenceNumber) => SortAscending 
+                    ? Messages.OrderBy(m => m.SequenceNumber) 
+                    : Messages.OrderByDescending(m => m.SequenceNumber),
                 _ => Messages
             };
             
@@ -112,6 +148,15 @@
         return NotSetText;
     }
 
+    private string GetPropertyValue(MessageInfo message, string propertyKey)
+    {
+        if (message.Properties.TryGetValue(propertyKey, out var value))
+        {
+            return value?.ToString() ?? NotSetText;
+        }
+        return NotSetText;
+    }
+
     private string GetSortIcon(string columnName)
     {
         if (SortColumn != columnName)
@@ -120,6 +165,113 @@
         }
         
         return SortAscending ? "▲" : "▼";
+    }
+
+    private string GetColumnSortKey(ColumnDefinition column)
+    {
+        return column.Type switch
+        {
+            ColumnType.MessageId => nameof(MessageInfo.MessageId),
+            ColumnType.Subject => nameof(MessageInfo.Subject),
+            ColumnType.ContentType => nameof(MessageInfo.ContentType),
+            ColumnType.EnqueuedTime => nameof(MessageInfo.EnqueuedTime),
+            ColumnType.ScheduledEnqueueTime => nameof(MessageInfo.ScheduledEnqueueTime),
+            ColumnType.SequenceNumber => nameof(MessageInfo.SequenceNumber),
+            ColumnType.DeliveryCount => nameof(MessageInfo.DeliveryCount),
+            ColumnType.OriginatingEndpoint => "OriginatingEndpoint",
+            _ => column.Id
+        };
+    }
+
+    private Align GetColumnAlignment(ColumnDefinition column)
+    {
+        return column.Type == ColumnType.DeliveryCount ? Align.Center : Align.Left;
+    }
+
+    private RenderFragment RenderColumnValue(MessageInfo message, ColumnDefinition column)
+    {
+        return column.Type switch
+        {
+            ColumnType.MessageId => builder =>
+            {
+                builder.OpenComponent<MudTooltip>(0);
+                builder.AddAttribute(1, "Text", message.MessageId);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.OpenElement(0, "code");
+                    b.AddAttribute(1, "style", "max-width:200px;overflow-x:auto;display:inline-block;");
+                    b.AddContent(2, message.MessageId);
+                    b.CloseElement();
+                }));
+                builder.CloseComponent();
+            },
+            ColumnType.Subject => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddContent(1, string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject);
+                builder.CloseElement();
+            },
+            ColumnType.ContentType => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddContent(1, string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType);
+                builder.CloseElement();
+            },
+            ColumnType.EnqueuedTime => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddContent(1, message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                builder.CloseElement();
+            },
+            ColumnType.ScheduledEnqueueTime => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddContent(1, message.ScheduledEnqueueTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? NotSetText);
+                builder.CloseElement();
+            },
+            ColumnType.SequenceNumber => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddContent(1, message.SequenceNumber.ToString());
+                builder.CloseElement();
+            },
+            ColumnType.DeliveryCount => builder =>
+            {
+                builder.OpenComponent<MudChip<int>>(0);
+                builder.AddAttribute(1, "Color", message.DeliveryCount > 0 ? Color.Warning : Color.Secondary);
+                builder.AddAttribute(2, "Size", Size.Small);
+                builder.AddAttribute(3, "ChildContent", (RenderFragment)(b => b.AddContent(0, message.DeliveryCount)));
+                builder.CloseComponent();
+            },
+            ColumnType.OriginatingEndpoint => builder =>
+            {
+                var endpoint = GetOriginatingEndpoint(message);
+                builder.OpenComponent<MudTooltip>(0);
+                builder.AddAttribute(1, "Text", endpoint);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.OpenElement(0, "span");
+                    b.AddAttribute(1, "style", "max-width:300px;overflow-x:auto;display:inline-block;");
+                    b.AddContent(2, endpoint);
+                    b.CloseElement();
+                }));
+                builder.CloseComponent();
+            },
+            ColumnType.CustomProperty => builder =>
+            {
+                var value = GetPropertyValue(message, column.PropertyKey ?? string.Empty);
+                builder.OpenElement(0, "span");
+                builder.AddAttribute(1, "style", "max-width:200px;overflow-x:auto;display:inline-block;");
+                builder.AddContent(2, value);
+                builder.CloseElement();
+            },
+            _ => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddContent(1, NotSetText);
+                builder.CloseElement();
+            }
+        };
     }
 
     private async Task HandleSortColumn(string columnName)
@@ -139,5 +291,40 @@
     private Task HandleRowClick(TableRowClickEventArgs<MessageInfo> args)
     {
         return OnViewDetails.InvokeAsync(args.Item);
+    }
+
+    private async Task OpenColumnSettings()
+    {
+        var parameters = new DialogParameters
+        {
+            { "Columns", _columns.Select(c => new ColumnDefinition
+                {
+                    Id = c.Id,
+                    DisplayName = c.DisplayName,
+                    IsVisible = c.IsVisible,
+                    Type = c.Type,
+                    PropertyKey = c.PropertyKey,
+                    Order = c.Order,
+                    IsSystemColumn = c.IsSystemColumn
+                }).ToList() }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ColumnConfigurationModal>("Configure Columns", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is bool)
+        {
+            LoadColumnConfiguration();
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleColumnsSaved(List<ColumnDefinition> columns)
+    {
+        var config = new ColumnConfiguration { Columns = columns };
+        await ColumnConfigService.SaveConfigurationAsync(config);
+        LoadColumnConfiguration();
+        StateHasChanged();
     }
 }

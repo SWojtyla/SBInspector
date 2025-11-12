@@ -44,6 +44,7 @@ namespace SEBInspector.Maui
             builder.Services.AddSingleton<ConnectionStateService>();
             builder.Services.AddSingleton<ConnectionStringEncryptionService>();
             builder.Services.AddSingleton<ThemeService>();
+            builder.Services.AddSingleton<ColumnConfigurationService>();
 
             // Register storage configuration service with FileSystem as default for MAUI
             builder.Services.AddSingleton<StorageConfigurationService>(sp => 
