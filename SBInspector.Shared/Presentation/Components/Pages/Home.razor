@@ -1029,6 +1029,10 @@
             operationErrorMessage = string.Empty;
             successMessage = string.Empty;
 
+            isOperationInProgress = true;
+            operationLoadingTitle = "Sending Message";
+            operationLoadingMessage = "Please wait while the message is being sent...";
+
             try
             {
                 bool success;
@@ -1095,6 +1099,10 @@
                 operationErrorMessage = $"Error: {ex.Message}";
                 await Task.Delay(5000);
                 operationErrorMessage = string.Empty;
+            }
+            finally
+            {
+                isOperationInProgress = false;
             }
         }
     }
@@ -1402,6 +1410,10 @@
 
     private async Task HandleExportFilteredMessages()
     {
+        isOperationInProgress = true;
+        operationLoadingTitle = "Exporting Messages";
+        operationLoadingMessage = "Please wait while messages are being exported...";
+
         try
         {
             // Apply filters to get the messages to export
@@ -1454,10 +1466,18 @@
             operationErrorMessage = string.Empty;
             StateHasChanged();
         }
+        finally
+        {
+            isOperationInProgress = false;
+        }
     }
 
     private async Task HandleExportSingleMessage(MessageInfo message)
     {
+        isOperationInProgress = true;
+        operationLoadingTitle = "Exporting Message";
+        operationLoadingMessage = "Please wait while the message is being exported...";
+
         try
         {
             // Convert to JSON
@@ -1499,6 +1519,10 @@
             await Task.Delay(5000);
             operationErrorMessage = string.Empty;
             StateHasChanged();
+        }
+        finally
+        {
+            isOperationInProgress = false;
         }
     }
 
