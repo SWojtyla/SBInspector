@@ -79,7 +79,7 @@ public class ConnectionFormTests : TestContext
     public void ConnectionForm_RendersInitially()
     {
         // Act
-        var cut = RenderComponent<ConnectionForm>();
+        var cut = Render<ConnectionForm>();
 
         // Assert
         Assert.Contains("Connect to Service Bus", cut.Markup);
@@ -94,7 +94,7 @@ public class ConnectionFormTests : TestContext
     public void ConnectionForm_EmptyConnectionString_ShowsPlaceholder()
     {
         // Act
-        var cut = RenderComponent<ConnectionForm>();
+        var cut = Render<ConnectionForm>();
 
         // Assert
         var input = cut.Find("input[type='password']");
@@ -108,7 +108,7 @@ public class ConnectionFormTests : TestContext
         const string errorMessage = "Connection failed";
 
         // Act
-        var cut = RenderComponent<ConnectionForm>(parameters => parameters
+        var cut = Render<ConnectionForm>(parameters => parameters
             .Add(p => p.ErrorMessage, errorMessage));
 
         // Assert
@@ -126,7 +126,7 @@ public class ConnectionFormTests : TestContext
         A.CallTo(() => _mockServiceBusService.ConnectAsync(A<string>._))
             .Returns(Task.FromResult(true));
 
-        var cut = RenderComponent<ConnectionForm>(parameters => parameters
+        var cut = Render<ConnectionForm>(parameters => parameters
             .Add(p => p.ConnectionString, connectionString)
             .Add(p => p.OnConnected, () => { onConnectedCalled = true; }));
 
@@ -150,7 +150,7 @@ public class ConnectionFormTests : TestContext
         A.CallTo(() => _mockServiceBusService.ConnectAsync(A<string>._))
             .Returns(Task.FromResult(false));
 
-        var cut = RenderComponent<ConnectionForm>(parameters => parameters
+        var cut = Render<ConnectionForm>(parameters => parameters
             .Add(p => p.ConnectionString, connectionString)
             .Add(p => p.ErrorMessageChanged, (string msg) => { capturedErrorMessage = msg; }));
 
@@ -167,7 +167,7 @@ public class ConnectionFormTests : TestContext
     public void ConnectionForm_SaveConnectionCheckbox_ShowsNameInput()
     {
         // Act
-        var cut = RenderComponent<ConnectionForm>();
+        var cut = Render<ConnectionForm>();
 
         // Act
         var checkbox = cut.Find("input[type='checkbox']#saveConnection");
@@ -191,7 +191,7 @@ public class ConnectionFormTests : TestContext
         A.CallTo(() => _mockServiceBusService.ConnectAsync(A<string>._))
             .Returns(Task.FromResult(true));
 
-        var cut = RenderComponent<ConnectionForm>(parameters => parameters
+        var cut = Render<ConnectionForm>(parameters => parameters
             .Add(p => p.ConnectionString, connectionString));
 
         // Enable save connection checkbox
@@ -221,7 +221,7 @@ public class ConnectionFormTests : TestContext
     public void ConnectionForm_ConnectButton_DisabledWhileConnecting()
     {
         // Act
-        var cut = RenderComponent<ConnectionForm>(parameters => parameters
+        var cut = Render<ConnectionForm>(parameters => parameters
             .Add(p => p.IsConnecting, true));
 
         // Assert

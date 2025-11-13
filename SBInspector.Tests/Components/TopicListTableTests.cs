@@ -10,7 +10,7 @@ public class TopicListTableTests : TestContext
     public void TopicListTable_WithNoTopics_ShowsWarningMessage()
     {
         // Arrange & Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, new List<EntityInfo>()));
 
         // Assert
@@ -29,7 +29,7 @@ public class TopicListTableTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Assert
@@ -48,7 +48,7 @@ public class TopicListTableTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Assert
@@ -66,7 +66,7 @@ public class TopicListTableTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Assert
@@ -84,7 +84,7 @@ public class TopicListTableTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Assert
@@ -102,7 +102,7 @@ public class TopicListTableTests : TestContext
             new EntityInfo { Name = "test-topic", Status = "Active" }
         };
 
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics)
             .Add(p => p.OnToggleStatus, (string name) => { capturedTopicName = name; }));
 
@@ -124,7 +124,7 @@ public class TopicListTableTests : TestContext
             new EntityInfo { Name = "test-topic", Status = "Active" }
         };
 
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics)
             .Add(p => p.OnViewSubscriptions, (string name) => { capturedTopicName = name; }));
 
@@ -147,7 +147,7 @@ public class TopicListTableTests : TestContext
             new EntityInfo { Name = "test-topic", Status = "Active" }
         };
 
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Act
@@ -170,7 +170,7 @@ public class TopicListTableTests : TestContext
             new EntityInfo { Name = "test-topic", Status = "Active" }
         };
 
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Act
@@ -193,7 +193,7 @@ public class TopicListTableTests : TestContext
             new EntityInfo { Name = "c-topic", Status = "Active" }
         };
 
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Initially should show ascending order (▲)
@@ -218,7 +218,7 @@ public class TopicListTableTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Assert
@@ -236,7 +236,7 @@ public class TopicListTableTests : TestContext
         };
 
         // Act
-        var cut = RenderComponent<TopicListTable>(parameters => parameters
+        var cut = Render<TopicListTable>(parameters => parameters
             .Add(p => p.Topics, topics));
 
         // Assert

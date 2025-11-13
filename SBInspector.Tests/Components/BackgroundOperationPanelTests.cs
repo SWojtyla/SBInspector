@@ -9,7 +9,7 @@ public class BackgroundOperationPanelTests : TestContext
     public void BackgroundOperationPanel_WhenNotVisible_DoesNotRenderPanel()
     {
         // Arrange & Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, false));
 
         // Assert - The panel div should not be rendered (CSS is always rendered)
@@ -21,7 +21,7 @@ public class BackgroundOperationPanelTests : TestContext
     public void BackgroundOperationPanel_WhenVisible_RendersWithDefaultTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true));
 
         // Assert
@@ -36,7 +36,7 @@ public class BackgroundOperationPanelTests : TestContext
         const string customTitle = "Purging Messages";
 
         // Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Title, customTitle));
 
@@ -51,7 +51,7 @@ public class BackgroundOperationPanelTests : TestContext
         const string message = "Deleting messages from queue...";
 
         // Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Message, message));
 
@@ -63,7 +63,7 @@ public class BackgroundOperationPanelTests : TestContext
     public void BackgroundOperationPanel_WithEmptyMessage_DoesNotRenderMessageParagraph()
     {
         // Arrange & Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Message, string.Empty));
 
@@ -79,7 +79,7 @@ public class BackgroundOperationPanelTests : TestContext
         const int progress = 42;
 
         // Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Progress, progress));
 
@@ -92,7 +92,7 @@ public class BackgroundOperationPanelTests : TestContext
     public void BackgroundOperationPanel_WithZeroProgress_DoesNotRenderProgressBar()
     {
         // Arrange & Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Progress, 0));
 
@@ -106,7 +106,7 @@ public class BackgroundOperationPanelTests : TestContext
     {
         // Arrange
         var cancelCalled = false;
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.OnCancel, () => { cancelCalled = true; }));
 
@@ -122,7 +122,7 @@ public class BackgroundOperationPanelTests : TestContext
     public void BackgroundOperationPanel_WhenVisible_HasCorrectCssClasses()
     {
         // Arrange & Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true));
 
         // Assert
@@ -134,7 +134,7 @@ public class BackgroundOperationPanelTests : TestContext
     public void BackgroundOperationPanel_HasCancelButton_WithCorrectAttributes()
     {
         // Arrange & Act
-        var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
+        var cut = Render<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, true));
 
         // Assert

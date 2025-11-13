@@ -9,7 +9,7 @@ public class OperationLoadingOverlayTests : TestContext
     public void OperationLoadingOverlay_WhenNotVisible_DoesNotRender()
     {
         // Arrange & Act
-        var cut = RenderComponent<OperationLoadingOverlay>(parameters => parameters
+        var cut = Render<OperationLoadingOverlay>(parameters => parameters
             .Add(p => p.IsVisible, false));
 
         // Assert
@@ -20,7 +20,7 @@ public class OperationLoadingOverlayTests : TestContext
     public void OperationLoadingOverlay_WhenVisible_RendersWithDefaultTitle()
     {
         // Arrange & Act
-        var cut = RenderComponent<OperationLoadingOverlay>(parameters => parameters
+        var cut = Render<OperationLoadingOverlay>(parameters => parameters
             .Add(p => p.IsVisible, true));
 
         // Assert
@@ -35,7 +35,7 @@ public class OperationLoadingOverlayTests : TestContext
         const string customTitle = "Deleting Messages";
 
         // Act
-        var cut = RenderComponent<OperationLoadingOverlay>(parameters => parameters
+        var cut = Render<OperationLoadingOverlay>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Title, customTitle));
 
@@ -50,7 +50,7 @@ public class OperationLoadingOverlayTests : TestContext
         const string message = "Please wait while we process your request...";
 
         // Act
-        var cut = RenderComponent<OperationLoadingOverlay>(parameters => parameters
+        var cut = Render<OperationLoadingOverlay>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Message, message));
 
@@ -62,7 +62,7 @@ public class OperationLoadingOverlayTests : TestContext
     public void OperationLoadingOverlay_WithEmptyMessage_DoesNotRenderMessageParagraph()
     {
         // Arrange & Act
-        var cut = RenderComponent<OperationLoadingOverlay>(parameters => parameters
+        var cut = Render<OperationLoadingOverlay>(parameters => parameters
             .Add(p => p.IsVisible, true)
             .Add(p => p.Message, string.Empty));
 
@@ -75,7 +75,7 @@ public class OperationLoadingOverlayTests : TestContext
     public void OperationLoadingOverlay_WhenVisible_HasCorrectCssClass()
     {
         // Arrange & Act
-        var cut = RenderComponent<OperationLoadingOverlay>(parameters => parameters
+        var cut = Render<OperationLoadingOverlay>(parameters => parameters
             .Add(p => p.IsVisible, true));
 
         // Assert
