@@ -11,31 +11,31 @@
                 <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> Drag and drop columns to reorder them
             </MudText>
             
-            <MudText Typo="Typo.subtitle2" Class="mb-2">Default Columns</MudText>
-            <MudDropContainer T="ColumnDefinition" Items="@Columns" ItemsSelector="@((item, dropzone) => item.IsSystemColumn && dropzone == SystemDropZone)" ItemDropped="@OnSystemColumnDropped" Class="d-flex flex-column">
+            <MudDropContainer T="ColumnDefinition" Items="@Columns" ItemsSelector="@((item, dropzone) => GetDropZoneForColumn(item) == dropzone)" ItemDropped="@OnColumnDropped" Class="d-flex flex-column">
                 <ChildContent>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Default Columns</MudText>
                     <MudDropZone T="ColumnDefinition" Identifier="@SystemDropZone" Class="mud-height-full" />
+
+                    @if (Columns.Any(c => !c.IsSystemColumn))
+                    {
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Custom Columns</MudText>
+                        <MudDropZone T="ColumnDefinition" Identifier="@CustomDropZone" Class="mud-height-full" />
+                    }
                 </ChildContent>
                 <ItemRenderer>
-                    <MudListItem T="string" Dense="true" Style="cursor: move; user-select: none;">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Color="Color.Default" />
-                            <MudCheckBox T="bool" @bind-Value="@context.IsVisible" Color="Color.Primary" />
-                            <MudText>@context.DisplayName</MudText>
-                        </MudStack>
-                    </MudListItem>
-                </ItemRenderer>
-            </MudDropContainer>
-
-            @if (Columns.Any(c => !c.IsSystemColumn))
-            {
-                <MudDivider Class="my-3" />
-                <MudText Typo="Typo.subtitle2" Class="mb-2">Custom Columns</MudText>
-                <MudDropContainer T="ColumnDefinition" Items="@Columns" ItemsSelector="@((item, dropzone) => !item.IsSystemColumn && dropzone == CustomDropZone)" ItemDropped="@OnCustomColumnDropped" Class="d-flex flex-column">
-                    <ChildContent>
-                        <MudDropZone T="ColumnDefinition" Identifier="@CustomDropZone" Class="mud-height-full" />
-                    </ChildContent>
-                    <ItemRenderer>
+                    @if (context.IsSystemColumn)
+                    {
+                        <MudListItem T="string" Dense="true" Style="cursor: move; user-select: none;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Color="Color.Default" />
+                                <MudCheckBox T="bool" @bind-Value="@context.IsVisible" Color="Color.Primary" />
+                                <MudText>@context.DisplayName</MudText>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                    else
+                    {
                         <MudListItem T="string" Dense="true" Style="cursor: move; user-select: none;">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.NoWrap">
                                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Color="Color.Default" />
@@ -44,9 +44,9 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveCustomColumn(context))" Title="Remove" />
                             </MudStack>
                         </MudListItem>
-                    </ItemRenderer>
-                </MudDropContainer>
-            }
+                    }
+                </ItemRenderer>
+            </MudDropContainer>
 
             <MudDivider Class="my-3" />
             <MudText Typo="Typo.subtitle2" Class="mb-2">Add Custom Column</MudText>
@@ -83,6 +83,11 @@
     private const string SystemDropZone = "SystemColumns";
     private const string CustomDropZone = "CustomColumns";
 
+    private string GetDropZoneForColumn(ColumnDefinition column)
+    {
+        return column.IsSystemColumn ? SystemDropZone : CustomDropZone;
+    }
+
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
@@ -94,52 +99,42 @@
         }
     }
 
-    private void OnSystemColumnDropped(MudItemDropInfo<ColumnDefinition> dropItem)
+    private void OnColumnDropped(MudItemDropInfo<ColumnDefinition> dropItem)
     {
         if (dropItem.Item == null) return;
 
-        var systemColumns = Columns.Where(c => c.IsSystemColumn).OrderBy(c => c.Order).ToList();
-        var oldIndex = systemColumns.IndexOf(dropItem.Item);
-        var newIndex = dropItem.IndexInZone;
-
-        if (oldIndex == newIndex || oldIndex < 0) return;
-
-        // Remove from old position
-        systemColumns.RemoveAt(oldIndex);
-        // Insert at new position
-        systemColumns.Insert(newIndex, dropItem.Item);
-
-        // Update Order property for all system columns
-        for (int i = 0; i < systemColumns.Count; i++)
-        {
-            systemColumns[i].Order = i;
-        }
-
-        StateHasChanged();
-    }
-
-    private void OnCustomColumnDropped(MudItemDropInfo<ColumnDefinition> dropItem)
-    {
-        if (dropItem.Item == null) return;
-
-        var customColumns = Columns.Where(c => !c.IsSystemColumn).OrderBy(c => c.Order).ToList();
-        var oldIndex = customColumns.IndexOf(dropItem.Item);
-        var newIndex = dropItem.IndexInZone;
-
-        if (oldIndex == newIndex || oldIndex < 0) return;
-
-        // Remove from old position
-        customColumns.RemoveAt(oldIndex);
-        // Insert at new position
-        customColumns.Insert(newIndex, dropItem.Item);
-
-        // Calculate the starting Order for custom columns (after system columns)
-        var systemColumnsCount = Columns.Count(c => c.IsSystemColumn);
+        // Determine which zone we're working with
+        bool isSystemZone = dropItem.DropzoneIdentifier == SystemDropZone;
         
-        // Update Order property for all custom columns
-        for (int i = 0; i < customColumns.Count; i++)
+        // Get the list of columns in the target zone
+        var zoneColumns = Columns.Where(c => c.IsSystemColumn == isSystemZone).OrderBy(c => c.Order).ToList();
+        var oldIndex = zoneColumns.IndexOf(dropItem.Item);
+        var newIndex = dropItem.IndexInZone;
+
+        if (oldIndex == newIndex || oldIndex < 0) return;
+
+        // Remove from old position
+        zoneColumns.RemoveAt(oldIndex);
+        // Insert at new position
+        zoneColumns.Insert(newIndex, dropItem.Item);
+
+        // Update Order property for all columns in this zone
+        if (isSystemZone)
         {
-            customColumns[i].Order = systemColumnsCount + i;
+            // System columns start at 0
+            for (int i = 0; i < zoneColumns.Count; i++)
+            {
+                zoneColumns[i].Order = i;
+            }
+        }
+        else
+        {
+            // Custom columns start after system columns
+            var systemColumnsCount = Columns.Count(c => c.IsSystemColumn);
+            for (int i = 0; i < zoneColumns.Count; i++)
+            {
+                zoneColumns[i].Order = systemColumnsCount + i;
+            }
         }
 
         StateHasChanged();
