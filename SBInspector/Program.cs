@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using MudBlazor.Services;
 using SBInspector.Components;
+using SBInspector.Services;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
 using SBInspector.Shared.Core.Interfaces;
@@ -49,6 +50,13 @@ builder.Services.AddScoped<IFileExportService>(sp =>
 {
     var jsRuntime = sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
     return new WebFileExportService(jsRuntime);
+});
+
+// Register folder picker service for web
+builder.Services.AddScoped<IFolderPickerService>(sp =>
+{
+    var jsRuntime = sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
+    return new BlazorFolderPickerService(jsRuntime);
 });
 
 var app = builder.Build();
