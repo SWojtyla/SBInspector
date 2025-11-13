@@ -16,8 +16,7 @@ public class MauiFolderPickerService : IFolderPickerService
             var folderPicker = new Windows.Storage.Pickers.FolderPicker();
             
             // Get the window handle for the current window
-            var window = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.Window;
-            if (window is null && Application.Current?.Windows.Count > 0)
+            if (Application.Current?.Windows.Count > 0)
             {
                 var mauiWindow = Application.Current.Windows[0];
                 var handler = mauiWindow.Handler as Microsoft.Maui.Handlers.WindowHandler;
