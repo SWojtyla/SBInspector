@@ -1,6 +1,8 @@
 @using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Application.Services
+@inject ThemeService ThemeService
 
-<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark" style="@GetTopRowStyle()">
     <div class="container-fluid">
         <a class="navbar-brand" href="">SEBInspector</a>
     </div>
@@ -8,7 +10,7 @@
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()" style="@GetNavScrollableStyle()">
     @* Connection Tree View *@
     @if (ShowConnectionTree)
     {
@@ -66,6 +68,60 @@
         {
             await connectionTreeViewRef.RefreshConnectionsAsync();
         }
+    }
+
+    private string GetTopRowStyle()
+    {
+        var theme = ThemeService.GetCurrentTheme();
+        var isDark = ThemeService.IsDarkMode();
+        
+        string backgroundColor;
+        string textColor;
+        
+        if (isDark && theme.PaletteDark != null)
+        {
+            backgroundColor = theme.PaletteDark.DrawerBackground?.ToString() ?? "#252526";
+            textColor = theme.PaletteDark.DrawerText?.ToString() ?? "#ffffff";
+        }
+        else if (theme.PaletteLight != null)
+        {
+            backgroundColor = theme.PaletteLight.DrawerBackground?.ToString() ?? "#f8f9fa";
+            textColor = theme.PaletteLight.DrawerText?.ToString() ?? "#212529";
+        }
+        else
+        {
+            backgroundColor = "#252526";
+            textColor = "#ffffff";
+        }
+        
+        return $"background-color: {backgroundColor}; color: {textColor};";
+    }
+
+    private string GetNavScrollableStyle()
+    {
+        var theme = ThemeService.GetCurrentTheme();
+        var isDark = ThemeService.IsDarkMode();
+        
+        string backgroundColor;
+        string textColor;
+        
+        if (isDark && theme.PaletteDark != null)
+        {
+            backgroundColor = theme.PaletteDark.DrawerBackground?.ToString() ?? "#252526";
+            textColor = theme.PaletteDark.DrawerText?.ToString() ?? "#ffffff";
+        }
+        else if (theme.PaletteLight != null)
+        {
+            backgroundColor = theme.PaletteLight.DrawerBackground?.ToString() ?? "#f8f9fa";
+            textColor = theme.PaletteLight.DrawerText?.ToString() ?? "#212529";
+        }
+        else
+        {
+            backgroundColor = "#252526";
+            textColor = "#ffffff";
+        }
+        
+        return $"background-color: {backgroundColor}; color: {textColor};";
     }
 }
 

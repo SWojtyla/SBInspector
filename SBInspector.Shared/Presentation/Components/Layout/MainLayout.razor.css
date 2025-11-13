@@ -9,7 +9,7 @@ main {
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, #00836b 0%, #005a4a 70%);
+    /* Remove fixed background color - will use theme DrawerBackground */
 }
 
 .top-row {

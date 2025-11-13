@@ -90,12 +90,12 @@ public class ThemeService
             {
                 Primary = Colors.Blue.Default,
                 Secondary = Colors.Gray.Default,
-                Background = Colors.Gray.Lighten5,
-                Surface = Colors.Shades.White,
+                Background = "#f5f5f5",  // Softer gray instead of very light gray
+                Surface = "#fafafa",      // Slightly darker white for less eye strain
                 AppbarBackground = Colors.Blue.Default,
                 AppbarText = Colors.Shades.White,
-                DrawerBackground = Colors.Gray.Lighten4,
-                DrawerText = Colors.Shades.Black,
+                DrawerBackground = "#e8e8e8",  // Softer gray for drawer
+                DrawerText = "#212121",        // Darker text for better contrast
             },
             LayoutProperties = new LayoutProperties()
             {

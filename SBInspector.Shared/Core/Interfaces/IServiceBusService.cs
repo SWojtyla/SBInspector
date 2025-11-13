@@ -5,6 +5,7 @@ namespace SBInspector.Shared.Core.Interfaces;
 public interface IServiceBusService
 {
     bool IsConnected { get; }
+    string? GetNamespace();
     Task<bool> ConnectAsync(string connectionString);
     void Disconnect();
     Task DisconnectAsync();
