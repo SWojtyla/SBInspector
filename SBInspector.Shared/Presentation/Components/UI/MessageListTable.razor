@@ -13,10 +13,19 @@
         <HeaderContent>
             @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
             {
-                <MudTh Align="@GetColumnAlignment(column)">
-                    <MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(GetColumnSortKey(column)))">
-                        @column.DisplayName @GetSortIcon(GetColumnSortKey(column))
-                    </MudButton>
+                <MudTh Align="@GetColumnAlignment(column)" 
+                       draggable="true"
+                       @ondragstart="@(() => HandleDragStart(column))"
+                       @ondragover:preventDefault
+                       @ondragenter="@(() => HandleDragEnter(column))"
+                       @ondrop="@(() => HandleDrop(column))"
+                       Style="@GetColumnHeaderStyle(column)">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Style="cursor: move;" />
+                        <MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(GetColumnSortKey(column)))" Style="flex-grow: 1;">
+                            @column.DisplayName @GetSortIcon(GetColumnSortKey(column))
+                        </MudButton>
+                    </MudStack>
                 </MudTh>
             }
             <MudTh Align="Center">Actions</MudTh>
@@ -91,6 +100,8 @@
 
     private const string NotSetText = "(not set)";
     private List<ColumnDefinition> _columns = new();
+    private ColumnDefinition? _draggedColumn = null;
+    private ColumnDefinition? _dragOverColumn = null;
 
     private IEnumerable<ColumnDefinition> VisibleColumns => _columns.Where(c => c.IsVisible);
 
@@ -291,6 +302,77 @@
     private Task HandleRowClick(TableRowClickEventArgs<MessageInfo> args)
     {
         return OnViewDetails.InvokeAsync(args.Item);
+    }
+
+    private void HandleDragStart(ColumnDefinition column)
+    {
+        _draggedColumn = column;
+    }
+
+    private void HandleDragEnter(ColumnDefinition column)
+    {
+        _dragOverColumn = column;
+    }
+
+    private async Task HandleDrop(ColumnDefinition targetColumn)
+    {
+        if (_draggedColumn == null || _draggedColumn == targetColumn)
+        {
+            _draggedColumn = null;
+            _dragOverColumn = null;
+            return;
+        }
+
+        var visibleColumns = _columns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+        var draggedIndex = visibleColumns.IndexOf(_draggedColumn);
+        var targetIndex = visibleColumns.IndexOf(targetColumn);
+
+        if (draggedIndex < 0 || targetIndex < 0)
+        {
+            _draggedColumn = null;
+            _dragOverColumn = null;
+            return;
+        }
+
+        // Remove from old position
+        visibleColumns.RemoveAt(draggedIndex);
+        // Insert at new position
+        visibleColumns.Insert(targetIndex, _draggedColumn);
+
+        // Update Order property for all visible columns
+        for (int i = 0; i < visibleColumns.Count; i++)
+        {
+            visibleColumns[i].Order = i;
+        }
+
+        // Also update Order for hidden columns to maintain consistency
+        var hiddenColumns = _columns.Where(c => !c.IsVisible).ToList();
+        int nextOrder = visibleColumns.Count;
+        foreach (var col in hiddenColumns)
+        {
+            col.Order = nextOrder++;
+        }
+
+        // Save the new configuration
+        var config = new ColumnConfiguration { Columns = _columns };
+        await ColumnConfigService.SaveConfigurationAsync(config);
+
+        _draggedColumn = null;
+        _dragOverColumn = null;
+        StateHasChanged();
+    }
+
+    private string GetColumnHeaderStyle(ColumnDefinition column)
+    {
+        if (_dragOverColumn == column && _draggedColumn != column)
+        {
+            return "background-color: rgba(33, 150, 243, 0.1); border-left: 3px solid #2196F3; cursor: move;";
+        }
+        if (_draggedColumn == column)
+        {
+            return "opacity: 0.5; cursor: move;";
+        }
+        return "cursor: move;";
     }
 
     private async Task OpenColumnSettings()
