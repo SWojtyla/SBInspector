@@ -36,7 +36,7 @@ public class ServiceBusService : IServiceBusService
         try
         {
             // Extract namespace from FullyQualifiedNamespace property
-            return _client.FullyQualifiedNamespace;
+            return _client.FullyQualifiedNamespace.Replace(".servicebus.windows.net", "");
         }
         catch
         {
