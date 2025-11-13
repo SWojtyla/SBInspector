@@ -35,7 +35,7 @@
         </MudStack>
 
         <MudGrid>
-            <MudItem xs="12" md="3">
+            <MudItem xs="12" md="@(isEntityTreeCollapsed ? 1 : 3)">
                 <EntityTreeView 
                     Queues="@queues"
                     Topics="@topics"
@@ -48,9 +48,10 @@
                     OnTopicSelected="@HandleTopicSelected"
                     OnSubscriptionSelected="@HandleSubscriptionSelected"
                     OnLoadSubscriptions="@LoadSubscriptionsForTopic"
-                    OnRefresh="@HandleRefreshEntities" />
+                    OnRefresh="@HandleRefreshEntities"
+                    OnCollapsedChanged="@HandleEntityTreeCollapsedChanged" />
             </MudItem>
-            <MudItem xs="12" md="9">
+            <MudItem xs="12" md="@(isEntityTreeCollapsed ? 11 : 9)">
                 @if (!string.IsNullOrEmpty(selectedEntity))
                 {
                     <MessagesPanel 
@@ -165,6 +166,15 @@
     // Sorting state for messages
     private string messageSortColumn = nameof(MessageInfo.EnqueuedTime);
     private bool messageSortAscending = false;
+
+    // Entity tree collapse state
+    private bool isEntityTreeCollapsed = false;
+
+    private void HandleEntityTreeCollapsedChanged(bool isCollapsed)
+    {
+        isEntityTreeCollapsed = isCollapsed;
+        StateHasChanged();
+    }
 
     private async Task HandleConnected()
     {

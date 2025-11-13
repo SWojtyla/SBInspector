@@ -145,14 +145,16 @@
     [Parameter] public EventCallback<(string TopicName, string SubscriptionName)> OnSubscriptionSelected { get; set; }
     [Parameter] public EventCallback<string> OnLoadSubscriptions { get; set; }
     [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
 
     private HashSet<string> expandedTopics = new();
     private string searchTerm = string.Empty;
     private bool isCollapsed = false;
 
-    private void ToggleCollapse()
+    private async Task ToggleCollapse()
     {
         isCollapsed = !isCollapsed;
+        await OnCollapsedChanged.InvokeAsync(isCollapsed);
     }
 
     private string GetPaperClass()

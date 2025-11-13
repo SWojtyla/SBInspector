@@ -136,6 +136,7 @@
 
 .nav-scrollable.collapsed {
     width: 60px;
+    overflow: hidden;
 }
 
 .nav-scrollable.collapsed .nav-item {
@@ -146,6 +147,8 @@
 .nav-scrollable.collapsed .nav-link {
     justify-content: center;
     padding: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .navbar-toggler:checked ~ .nav-scrollable {
