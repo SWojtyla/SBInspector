@@ -29,6 +29,21 @@ public class ServiceBusService : IServiceBusService
 
     public bool IsConnected => _adminClient != null && _client != null;
 
+    public string? GetNamespace()
+    {
+        if (_client == null) return null;
+        
+        try
+        {
+            // Extract namespace from FullyQualifiedNamespace property
+            return _client.FullyQualifiedNamespace;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<bool> ConnectAsync(string connectionString)
     {
         try

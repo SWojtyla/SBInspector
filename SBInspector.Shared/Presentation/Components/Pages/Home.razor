@@ -17,7 +17,7 @@
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Filled.ElectricalServices" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">Azure Service Bus Inspector</MudText>
+        <MudText Typo="Typo.h4">@GetPageTitle()</MudText>
     </MudStack>
 
     @if (!ServiceBusService.IsConnected)
@@ -1704,5 +1704,15 @@
                 }
             }
         }
+    }
+
+    private string GetPageTitle()
+    {
+        if (ServiceBusService.IsConnected)
+        {
+            var namespaceName = ServiceBusService.GetNamespace();
+            return !string.IsNullOrEmpty(namespaceName) ? namespaceName : "Azure Service Bus Inspector";
+        }
+        return "Azure Service Bus Inspector";
     }
 }

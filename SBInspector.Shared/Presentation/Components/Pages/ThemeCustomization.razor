@@ -147,7 +147,8 @@
                             <i class="bi bi-stars"></i> Quick Presets
                         </h5>
                         <p class="text-muted small">Load a pre-configured color scheme to customize further</p>
-                        <div class="btn-group" role="group">
+                        <h6 class="mb-2">Light Themes</h6>
+                        <div class="btn-group mb-3" role="group">
                             <button type="button" class="btn btn-outline-primary" @onclick="@(() => LoadQuickPreset("Ocean"))">
                                 Ocean Blue
                             </button>
@@ -159,6 +160,21 @@
                             </button>
                             <button type="button" class="btn btn-outline-secondary" @onclick="@(() => LoadQuickPreset("Monochrome"))">
                                 Monochrome
+                            </button>
+                        </div>
+                        <h6 class="mb-2">Dark Themes</h6>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" @onclick="@(() => LoadQuickPreset("OceanDark"))">
+                                Ocean Dark
+                            </button>
+                            <button type="button" class="btn btn-outline-success" @onclick="@(() => LoadQuickPreset("ForestDark"))">
+                                Forest Dark
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" @onclick="@(() => LoadQuickPreset("SunsetDark"))">
+                                Sunset Dark
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => LoadQuickPreset("MonochromeDark"))">
+                                Monochrome Dark
                             </button>
                         </div>
                     </div>
@@ -326,26 +342,90 @@
             case "Ocean":
                 customTheme.Primary = "#0077be";
                 customTheme.Secondary = "#00a8cc";
+                customTheme.Background = "#e6f3f9";
+                customTheme.Surface = "#ffffff";
                 customTheme.AppbarBackground = "#005f99";
-                customTheme.DrawerBackground = "#e6f3f9";
+                customTheme.AppbarText = "#ffffff";
+                customTheme.DrawerBackground = "#b3ddf2";
+                customTheme.DrawerText = "#003d66";
+                customTheme.IsDarkMode = false;
                 break;
             case "Forest":
                 customTheme.Primary = "#2d5016";
                 customTheme.Secondary = "#6b8e23";
+                customTheme.Background = "#f0f4e8";
+                customTheme.Surface = "#ffffff";
                 customTheme.AppbarBackground = "#2d5016";
-                customTheme.DrawerBackground = "#f0f4e8";
+                customTheme.AppbarText = "#ffffff";
+                customTheme.DrawerBackground = "#d4e4c0";
+                customTheme.DrawerText = "#1a2e0d";
+                customTheme.IsDarkMode = false;
                 break;
             case "Sunset":
                 customTheme.Primary = "#ff6b35";
                 customTheme.Secondary = "#f7931e";
+                customTheme.Background = "#fff3e0";
+                customTheme.Surface = "#ffffff";
                 customTheme.AppbarBackground = "#d84315";
-                customTheme.DrawerBackground = "#fff3e0";
+                customTheme.AppbarText = "#ffffff";
+                customTheme.DrawerBackground = "#ffe0b2";
+                customTheme.DrawerText = "#8b2e0b";
+                customTheme.IsDarkMode = false;
                 break;
             case "Monochrome":
                 customTheme.Primary = "#424242";
                 customTheme.Secondary = "#757575";
+                customTheme.Background = "#fafafa";
+                customTheme.Surface = "#ffffff";
                 customTheme.AppbarBackground = "#212121";
-                customTheme.DrawerBackground = "#fafafa";
+                customTheme.AppbarText = "#ffffff";
+                customTheme.DrawerBackground = "#e0e0e0";
+                customTheme.DrawerText = "#212121";
+                customTheme.IsDarkMode = false;
+                break;
+            case "OceanDark":
+                customTheme.Primary = "#4fc3f7";
+                customTheme.Secondary = "#29b6f6";
+                customTheme.Background = "#0d1117";
+                customTheme.Surface = "#1e2530";
+                customTheme.AppbarBackground = "#0a4d6e";
+                customTheme.AppbarText = "#e0f7ff";
+                customTheme.DrawerBackground = "#1a2332";
+                customTheme.DrawerText = "#b3e5fc";
+                customTheme.IsDarkMode = true;
+                break;
+            case "ForestDark":
+                customTheme.Primary = "#81c784";
+                customTheme.Secondary = "#aed581";
+                customTheme.Background = "#1a1a1a";
+                customTheme.Surface = "#2d2d2d";
+                customTheme.AppbarBackground = "#1b3a0f";
+                customTheme.AppbarText = "#c8e6c9";
+                customTheme.DrawerBackground = "#212121";
+                customTheme.DrawerText = "#c8e6c9";
+                customTheme.IsDarkMode = true;
+                break;
+            case "SunsetDark":
+                customTheme.Primary = "#ff8a65";
+                customTheme.Secondary = "#ffab91";
+                customTheme.Background = "#1a1a1a";
+                customTheme.Surface = "#2d2d2d";
+                customTheme.AppbarBackground = "#8b2e0b";
+                customTheme.AppbarText = "#ffe0b2";
+                customTheme.DrawerBackground = "#212121";
+                customTheme.DrawerText = "#ffccbc";
+                customTheme.IsDarkMode = true;
+                break;
+            case "MonochromeDark":
+                customTheme.Primary = "#9e9e9e";
+                customTheme.Secondary = "#bdbdbd";
+                customTheme.Background = "#121212";
+                customTheme.Surface = "#1e1e1e";
+                customTheme.AppbarBackground = "#0d0d0d";
+                customTheme.AppbarText = "#e0e0e0";
+                customTheme.DrawerBackground = "#1a1a1a";
+                customTheme.DrawerText = "#e0e0e0";
+                customTheme.IsDarkMode = true;
                 break;
         }
         StateHasChanged();

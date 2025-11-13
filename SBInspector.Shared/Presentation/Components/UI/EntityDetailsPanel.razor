@@ -27,10 +27,6 @@
                             <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Primary" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Active Messages</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Primary">@QueueInfo.ActiveMessageCount</MudText>
-                            @if (QueueInfo.ActiveMessageCount > 0)
-                            {
-                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility">View</MudButton>
-                            }
                         </MudStack>
                     </MudPaper>
                 </MudItem>
@@ -41,10 +37,6 @@
                             <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Scheduled Messages</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Warning">@QueueInfo.ScheduledMessageCount</MudText>
-                            @if (QueueInfo.ScheduledMessageCount > 0)
-                            {
-                                <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility">View</MudButton>
-                            }
                         </MudStack>
                     </MudPaper>
                 </MudItem>
@@ -55,10 +47,6 @@
                             <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Error" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Dead Letter Messages</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Error">@QueueInfo.DeadLetterMessageCount</MudText>
-                            @if (QueueInfo.DeadLetterMessageCount > 0)
-                            {
-                                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility">View</MudButton>
-                            }
                         </MudStack>
                     </MudPaper>
                 </MudItem>
@@ -112,10 +100,6 @@
                             <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Primary" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Active Messages</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Primary">@SubscriptionInfo.ActiveMessageCount</MudText>
-                            @if (SubscriptionInfo.ActiveMessageCount > 0)
-                            {
-                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility">View</MudButton>
-                            }
                         </MudStack>
                     </MudPaper>
                 </MudItem>
@@ -126,10 +110,6 @@
                             <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Error" Size="Size.Large" />
                             <MudText Typo="Typo.body2" Align="Align.Center">Dead Letter Messages</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Error">@SubscriptionInfo.DeadLetterMessageCount</MudText>
-                            @if (SubscriptionInfo.DeadLetterMessageCount > 0)
-                            {
-                                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility">View</MudButton>
-                            }
                         </MudStack>
                     </MudPaper>
                 </MudItem>
