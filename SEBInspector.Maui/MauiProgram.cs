@@ -63,6 +63,9 @@ namespace SEBInspector.Maui
             // Register file export service for MAUI
             builder.Services.AddSingleton<IFileExportService, MauiFileExportService>();
 
+            // Register folder picker service for MAUI
+            builder.Services.AddSingleton<IFolderPickerService, MauiFolderPickerService>();
+
             return builder.Build();
         }
     }

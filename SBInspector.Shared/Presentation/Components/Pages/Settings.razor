@@ -4,6 +4,7 @@
 @inject StorageConfigurationService ConfigService
 @inject IStorageService StorageService
 @inject ConnectionStringEncryptionService EncryptionService
+@inject IFolderPickerService FolderPickerService
 
 <PageTitle>Settings - Service Bus Inspector</PageTitle>
 
@@ -25,6 +26,9 @@
                         <label class="form-label">Exported Messages Location</label>
                         <div class="input-group">
                             <input type="text" class="form-control" @bind="exportPath" placeholder="@defaultExportPath" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="BrowseExportPath">
+                                <i class="bi bi-folder2-open"></i> Browse
+                            </button>
                             <button class="btn btn-outline-secondary" type="button" @onclick="ResetExportPath">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset
                             </button>
@@ -63,6 +67,9 @@
                         <label class="form-label">Message Templates Location</label>
                         <div class="input-group">
                             <input type="text" class="form-control" @bind="templatePath" placeholder="@defaultTemplatePath" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="BrowseTemplatePath">
+                                <i class="bi bi-folder2-open"></i> Browse
+                            </button>
                             <button class="btn btn-outline-secondary" type="button" @onclick="ResetTemplatePath">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset
                             </button>
@@ -101,6 +108,9 @@
                         <label class="form-label">Saved Connection Strings Location</label>
                         <div class="input-group">
                             <input type="text" class="form-control" @bind="connectionsPath" placeholder="@defaultConnectionsPath" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="BrowseConnectionsPath">
+                                <i class="bi bi-folder2-open"></i> Browse
+                            </button>
                             <button class="btn btn-outline-secondary" type="button" @onclick="ResetConnectionsPath">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset
                             </button>
@@ -269,14 +279,41 @@
         exportPath = string.Empty;
     }
 
+    private async Task BrowseExportPath()
+    {
+        var selectedPath = await FolderPickerService.PickFolderAsync();
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            exportPath = selectedPath;
+        }
+    }
+
     private void ResetTemplatePath()
     {
         templatePath = string.Empty;
     }
 
+    private async Task BrowseTemplatePath()
+    {
+        var selectedPath = await FolderPickerService.PickFolderAsync();
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            templatePath = selectedPath;
+        }
+    }
+
     private void ResetConnectionsPath()
     {
         connectionsPath = string.Empty;
+    }
+
+    private async Task BrowseConnectionsPath()
+    {
+        var selectedPath = await FolderPickerService.PickFolderAsync();
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            connectionsPath = selectedPath;
+        }
     }
 
     private async Task SaveSettings()

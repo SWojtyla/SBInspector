@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SBInspector.Shared\SBInspector.Shared.csproj" />
+    <ProjectReference Include="..\SBInspector\SBInspector.csproj" />
   </ItemGroup>
 
 </Project>
