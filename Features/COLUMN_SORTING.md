@@ -2,99 +2,145 @@
 
 ## Feature Overview
 
-Users can now reorder columns in the messages overview by dragging and dropping them within the Column Configuration Modal. This feature allows for a more intuitive and visual way to customize the column order beyond just showing/hiding columns.
+Users can now reorder columns in the messages table by dragging and dropping column headers directly in the table view. This provides an intuitive and immediate way to customize the column order without needing to open a settings dialog.
 
 ## How to Use
 
-1. **Open the Column Configuration Modal**
+1. **View the Messages Table**
    - Navigate to a message list (Queue or Topic)
-   - Click the "Configure Columns" button (gear icon ⚙️)
+   - Look at the column headers in the table
 
-2. **Reorder Columns**
-   - You'll see a drag indicator icon (≡) next to each column
-   - Click and hold on any column item
+2. **Reorder Columns by Dragging Headers**
+   - Notice the drag indicator icon (≡) at the start of each column header
+   - Click and hold on any column header
    - Drag the column to your desired position
+   - You'll see visual feedback:
+     - The dragged column becomes semi-transparent
+     - The drop target column highlights with a blue border
    - Release to drop the column in its new position
-   - The order is updated automatically
+   - The order is updated and saved automatically
 
-3. **Column Groups**
-   - **Default Columns**: System-defined columns that can be reordered within their group
-   - **Custom Columns**: User-defined columns that can be reordered separately
-   - Columns can only be reordered within their own group (system vs custom)
-
-4. **Save Changes**
-   - Click the "Save" button to persist your column order
-   - The new order will be reflected in the messages table
-   - The order is saved to your local configuration
+3. **Additional Column Configuration**
+   - Click the settings icon (⚙️) above the table to open the Column Configuration Modal
+   - Use the modal to:
+     - Show/hide columns with checkboxes
+     - Add custom property columns
+     - Remove custom columns
+     - Reset to default configuration
 
 ## User Interface
 
-- Each column now displays a **drag indicator icon** (≡) on the left side
-- An info message at the top explains the drag-and-drop feature
-- The cursor changes to a "move" cursor when hovering over columns
-- Columns maintain their visibility checkbox and other controls while being draggable
+### Table Header Features
+- Each column header displays a **drag indicator icon** (≡) on the left side
+- Cursor changes to "move" when hovering over column headers
+- **During drag:**
+  - Dragged column appears semi-transparent (opacity: 0.5)
+  - Drop target highlights with blue border and light blue background
+  - Visual feedback makes it clear where the column will be dropped
+
+### Column Configuration Modal
+- Click the settings icon to access additional options
+- Show/hide columns with checkboxes
+- Add custom property columns from message metadata
+- Remove custom columns you no longer need
+- Reset to default column configuration
 
 ## Technical Implementation
 
-### Components Used
+### Drag-and-Drop in Table Headers
 
-- **MudBlazor MudDropContainer**: Container component that manages drag-and-drop state
-- **MudBlazor MudDropZone**: Drop zones for system and custom columns
-- **ItemRenderer**: Template for rendering individual draggable column items
+The primary reordering mechanism uses HTML5 drag-and-drop API directly on table column headers:
 
-### Drag-and-Drop Behavior
+**Components:**
+- **MessageListTable.razor** - Main table component with draggable headers
+- **MudTh elements** - Table header cells with `draggable="true"` attribute
+- **Event handlers:**
+  - `@ondragstart` - Captures which column is being dragged
+  - `@ondragenter` - Tracks which column the drag is over
+  - `@ondrop` - Handles the drop and reordering logic
+  - `@ondragover:preventDefault` - Allows dropping
 
-1. **Separate Drop Zones**: System and custom columns have separate drop zones to prevent mixing
-2. **Order Update**: When a column is dropped, the `Order` property is recalculated for all items in that group
-3. **Persistence**: The updated order is saved when the user clicks "Save"
+**Visual Feedback:**
+- `GetColumnHeaderStyle()` method provides dynamic styling:
+  - Dragged column: `opacity: 0.5`
+  - Drop target: Blue border and background highlight
+  - Default: `cursor: move` to indicate draggability
 
-### Code Changes
+**Algorithm:**
+1. User drags a column header
+2. `HandleDragStart` captures the dragged column reference
+3. `HandleDragEnter` tracks the current drop target
+4. `HandleDrop` executes when user releases:
+   - Gets list of visible columns ordered by Order property
+   - Finds old and new index positions
+   - Removes column from old position
+   - Inserts column at new position
+   - Recalculates Order property for all columns (0, 1, 2, ...)
+   - Saves configuration to ColumnConfigurationService
+   - Triggers UI refresh with StateHasChanged()
 
-**File Modified**: `SBInspector.Shared/Presentation/Components/UI/ColumnConfigurationModal.razor`
+### Column Configuration Modal
 
-**Key Changes**:
-- Added `MudDropContainer` and `MudDropZone` components
-- Implemented `OnSystemColumnDropped` and `OnCustomColumnDropped` event handlers
-- Added drag indicator icons to each column item
-- Added helper properties `SystemColumns` and `CustomColumns` for filtering
-- Maintained visual styling with `cursor: move` and `user-select: none`
+The modal dialog provides additional configuration options:
 
-### Algorithm
-
-The reordering algorithm:
-1. Get the current ordered list of columns in the drop zone
-2. Find the old index of the dragged item
-3. Remove the item from its old position
-4. Insert the item at the new position
-5. Recalculate the `Order` property for all items (0, 1, 2, ...)
-6. For custom columns, offset the order by the number of system columns
-7. Trigger a UI refresh with `StateHasChanged()`
+- **MudDropContainer** and **MudDropZone** - For drag-and-drop within modal (legacy feature)
+- **GetDropZoneForColumn()** - Determines zone based on IsSystemColumn
+- **OnColumnDropped** - Event handler for modal drag-and-drop
+- **Show/hide checkboxes** - Toggle column visibility
+- **Add/remove custom columns** - Manage custom property columns
 
 ## Example
 
-**Before** (initial order):
-- Message ID (Order: 0)
-- Originating Endpoint (Order: 1)
-- Enqueued Time (Order: 2)
-- Delivery Count (Order: 3)
+### Drag-and-Drop in Table Headers
 
-**After** (drag "Message ID" to position 2):
-- Originating Endpoint (Order: 0)
-- Enqueued Time (Order: 1)
-- Message ID (Order: 2)
-- Delivery Count (Order: 3)
+**Before** (initial column order):
+```
+| ≡ Message ID | ≡ Originating Endpoint | ≡ Enqueued Time | ≡ Delivery | Actions |
+```
+
+**Action**: User drags "Message ID" column header to the right, drops it between "Enqueued Time" and "Delivery"
+
+**During drag**:
+- "Message ID" column appears semi-transparent
+- Drop target position highlights with blue border
+
+**After** (new order):
+```
+| ≡ Originating Endpoint | ≡ Enqueued Time | ≡ Message ID | ≡ Delivery | Actions |
+```
+
+Order properties automatically updated:
+- Originating Endpoint: Order = 0
+- Enqueued Time: Order = 1
+- Message ID: Order = 2
+- Delivery: Order = 3
+
+Changes are saved immediately to local configuration.
+
+### Using the Configuration Modal
+
+You can still use the modal for additional options:
+1. Click the settings icon (⚙️)
+2. Check/uncheck columns to show/hide them
+3. Add custom property columns from message metadata
+4. Remove custom columns you no longer need
+5. Click "Save" to apply changes
 
 ## Benefits
 
-1. **More Intuitive**: Visual drag-and-drop is more intuitive than numeric order fields
-2. **Faster**: Users can quickly rearrange columns without typing
-3. **Visual Feedback**: Users see the reordering happen in real-time
-4. **Maintains Existing Features**: All existing features (show/hide, add/remove, reset) still work
+1. **Immediate Feedback**: Drag column headers directly in the table - no need to open a settings modal
+2. **Intuitive UX**: Natural interaction pattern familiar from file managers and other applications
+3. **Visual Guidance**: Clear drag indicator icons and visual feedback during drag operations
+4. **Auto-save**: Changes are saved automatically upon drop
+5. **Maintains Existing Features**: Column configuration modal still available for show/hide and custom columns
+6. **Flexible**: Reorder any visible column to any position
+7. **Persistent**: Column order is saved to local configuration and restored on next session
 
 ## Compatibility
 
 - Works in both **Blazor Server** and **.NET MAUI** applications
-- Requires MudBlazor 8.13.0 or higher
+- Uses standard HTML5 drag-and-drop API for maximum compatibility
+- Requires MudBlazor 8.13.0 or higher for table components
 - No breaking changes to existing functionality
 
 ## Testing
@@ -104,16 +150,19 @@ To test the drag-and-drop functionality:
 1. Build and run the application
 2. Connect to a Service Bus namespace
 3. Navigate to a queue or topic with messages
-4. Click the "Configure Columns" button
-5. Try dragging columns to different positions
-6. Verify the order updates correctly
-7. Click "Save" and check that the message table reflects the new order
-8. Reopen the modal and verify the order persists
+4. Look at the column headers - you should see drag indicators (≡)
+5. Try dragging a column header left or right
+6. Verify visual feedback (semi-transparent dragged column, blue highlight on drop target)
+7. Drop the column in a new position
+8. Verify the column order changes immediately
+9. Refresh the page and verify the order persists
+10. Try the settings icon to test show/hide functionality
 
 ## Future Enhancements
 
 Potential future improvements:
-- Allow dragging columns between system and custom groups
-- Add keyboard shortcuts for reordering (Alt+Up/Down)
-- Add visual highlighting during drag operations
-- Support touch gestures on mobile devices
+- Drag columns between visible and hidden states
+- Keyboard shortcuts for reordering (Alt+Left/Right Arrow)
+- Touch gesture support for mobile devices
+- Column width adjustment by dragging borders
+- Save multiple column layout presets
