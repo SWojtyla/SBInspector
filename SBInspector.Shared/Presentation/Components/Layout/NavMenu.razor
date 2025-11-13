@@ -2,15 +2,21 @@
 @using SBInspector.Shared.Application.Services
 @inject ThemeService ThemeService
 
-<div class="top-row ps-3 navbar navbar-dark" style="@GetTopRowStyle()">
+<div class="top-row ps-3 navbar navbar-dark @(isCollapsed ? "collapsed" : "")" style="@GetTopRowStyle()">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">SEBInspector</a>
+        @if (!isCollapsed)
+        {
+            <a class="navbar-brand" href="">SEBInspector</a>
+        }
+        <button class="btn-collapse" @onclick="ToggleCollapse" title="@(isCollapsed ? "Expand menu" : "Collapse menu")">
+            <span class="bi @(isCollapsed ? "bi-chevron-right" : "bi-chevron-left")"></span>
+        </button>
     </div>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()" style="@GetNavScrollableStyle()">
+<div class="nav-scrollable @(isCollapsed ? "collapsed" : "")" onclick="document.querySelector('.navbar-toggler').click()" style="@GetNavScrollableStyle()">
     @* Connection Tree View *@
     @if (ShowConnectionTree)
     {
@@ -24,28 +30,47 @@
     
     <nav class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Service Bus Inspector
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Service Bus Inspector">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> 
+                @if (!isCollapsed)
+                {
+                    <span>Service Bus Inspector</span>
+                }
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="templates">
-                <span class="bi bi-file-earmark-text-nav-menu" aria-hidden="true"></span> Message Templates
+            <NavLink class="nav-link" href="templates" title="Message Templates">
+                <span class="bi bi-file-earmark-text-nav-menu" aria-hidden="true"></span> 
+                @if (!isCollapsed)
+                {
+                    <span>Message Templates</span>
+                }
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="theme-customization">
-                <span class="bi bi-palette-nav-menu" aria-hidden="true"></span> Theme Customization
+            <NavLink class="nav-link" href="theme-customization" title="Theme Customization">
+                <span class="bi bi-palette-nav-menu" aria-hidden="true"></span> 
+                @if (!isCollapsed)
+                {
+                    <span>Theme Customization</span>
+                }
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings">
-                <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Settings
+            <NavLink class="nav-link" href="settings" title="Settings">
+                <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> 
+                @if (!isCollapsed)
+                {
+                    <span>Settings</span>
+                }
             </NavLink>
         </div>
-        <div class="mt-auto px-3 pb-3">            
-            <img src="images/appicon.svg" alt="SEBInspector Logo" class="nav-logo" />
-        </div>
+        @if (!isCollapsed)
+        {
+            <div class="mt-auto px-3 pb-3">            
+                <img src="images/appicon.svg" alt="SEBInspector Logo" class="nav-logo" />
+            </div>
+        }
     </nav>
 
 </div>
@@ -61,6 +86,12 @@
     public EventCallback OnDisconnectRequested { get; set; }
 
     private ConnectionTreeView? connectionTreeViewRef;
+    private bool isCollapsed = false;
+
+    private void ToggleCollapse()
+    {
+        isCollapsed = !isCollapsed;
+    }
 
     public async Task RefreshConnectionsAsync()
     {

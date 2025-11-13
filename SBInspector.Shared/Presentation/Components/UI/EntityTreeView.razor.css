@@ -1,0 +1,14 @@
+.entity-tree-view {
+    transition: all 0.3s ease;
+    min-width: 250px;
+}
+
+.entity-tree-view.collapsed {
+    min-width: 60px;
+    width: 60px;
+    max-width: 60px;
+}
+
+.entity-tree-view.collapsed .mud-stack {
+    align-items: center;
+}

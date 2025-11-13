@@ -1,12 +1,20 @@
 @using SBInspector.Shared.Core.Domain
 @using MudBlazor
 
-<MudPaper Class="pa-2 mud-elevation-1">
+<MudPaper Class="@GetPaperClass()">
     <MudStack Spacing="1">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
-            <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" /> Entities</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="HandleRefresh" Disabled="@IsLoading" Size="Size.Small" Title="Refresh" />
+            @if (!isCollapsed)
+            {
+                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" /> Entities</MudText>
+            }
+            <MudStack Row="true" Spacing="0">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="HandleRefresh" Disabled="@IsLoading" Size="Size.Small" Title="Refresh" />
+                <MudIconButton Icon="@(isCollapsed ? Icons.Material.Filled.ChevronRight : Icons.Material.Filled.ChevronLeft)" Color="Color.Default" OnClick="ToggleCollapse" Size="Size.Small" Title="@(isCollapsed ? "Expand" : "Collapse")" />
+            </MudStack>
         </MudStack>
+        @if (!isCollapsed)
+        {
         @if (IsLoading)
         {
             <MudStack AlignItems="AlignItems.Center" Class="py-1">
@@ -120,6 +128,7 @@
                 <MudAlert Severity="Severity.Info">No entities found</MudAlert>
             }
         </MudStack>
+        }
     </MudStack>
 </MudPaper>
 
@@ -139,6 +148,17 @@
 
     private HashSet<string> expandedTopics = new();
     private string searchTerm = string.Empty;
+    private bool isCollapsed = false;
+
+    private void ToggleCollapse()
+    {
+        isCollapsed = !isCollapsed;
+    }
+
+    private string GetPaperClass()
+    {
+        return $"pa-2 mud-elevation-1 entity-tree-view {(isCollapsed ? "collapsed" : "")}";
+    }
 
     private IEnumerable<EntityInfo> FilteredQueues => string.IsNullOrWhiteSpace(searchTerm)
     ? Queues
