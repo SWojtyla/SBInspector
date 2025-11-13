@@ -10,20 +10,6 @@ main {
 
 .sidebar {
     /* Remove fixed background color - will use theme DrawerBackground */
-    transition: margin-left 0.3s ease, width 0.3s ease;
-}
-
-.sidebar.collapsed {
-    margin-left: -250px;
-    width: 0;
-}
-
-.top-bar {
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
 }
 
 .top-row {

@@ -21,18 +21,15 @@
 <MudSnackbarProvider />
 
 <div class="page">
-    <div class="sidebar @(_sidebarCollapsed ? "collapsed" : "")">
+    <div class="sidebar">
         <NavMenu 
             OnConnectionSelected="@HandleConnectionSelected"
             OnDisconnectRequested="@HandleDisconnectRequested"
             @ref="navMenuRef" />
     </div>
 
-    <main>
-        <div class="top-bar">
-            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleSidebar" />
-        </div>
-        
+    <main>       
+
         <article class="content px-4">
             @Body
         </article>
@@ -49,18 +46,12 @@
     private NavMenu? navMenuRef;
     private MudTheme _currentTheme = new MudTheme();
     private bool _isDarkMode = false;
-    private bool _sidebarCollapsed = false;
 
     protected override void OnInitialized()
     {
         _currentTheme = ThemeService.GetCurrentTheme();
         _isDarkMode = ThemeService.IsDarkMode();
         ThemeService.ThemeChanged += OnThemeChanged;
-    }
-
-    private void ToggleSidebar()
-    {
-        _sidebarCollapsed = !_sidebarCollapsed;
     }
 
     private void OnThemeChanged(object? sender, EventArgs e)
