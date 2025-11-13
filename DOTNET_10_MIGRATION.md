@@ -30,7 +30,7 @@ All project files have been updated from `net9.0` to `net10.0`:
 
 #### SBInspector.Shared
 - `Microsoft.AspNetCore.Components.Web`: 9.0.9 → 10.0.0
-- `Microsoft.AspNetCore.DataProtection`: 9.0.10 → 10.0.0
+- `Microsoft.AspNetCore.DataProtection`: 9.0.10 → 9.0.11 ⚠️ **Kept at 9.x due to MAUI incompatibility**
 - `MudBlazor`: 8.13.0 → 8.14.0
 - `Azure.Messaging.ServiceBus`: 7.20.1 (no update available)
 
@@ -76,6 +76,14 @@ The upgrade from bunit 1.32.7 to 2.0.66 introduces breaking changes:
 - `RenderComponent<T>()` method is now obsolete
 - Migration guide: https://bunit.dev/docs/migrations
 - **Action Required**: Tests need to be updated to use the new `Render()` method
+
+### Microsoft.AspNetCore.DataProtection 10.0.0
+The DataProtection 10.0.0 package has a breaking change that causes `NotImplementedException` in MAUI applications when calling `PersistKeysToFileSystem()`. The error occurs because DataProtection 10.0 tries to access `ContentRootPath` which doesn't exist in MAUI context.
+
+- **Issue**: `The method or operation is not implemented` error at `Microsoft.Maui.Host…_ContentRootPath()`
+- **Solution**: Keep `Microsoft.AspNetCore.DataProtection` at version 9.0.11 (latest 9.x version)
+- **Impact**: MAUI application remains functional with persistent encryption keys
+- **Note**: This is a known compatibility issue between ASP.NET Core DataProtection 10.0 and .NET MAUI
 
 ## Recommendations
 
