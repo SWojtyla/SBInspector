@@ -42,8 +42,8 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>-->
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
-        <PackageCertificateThumbprint>73B356C098272A55EFC201CA125EEF235CBD4AE4</PackageCertificateThumbprint>
-        <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+        <!--<PackageCertificateThumbprint>73B356C098272A55EFC201CA125EEF235CBD4AE4</PackageCertificateThumbprint>-->
+        <!--<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>-->
         <!--<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>-->
     </PropertyGroup>
 
