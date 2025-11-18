@@ -123,7 +123,7 @@
             {
                 <MudAlert Severity="Severity.Info">No entities match your search criteria.</MudAlert>
             }
-            @if (!Queues.Any() && !Topics.Any())
+            @if (!IsLoading && !Queues.Any() && !Topics.Any())
             {
                 <MudAlert Severity="Severity.Info">No entities found</MudAlert>
             }
