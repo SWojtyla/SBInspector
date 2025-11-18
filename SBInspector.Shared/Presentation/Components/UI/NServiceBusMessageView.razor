@@ -68,78 +68,35 @@
                             </MudPaper>
                         </MudItem>
                     }
-                    
-                    @if (nsbProperties.ContainsKey("NServiceBus.MessageId"))
-                    {
-                        <MudItem xs="12">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>NServiceBus Message ID:</b></MudText>
-                                <MudText><code>@nsbProperties["NServiceBus.MessageId"]</code></MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
-                    
-                    @if (nsbProperties.ContainsKey("NServiceBus.TimeSent"))
-                    {
-                        <MudItem xs="6">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>Time Sent:</b></MudText>
-                                <MudText>@nsbProperties["NServiceBus.TimeSent"]</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
-                    
-                    @if (nsbProperties.ContainsKey("NServiceBus.OriginatingMachine"))
-                    {
-                        <MudItem xs="6">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>Originating Machine:</b></MudText>
-                                <MudText>@nsbProperties["NServiceBus.OriginatingMachine"]</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
-                    
-                    @if (nsbProperties.ContainsKey("NServiceBus.ReplyToAddress"))
-                    {
-                        <MudItem xs="12">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>Reply To Address:</b></MudText>
-                                <MudText><code>@nsbProperties["NServiceBus.ReplyToAddress"]</code></MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
-                    
-                    @if (nsbProperties.ContainsKey("NServiceBus.Version"))
-                    {
-                        <MudItem xs="6">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>NServiceBus Version:</b></MudText>
-                                <MudText>@nsbProperties["NServiceBus.Version"]</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
-                    
-                    @if (nsbProperties.ContainsKey("NServiceBus.ContentType"))
-                    {
-                        <MudItem xs="6">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>NServiceBus Content Type:</b></MudText>
-                                <MudText>@nsbProperties["NServiceBus.ContentType"]</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
-                    
-                    @* Show any remaining NServiceBus properties *@
-                    @foreach (var prop in nsbProperties.Where(p => !IsDisplayedProperty(p.Key)))
-                    {
-                        <MudItem xs="12">
-                            <MudPaper Class="pa-2">
-                                <MudText Typo="Typo.subtitle2"><b>@prop.Key:</b></MudText>
-                                <MudText>@prop.Value</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    }
                 </MudGrid>
+                
+                @* Additional properties in expansion panel *@
+                @if (GetAdditionalProperties(nsbProperties).Any())
+                {
+                    var additionalProps = GetAdditionalProperties(nsbProperties);
+                    <MudExpansionPanels Class="mt-3">
+                        <MudExpansionPanel Text="@($"Additional NServiceBus Properties ({additionalProps.Count})")" IsInitiallyExpanded="false">
+                            <TitleContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2">Additional Properties (@additionalProps.Count)</MudText>
+                                </MudStack>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudTable Items="@additionalProps" Dense="true">
+                                    <HeaderContent>
+                                        <MudTh>Key</MudTh>
+                                        <MudTh>Value</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd><code>@context.Key</code></MudTd>
+                                        <MudTd>@context.Value</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
             }
             else
             {
@@ -155,24 +112,24 @@
     [Parameter]
     public MessageInfo? Message { get; set; }
 
-    private static readonly string[] DisplayedProperties = new[]
+    // Only the most essential properties are shown prominently
+    private static readonly string[] EssentialProperties = new[]
     {
         "NServiceBus.MessageIntent",
         "NServiceBus.OriginatingEndpoint",
         "NServiceBus.EnclosedMessageTypes",
         "NServiceBus.CorrelationId",
-        "NServiceBus.ConversationId",
-        "NServiceBus.MessageId",
-        "NServiceBus.TimeSent",
-        "NServiceBus.OriginatingMachine",
-        "NServiceBus.ReplyToAddress",
-        "NServiceBus.Version",
-        "NServiceBus.ContentType"
+        "NServiceBus.ConversationId"
     };
 
-    private bool IsDisplayedProperty(string key)
+    private bool IsEssentialProperty(string key)
     {
-        return DisplayedProperties.Contains(key);
+        return EssentialProperties.Contains(key);
+    }
+
+    private List<KeyValuePair<string, object>> GetAdditionalProperties(Dictionary<string, object> allProperties)
+    {
+        return allProperties.Where(p => !IsEssentialProperty(p.Key)).ToList();
     }
 
     private Color GetIntentColor(string intent)
