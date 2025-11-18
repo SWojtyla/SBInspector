@@ -1,0 +1,146 @@
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Application.Services
+@using MudBlazor
+
+@if (Message != null)
+{
+    var nsbProperties = NServiceBusMessageHelper.GetNServiceBusProperties(Message);
+    
+    <MudCard Class="mud-elevation-2 mt-3">
+        <MudCardHeader>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">NServiceBus Message Properties</MudText>
+            </MudStack>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (nsbProperties.Any())
+            {
+                <MudGrid>
+                    @if (nsbProperties.ContainsKey("NServiceBus.MessageIntent"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Message Intent:</b></MudText>
+                                <MudChip T="string" Color="@GetIntentColor(nsbProperties["NServiceBus.MessageIntent"]?.ToString() ?? "")" Size="Size.Small">
+                                    @nsbProperties["NServiceBus.MessageIntent"]
+                                </MudChip>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.OriginatingEndpoint"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Originating Endpoint:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.OriginatingEndpoint"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.EnclosedMessageTypes"))
+                    {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Message Types:</b></MudText>
+                                <MudText Class="text-wrap"><code>@nsbProperties["NServiceBus.EnclosedMessageTypes"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.CorrelationId"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Correlation ID:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.CorrelationId"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.ConversationId"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Conversation ID:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.ConversationId"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+                
+                @* Additional properties in expansion panel *@
+                @if (GetAdditionalProperties(nsbProperties).Any())
+                {
+                    var additionalProps = GetAdditionalProperties(nsbProperties);
+                    <MudExpansionPanels Class="mt-3">
+                        <MudExpansionPanel Text="@($"Additional NServiceBus Properties ({additionalProps.Count})")" IsInitiallyExpanded="false">
+                            <TitleContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.MoreHoriz" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2">Additional Properties (@additionalProps.Count)</MudText>
+                                </MudStack>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudTable Items="@additionalProps" Dense="true">
+                                    <HeaderContent>
+                                        <MudTh>Key</MudTh>
+                                        <MudTh>Value</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd><code>@context.Key</code></MudTd>
+                                        <MudTd>@context.Value</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    This message does not contain any NServiceBus properties.
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public MessageInfo? Message { get; set; }
+
+    // Only the most essential properties are shown prominently
+    private static readonly string[] EssentialProperties = new[]
+    {
+        "NServiceBus.MessageIntent",
+        "NServiceBus.OriginatingEndpoint",
+        "NServiceBus.EnclosedMessageTypes",
+        "NServiceBus.CorrelationId",
+        "NServiceBus.ConversationId"
+    };
+
+    private bool IsEssentialProperty(string key)
+    {
+        return EssentialProperties.Contains(key);
+    }
+
+    private List<KeyValuePair<string, object>> GetAdditionalProperties(Dictionary<string, object> allProperties)
+    {
+        return allProperties.Where(p => !IsEssentialProperty(p.Key)).ToList();
+    }
+
+    private Color GetIntentColor(string intent)
+    {
+        return intent.ToLowerInvariant() switch
+        {
+            "send" => Color.Primary,
+            "publish" => Color.Success,
+            "subscribe" => Color.Info,
+            "reply" => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+}

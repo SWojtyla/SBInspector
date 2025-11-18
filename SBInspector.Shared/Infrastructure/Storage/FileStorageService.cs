@@ -11,6 +11,7 @@ public class FileStorageService : IStorageService
     private readonly string _templateDirectory;
     private const string ConnectionsFileName = "connections.json";
     private const string TemplatesFileName = "templates.json";
+    private const string PreferencesFileName = "preferences.json";
 
     public FileStorageService(string? customStorageDir = null, string? customExportDir = null, string? customTemplateDir = null)
     {
@@ -171,5 +172,32 @@ public class FileStorageService : IStorageService
             var json = JsonSerializer.Serialize(templates, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(filePath, json);
         }
+    }
+
+    // User preferences
+    public async Task<UserPreferences> GetUserPreferencesAsync()
+    {
+        try
+        {
+            var filePath = Path.Combine(_storageDirectory, PreferencesFileName);
+            if (!File.Exists(filePath))
+            {
+                return new UserPreferences();
+            }
+
+            var json = await File.ReadAllTextAsync(filePath);
+            return JsonSerializer.Deserialize<UserPreferences>(json) ?? new UserPreferences();
+        }
+        catch
+        {
+            return new UserPreferences();
+        }
+    }
+
+    public async Task SaveUserPreferencesAsync(UserPreferences preferences)
+    {
+        var filePath = Path.Combine(_storageDirectory, PreferencesFileName);
+        var json = JsonSerializer.Serialize(preferences, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath, json);
     }
 }

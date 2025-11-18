@@ -1,17 +1,33 @@
 @using SBInspector.Shared.Core.Domain
 @using SBInspector.Shared.Core.Interfaces
+@using SBInspector.Shared.Application.Services
 @using MudBlazor
 @inject IStorageService StorageService
 
 @if (Message != null)
 {
+    var isNServiceBusMessage = NServiceBusMessageHelper.IsNServiceBusMessage(Message);
+    
     <MudCard Class="mud-elevation-2">
         <MudCardHeader>
             <MudText Typo="Typo.h5"><MudIcon Icon="@Icons.Material.Filled.Info" /> Message Details</MudText>
             <MudSpacer />
+            @if (isNServiceBusMessage)
+            {
+                <MudTooltip Text="@(useNServiceBusView ? "Switch to Standard View" : "Switch to NServiceBus View")">
+                    <MudSwitch Style="padding-right:0.5rem" Value="useNServiceBusView" ValueChanged="OnUseNServiceBusViewChanged" Color="Color.Primary" Label="NServiceBus View" T="bool" />
+                </MudTooltip>
+            }
             <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="HandleBack" StartIcon="@Icons.Material.Filled.ArrowBack">Back to Messages</MudButton>
         </MudCardHeader>
         <MudCardContent>
+            @if (isNServiceBusMessage && useNServiceBusView)
+            {
+                <NServiceBusMessageView Message="@Message" />
+                <MessageBodyDisplay MessageBody="@Message.Body" Title="Message Body" />
+            }
+            else
+            {
             <MudGrid>
                 <MudItem xs="6">
                     <MudPaper Class="pa-2">
@@ -85,6 +101,7 @@
                 </MudExpansionPanels>
             }
             <MessageBodyDisplay MessageBody="@Message.Body" Title="Message Body" />
+            }
             @if (showSaveTemplateForm)
             {
                 <MudCard Class="mt-3">
@@ -131,6 +148,14 @@
     private string templateName = string.Empty;
     private string saveMessage = string.Empty;
     private string saveError = string.Empty;
+    private bool useNServiceBusView = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load user preference for NServiceBus view
+        var preferences = await StorageService.GetUserPreferencesAsync();
+        useNServiceBusView = preferences.UseNServiceBusView;
+    }
 
     protected override void OnParametersSet()
     {
@@ -139,6 +164,15 @@
         templateName = string.Empty;
         saveMessage = string.Empty;
         saveError = string.Empty;
+    }
+    
+    private async Task OnUseNServiceBusViewChanged(bool value)
+    {
+        useNServiceBusView = value;
+        
+        // Save preference
+        var preferences = new UserPreferences { UseNServiceBusView = value };
+        await StorageService.SaveUserPreferencesAsync(preferences);
     }
 
     private async Task SaveAsTemplate()

@@ -10,6 +10,7 @@ public class LocalStorageService : IStorageService
     private readonly IJSRuntime _jsRuntime;
     private const string ConnectionsKey = "sbinspector_connections";
     private const string TemplatesKey = "sbinspector_templates";
+    private const string PreferencesKey = "sbinspector_preferences";
 
     public LocalStorageService(IJSRuntime jsRuntime)
     {
@@ -137,5 +138,29 @@ public class LocalStorageService : IStorageService
             var json = JsonSerializer.Serialize(templates);
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TemplatesKey, json);
         }
+    }
+
+    // User preferences
+    public async Task<UserPreferences> GetUserPreferencesAsync()
+    {
+        try
+        {
+            var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", PreferencesKey);
+            if (string.IsNullOrEmpty(json))
+            {
+                return new UserPreferences();
+            }
+            return JsonSerializer.Deserialize<UserPreferences>(json) ?? new UserPreferences();
+        }
+        catch
+        {
+            return new UserPreferences();
+        }
+    }
+
+    public async Task SaveUserPreferencesAsync(UserPreferences preferences)
+    {
+        var json = JsonSerializer.Serialize(preferences);
+        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", PreferencesKey, json);
     }
 }
