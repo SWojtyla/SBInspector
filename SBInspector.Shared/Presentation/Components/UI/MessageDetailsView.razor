@@ -15,7 +15,7 @@
             @if (isNServiceBusMessage)
             {
                 <MudTooltip Text="@(useNServiceBusView ? "Switch to Standard View" : "Switch to NServiceBus View")">
-                    <MudSwitch Value="useNServiceBusView" ValueChanged="OnUseNServiceBusViewChanged" Color="Color.Primary" Label="NServiceBus View" T="bool" />
+                    <MudSwitch Style="padding-right:0.5rem" Value="useNServiceBusView" ValueChanged="OnUseNServiceBusViewChanged" Color="Color.Primary" Label="NServiceBus View" T="bool" />
                 </MudTooltip>
             }
             <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="HandleBack" StartIcon="@Icons.Material.Filled.ArrowBack">Back to Messages</MudButton>
