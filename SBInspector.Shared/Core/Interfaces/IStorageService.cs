@@ -16,4 +16,8 @@ public interface IStorageService
     Task SaveMessageTemplateAsync(MessageTemplate template);
     Task DeleteMessageTemplateAsync(string id);
     Task UpdateTemplateLastUsedAsync(string id);
+
+    // User preferences
+    Task<UserPreferences> GetUserPreferencesAsync();
+    Task SaveUserPreferencesAsync(UserPreferences preferences);
 }

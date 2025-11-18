@@ -1,0 +1,189 @@
+@using SBInspector.Shared.Core.Domain
+@using SBInspector.Shared.Application.Services
+@using MudBlazor
+
+@if (Message != null)
+{
+    var nsbProperties = NServiceBusMessageHelper.GetNServiceBusProperties(Message);
+    
+    <MudCard Class="mud-elevation-2 mt-3">
+        <MudCardHeader>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">NServiceBus Message Properties</MudText>
+            </MudStack>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (nsbProperties.Any())
+            {
+                <MudGrid>
+                    @if (nsbProperties.ContainsKey("NServiceBus.MessageIntent"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Message Intent:</b></MudText>
+                                <MudChip T="string" Color="@GetIntentColor(nsbProperties["NServiceBus.MessageIntent"]?.ToString() ?? "")" Size="Size.Small">
+                                    @nsbProperties["NServiceBus.MessageIntent"]
+                                </MudChip>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.OriginatingEndpoint"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Originating Endpoint:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.OriginatingEndpoint"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.EnclosedMessageTypes"))
+                    {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Message Types:</b></MudText>
+                                <MudText Class="text-wrap"><code>@nsbProperties["NServiceBus.EnclosedMessageTypes"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.CorrelationId"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Correlation ID:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.CorrelationId"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.ConversationId"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Conversation ID:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.ConversationId"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.MessageId"))
+                    {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>NServiceBus Message ID:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.MessageId"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.TimeSent"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Time Sent:</b></MudText>
+                                <MudText>@nsbProperties["NServiceBus.TimeSent"]</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.OriginatingMachine"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Originating Machine:</b></MudText>
+                                <MudText>@nsbProperties["NServiceBus.OriginatingMachine"]</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.ReplyToAddress"))
+                    {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Reply To Address:</b></MudText>
+                                <MudText><code>@nsbProperties["NServiceBus.ReplyToAddress"]</code></MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.Version"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>NServiceBus Version:</b></MudText>
+                                <MudText>@nsbProperties["NServiceBus.Version"]</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @if (nsbProperties.ContainsKey("NServiceBus.ContentType"))
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>NServiceBus Content Type:</b></MudText>
+                                <MudText>@nsbProperties["NServiceBus.ContentType"]</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    
+                    @* Show any remaining NServiceBus properties *@
+                    @foreach (var prop in nsbProperties.Where(p => !IsDisplayedProperty(p.Key)))
+                    {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>@prop.Key:</b></MudText>
+                                <MudText>@prop.Value</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    This message does not contain any NServiceBus properties.
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public MessageInfo? Message { get; set; }
+
+    private static readonly string[] DisplayedProperties = new[]
+    {
+        "NServiceBus.MessageIntent",
+        "NServiceBus.OriginatingEndpoint",
+        "NServiceBus.EnclosedMessageTypes",
+        "NServiceBus.CorrelationId",
+        "NServiceBus.ConversationId",
+        "NServiceBus.MessageId",
+        "NServiceBus.TimeSent",
+        "NServiceBus.OriginatingMachine",
+        "NServiceBus.ReplyToAddress",
+        "NServiceBus.Version",
+        "NServiceBus.ContentType"
+    };
+
+    private bool IsDisplayedProperty(string key)
+    {
+        return DisplayedProperties.Contains(key);
+    }
+
+    private Color GetIntentColor(string intent)
+    {
+        return intent.ToLowerInvariant() switch
+        {
+            "send" => Color.Primary,
+            "publish" => Color.Success,
+            "subscribe" => Color.Info,
+            "reply" => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+}
