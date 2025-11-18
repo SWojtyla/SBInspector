@@ -9,7 +9,7 @@
         <MudSpacer />
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary" OnClick="OpenColumnSettings" Title="Configure Columns" />
     </MudStack>
-    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<MessageInfo>>(this, HandleRowClick))">
+    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true">
         <HeaderContent>
             @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
             {

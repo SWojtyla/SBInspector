@@ -18,7 +18,7 @@
         @if (IsLoading)
         {
             <MudStack AlignItems="AlignItems.Center" Class="py-1">
-                <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
             </MudStack>
         }
         @if (!IsLoading && (Queues.Any() || Topics.Any()))
@@ -28,7 +28,7 @@
                 @if (!string.IsNullOrWhiteSpace(searchTerm))
                 {
                     <MudIconButton Icon="@Icons.Material.Filled.Clear" Color="Color.Default" OnClick="ClearSearch" Size="Size.Small" Title="Clear search" />
-                }
+                }                   
             </MudStack>
         }
         <MudStack Spacing="1">
@@ -123,7 +123,7 @@
             {
                 <MudAlert Severity="Severity.Info">No entities match your search criteria.</MudAlert>
             }
-            @if (!Queues.Any() && !Topics.Any())
+            @if (!IsLoading && !Queues.Any() && !Topics.Any())
             {
                 <MudAlert Severity="Severity.Info">No entities found</MudAlert>
             }
