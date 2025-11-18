@@ -36,25 +36,18 @@ The toggle switch appears only when viewing a message with NServiceBus propertie
 │  │ 12345678-1234-1234-1234-...     │  │ abcdef12-abcd-abcd-abcd-...    ││
 │  └─────────────────────────────────┘  └────────────────────────────────┘│
 │                                                                          │
+│  ▼ Additional NServiceBus Properties (7)                                │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │ NServiceBus Message ID:                                            │ │
-│  │ 87654321-4321-4321-4321-123456789012                               │ │
+│  │ Key                              │ Value                           │ │
+│  ├──────────────────────────────────┼─────────────────────────────────┤ │
+│  │ NServiceBus.MessageId            │ 87654321-4321-4321-4321-...     │ │
+│  │ NServiceBus.TimeSent             │ 2024-11-18 10:30:45             │ │
+│  │ NServiceBus.OriginatingMachine   │ PROD-SERVER-01                  │ │
+│  │ NServiceBus.ReplyToAddress       │ MyService.ReplyQueue@myserver   │ │
+│  │ NServiceBus.Version              │ 8.0.0                           │ │
+│  │ NServiceBus.ContentType          │ application/json                │ │
+│  │ ...                              │ ...                             │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌─────────────────────────────────┐  ┌────────────────────────────────┐│
-│  │ Time Sent:                      │  │ Originating Machine:           ││
-│  │ 2024-11-18 10:30:45             │  │ PROD-SERVER-01                 ││
-│  └─────────────────────────────────┘  └────────────────────────────────┘│
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │ Reply To Address:                                                  │ │
-│  │ MyService.ReplyQueue@myserver                                      │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌─────────────────────────────────┐  ┌────────────────────────────────┐│
-│  │ NServiceBus Version:            │  │ NServiceBus Content Type:      ││
-│  │ 8.0.0                           │  │ application/json               ││
-│  └─────────────────────────────────┘  └────────────────────────────────┘│
 │                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 
@@ -175,8 +168,10 @@ The Message Intent property uses color-coded chips for easy identification:
 ❌ Repeat for every message  
 
 ### After (NServiceBus View)
-✅ Important properties immediately visible  
+✅ **Essential** properties immediately visible (5 most critical)  
 ✅ Color-coded message intent  
 ✅ Organized by importance  
+✅ Additional properties in collapsible panel (like standard view)  
+✅ Cleaner UI with less visual clutter  
 ✅ Preference persists across messages  
 ✅ Non-intrusive for non-NServiceBus messages  
