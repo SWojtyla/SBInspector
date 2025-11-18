@@ -12,7 +12,7 @@ This feature adds a specialized view for NServiceBus messages in the Message Det
 - When enabled, subsequent messages will automatically open in NServiceBus view mode
 
 ### NServiceBus View Layout
-When enabled, the NServiceBus view displays key properties prominently:
+When enabled, the NServiceBus view displays **essential** properties prominently:
 
 1. **Message Intent** - Shown with color-coded chip:
    - Send: Primary (blue)
@@ -28,19 +28,14 @@ When enabled, the NServiceBus view displays key properties prominently:
 
 5. **Conversation ID** - For conversation tracking
 
-6. **NServiceBus Message ID** - Internal NServiceBus message identifier
-
-7. **Time Sent** - When the message was sent by NServiceBus
-
-8. **Originating Machine** - Machine that sent the message
-
-9. **Reply To Address** - Where replies should be sent
-
-10. **NServiceBus Version** - Version of NServiceBus used
-
-11. **Content Type** - NServiceBus content type
-
-12. **Additional NServiceBus Properties** - Any other properties with "NServiceBus." prefix
+**Additional NServiceBus Properties** (in collapsible expansion panel):
+- NServiceBus.MessageId
+- NServiceBus.TimeSent
+- NServiceBus.OriginatingMachine
+- NServiceBus.ReplyToAddress
+- NServiceBus.Version
+- NServiceBus.ContentType
+- Any other properties with "NServiceBus." or "$.diagnostics." prefix
 
 ### Standard View
 When disabled or viewing non-NServiceBus messages, the standard message details view is shown:
@@ -102,11 +97,12 @@ A message is identified as an NServiceBus message if it contains any application
 
 ## Benefits
 
-1. **Improved Developer Experience**: NServiceBus developers can quickly identify key message properties without expanding application properties panel
-2. **Visual Clarity**: Color-coded message intent provides immediate context
+1. **Improved Developer Experience**: NServiceBus developers can quickly identify the most critical message properties without expanding panels
+2. **Visual Clarity**: Color-coded message intent provides immediate context, with less important properties accessible via expansion panel
 3. **Persistent Preference**: Users don't need to toggle the view every time they open a message
 4. **Non-Intrusive**: Toggle only appears for NServiceBus messages, keeping the UI clean for other message types
-5. **Comprehensive Coverage**: Displays all standard NServiceBus properties plus any custom ones
+5. **Focused Display**: Shows only essential properties prominently, reducing clutter while keeping all properties accessible
+6. **Comprehensive Coverage**: All NServiceBus properties are still available in the expansion panel
 
 ## Usage Example
 
