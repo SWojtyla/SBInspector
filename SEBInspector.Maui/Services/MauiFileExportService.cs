@@ -2,6 +2,9 @@ using SBInspector.Shared.Core.Interfaces;
 
 namespace SEBInspector.Maui.Services;
 
+/// <summary>
+/// MAUI implementation of file export service for saving files to the local file system
+/// </summary>
 public class MauiFileExportService : IFileExportService
 {
     public async Task<bool> ExportToFileAsync(string filename, string content, string contentType = "application/json")
@@ -14,7 +17,7 @@ public class MauiFileExportService : IFileExportService
             if (filePath != null)
             {
                 // Show alert with file location on main thread
-                var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+                var page = Application.Current?.Windows.Count > 0 ? Application.Current.Windows[0].Page : null;
                 if (page is not null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
@@ -31,7 +34,7 @@ public class MauiFileExportService : IFileExportService
         catch (Exception ex)
         {
             // Show error on main thread
-            var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+            var page = Application.Current?.Windows.Count > 0 ? Application.Current.Windows[0].Page : null;
             if (page is not null)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -45,17 +48,34 @@ public class MauiFileExportService : IFileExportService
     }
 }
 
-// Helper class for file saving in MAUI
+/// <summary>
+/// Helper class for file saving in MAUI
+/// </summary>
 public static class FileSaver
 {
+    /// <summary>
+    /// Gets the default file saver implementation
+    /// </summary>
     public static IFileSaver Default { get; } = new DefaultFileSaver();
 }
 
+/// <summary>
+/// Interface for file saving operations
+/// </summary>
 public interface IFileSaver
 {
+    /// <summary>
+    /// Saves content to a file with the specified filename
+    /// </summary>
+    /// <param name="filename">The name of the file to save</param>
+    /// <param name="content">The content to write to the file</param>
+    /// <returns>The full path of the saved file, or null if the operation failed</returns>
     Task<string?> SaveAsync(string filename, string content);
 }
 
+/// <summary>
+/// Default implementation of file saver that saves files to the Downloads or Documents folder
+/// </summary>
 public class DefaultFileSaver : IFileSaver
 {
     public async Task<string?> SaveAsync(string filename, string content)
@@ -66,8 +86,7 @@ public class DefaultFileSaver : IFileSaver
             var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             
             // For desktop platforms, try to get Downloads folder
-            if (DeviceInfo.Platform == DevicePlatform.WinUI || 
-                DeviceInfo.Platform == DevicePlatform.MacCatalyst)
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
             {
                 var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 var downloads = Path.Combine(userProfile, "Downloads");
@@ -81,7 +100,7 @@ public class DefaultFileSaver : IFileSaver
             var filePath = Path.Combine(downloadsPath, filename);
             
             // If file exists, add a number to make it unique
-            int counter =1;
+            int counter = 1;
             var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filename);
             var extension = Path.GetExtension(filename);
             
