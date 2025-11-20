@@ -97,19 +97,41 @@ A fresh .NET 10 MAUI Blazor app was created for comparison. Key findings:
 
 ## Addressing the Loading Screen Issue
 
-The problem statement mentioned the app "stays on loading screen and crashes" after upgrade. Based on the comparison with a fresh .NET 10 MAUI template, potential causes include:
+The problem statement mentioned the app "stays on loading screen and crashes" after upgrade. Root causes identified and fixed:
 
 1. **Package version mismatches** - Fixed by explicitly setting all MAUI packages to 10.0.0
 2. **WindowsPackageType compatibility** - New template uses `None` instead of `MSIX`
 3. **Missing EnableWindowsTargeting** - Added for cross-platform builds
+4. **DataProtection ContentRootPath issue** - CRITICAL FIX: In .NET 10 MAUI, `MauiHostEnvironment.ContentRootPath` throws `NotImplementedException`. DataProtection's internal code tries to access this property to auto-generate the `ApplicationDiscriminator`. Solution: Manually configure `DataProtectionOptions.ApplicationDiscriminator` to bypass the ContentRootPath access.
+
+### DataProtection Configuration Fix (CRITICAL)
+
+**Problem:** In .NET 10 MAUI, the `MauiHostEnvironment.ContentRootPath` property throws `NotImplementedException`. When DataProtection is initialized, it automatically tries to read this property to generate an application discriminator, causing the app to crash on startup.
+
+**Solution:** Manually configure the `ApplicationDiscriminator` before calling `AddDataProtection()`:
+
+```csharp
+// Configure DataProtectionOptions first to set the discriminator
+builder.Services.Configure<DataProtectionOptions>(options =>
+{
+    options.ApplicationDiscriminator = "SBInspector.Maui";
+});
+
+// Then configure DataProtection without SetApplicationName
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+```
+
+This prevents the internal `HostingApplicationDiscriminator` class from attempting to access `ContentRootPath`.
 
 ### Recommended Testing Steps on Windows
 
 1. Build the MAUI project: `dotnet build SEBInspector.Maui`
 2. Run the application and observe startup behavior
-3. If loading screen still hangs:
+3. The app should now start without hanging on the loading screen
+4. Verify connection string encryption/decryption works correctly
+5. If any issues occur:
    - Check Windows Event Viewer for crash details
-   - Try changing `WindowsPackageType` from `MSIX` to `None` temporarily
    - Verify all NuGet packages restored correctly
    - Check for any breaking changes in MAUI 10.0.0 release notes
 

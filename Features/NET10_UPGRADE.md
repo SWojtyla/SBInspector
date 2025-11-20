@@ -52,6 +52,7 @@ The user attempted to migrate to .NET 10 themselves by updating NuGet packages, 
 
 ### Code Updates
 - **MauiFileExportService.cs**: Replaced `DisplayAlert` with `DisplayAlertAsync` (deprecated API)
+- **MauiProgram.cs**: Fixed DataProtection configuration to manually set `ApplicationDiscriminator` instead of allowing automatic detection via ContentRootPath (which throws NotImplementedException in .NET 10 MAUI)
 
 ### Configuration Files
 - **global.json**: Created to specify .NET 10.0.100 SDK with latestMinor rollForward
@@ -59,10 +60,11 @@ The user attempted to migrate to .NET 10 themselves by updating NuGet packages, 
 ## Key Findings
 
 ### Root Cause of Original Issue
-The loading screen crash was likely caused by:
+The loading screen crash was caused by multiple issues:
 1. **Missing MauiVersion variable**: The project used `$(MauiVersion)` but never defined it
 2. **TargetFrameworks bug**: The condition appended to an empty variable, causing build failures
 3. **Package mismatches**: Attempting to use .NET 9 packages with .NET 10 SDK
+4. **DataProtection ContentRootPath (CRITICAL)**: In .NET 10 MAUI, `MauiHostEnvironment.ContentRootPath` throws `NotImplementedException`. DataProtection's internal initialization code tries to access this property, causing the app to crash on startup with the error: "The method or operation is not implemented at /Microsoft.Maui.Hosting.MauiHostEnvironment.get_ContentRootPath()"
 
 ### Critical Fix: TargetFrameworks Condition
 **Before (Broken):**
@@ -77,11 +79,38 @@ The loading screen crash was likely caused by:
 <EnableWindowsTargeting>true</EnableWindowsTargeting>
 ```
 
+### DataProtection Configuration Fix (PRIMARY FIX)
+
+**The Problem:**
+In .NET 10 MAUI, `MauiHostEnvironment.ContentRootPath` throws `NotImplementedException`. The DataProtection system's internal initialization code (`HostingApplicationDiscriminator`) tries to read this property to automatically generate an application discriminator, causing a crash on app startup.
+
+**The Solution:**
+Manually configure the `ApplicationDiscriminator` in `DataProtectionOptions` BEFORE calling `AddDataProtection()`:
+
+```csharp
+// BEFORE (Caused crash):
+builder.Services.AddDataProtection()
+    .SetApplicationName("SBInspector")
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+
+// AFTER (Fixed):
+builder.Services.Configure<DataProtectionOptions>(options =>
+{
+    // Manually set the discriminator to bypass ContentRootPath access
+    options.ApplicationDiscriminator = "SBInspector.Maui";
+});
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+```
+
+By setting the `ApplicationDiscriminator` explicitly in the options, DataProtection skips the automatic detection that would access ContentRootPath.
+
 ### Comparison with Fresh .NET 10 Template
 - **WindowsPackageType**: New template uses `None` (unpackaged), existing project uses `MSIX` (for Store)
 - **Package versions**: New template uses explicit 10.0.0 versions, not variables
-- **MauiProgram.cs**: No structural changes required
-- **App initialization**: Pattern remains compatible
+- **MauiProgram.cs**: Requires DataProtection configuration changes for .NET 10
+- **App initialization**: Pattern remains compatible except for DataProtection setup
 
 ## Breaking Changes & Deprecations
 
