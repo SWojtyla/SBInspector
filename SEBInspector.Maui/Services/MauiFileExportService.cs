@@ -14,7 +14,7 @@ public class MauiFileExportService : IFileExportService
             if (filePath != null)
             {
                 // Show alert with file location on main thread
-                var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+                var page = Application.Current?.Windows.Count > 0 ? Application.Current.Windows[0].Page : null;
                 if (page is not null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
@@ -31,7 +31,7 @@ public class MauiFileExportService : IFileExportService
         catch (Exception ex)
         {
             // Show error on main thread
-            var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+            var page = Application.Current?.Windows.Count > 0 ? Application.Current.Windows[0].Page : null;
             if (page is not null)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -81,7 +81,7 @@ public class DefaultFileSaver : IFileSaver
             var filePath = Path.Combine(downloadsPath, filename);
             
             // If file exists, add a number to make it unique
-            int counter =1;
+            int counter = 1;
             var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filename);
             var extension = Path.GetExtension(filename);
             
