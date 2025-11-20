@@ -66,8 +66,7 @@ public class DefaultFileSaver : IFileSaver
             var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             
             // For desktop platforms, try to get Downloads folder
-            if (DeviceInfo.Platform == DevicePlatform.WinUI || 
-                DeviceInfo.Platform == DevicePlatform.MacCatalyst)
+            if (DeviceInfo.Platform == DevicePlatform.WinUI)
             {
                 var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 var downloads = Path.Combine(userProfile, "Downloads");
