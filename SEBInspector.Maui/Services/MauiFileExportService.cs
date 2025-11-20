@@ -17,8 +17,8 @@ public class MauiFileExportService : IFileExportService
                 var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
                 if (page is not null)
                 {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                        page.DisplayAlert(
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await page.DisplayAlertAsync(
                             "Export Successful",
                             $"File saved to:\n{filePath}",
                             "OK"));
@@ -34,8 +34,8 @@ public class MauiFileExportService : IFileExportService
             var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
             if (page is not null)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                    page.DisplayAlert(
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await page.DisplayAlertAsync(
                         "Export Failed",
                         $"Error saving file: {ex.Message}",
                         "OK"));

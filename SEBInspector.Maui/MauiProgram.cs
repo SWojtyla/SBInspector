@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
@@ -33,10 +34,20 @@ namespace SEBInspector.Maui
 #endif
 
             // Add Data Protection for secure storage
+            // In .NET 10 MAUI, we must configure DataProtectionOptions to avoid the automatic
+            // ApplicationDiscriminator calculation that tries to access ContentRootPath,
+            // which throws NotImplementedException in MauiHostEnvironment
+            var keysPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys");
+            Directory.CreateDirectory(keysPath); // Ensure directory exists
+            
+            builder.Services.Configure<DataProtectionOptions>(options =>
+            {
+                // Manually set the application discriminator to bypass ContentRootPath access
+                options.ApplicationDiscriminator = "SBInspector.Maui";
+            });
+            
             builder.Services.AddDataProtection()
-                .SetApplicationName("SBInspector")
-                .PersistKeysToFileSystem(new DirectoryInfo(
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys")));
+                .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
             // Register services following clean architecture
             builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
