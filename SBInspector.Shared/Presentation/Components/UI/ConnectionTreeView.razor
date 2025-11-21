@@ -145,14 +145,14 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result != null && !result.Canceled)
         {
             try
             {
                 await StorageService.DeleteConnectionAsync(connection.Name);
                 await RefreshConnectionsAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Handle error silently or notify user
             }
@@ -181,14 +181,14 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is string newName)
+        if (result != null && !result.Canceled && result.Data is string newName)
         {
             try
             {
                 await StorageService.RenameConnectionAsync(connection.Name, newName);
                 await RefreshConnectionsAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Handle error silently or notify user
             }

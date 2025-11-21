@@ -313,7 +313,7 @@
         var dialog = await DialogService.ShowAsync<ColumnConfigurationModal>("Configure Columns", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is bool)
+        if (result != null && !result.Canceled && result.Data is bool)
         {
             LoadColumnConfiguration();
             StateHasChanged();
