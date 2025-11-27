@@ -10,6 +10,7 @@
 @inject IFileExportService FileExportService
 @inject ConnectionStateService ConnectionState
 @inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageTitle>Service Bus Inspector</PageTitle>
@@ -34,8 +35,8 @@
             <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Disconnect" StartIcon="@Icons.Material.Filled.PowerOff">Disconnect</MudButton>
         </MudStack>
 
-        <MudGrid>
-            <MudItem xs="12" md="@(isEntityTreeCollapsed ? 1 : 3)">
+        <div class="resizable-container">
+            <div class="resizable-panel-left @(isEntityTreeCollapsed ? "collapsed" : "")" id="entityTreePanel">
                 <EntityTreeView 
                     Queues="@queues"
                     Topics="@topics"
@@ -50,8 +51,12 @@
                     OnLoadSubscriptions="@LoadSubscriptionsForTopic"
                     OnRefresh="@HandleRefreshEntities"
                     OnCollapsedChanged="@HandleEntityTreeCollapsedChanged" />
-            </MudItem>
-            <MudItem xs="12" md="@(isEntityTreeCollapsed ? 11 : 9)">
+            </div>
+            @if (!isEntityTreeCollapsed)
+            {
+                <div class="resizer" id="panelResizer"></div>
+            }
+            <div class="resizable-panel-right">
                 @if (!string.IsNullOrEmpty(selectedEntity))
                 {
                     <MessagesPanel 
@@ -89,8 +94,8 @@
                         OnViewMessages="@HandleViewMessagesFromDetails"
                         OnToggleStatus="@HandleToggleStatusFromDetails" />
                 }
-            </MudItem>
-        </MudGrid>
+            </div>
+        </div>
 
         @foreach (var operation in activeOperations.Values)
         {
@@ -191,6 +196,29 @@
         if (ServiceBusService.IsConnected)
         {
             await LoadAllEntitiesAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isEntityTreeCollapsed)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("initResizablePanel", "panelResizer", "entityTreePanel", 250, 600);
+            }
+            catch (JSException)
+            {
+                // JS function not found or execution error - ignore during initialization
+            }
+            catch (JSDisconnectedException)
+            {
+                // JS runtime disconnected (e.g., during pre-rendering or navigation) - safe to ignore
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available in current context (e.g., pre-rendering) - safe to ignore
+            }
         }
     }
 
@@ -310,6 +338,20 @@
             }
         }
         activeOperations.Clear();
+
+        // Clean up resizable panel
+        try
+        {
+            JSRuntime.InvokeVoidAsync("disposeResizablePanel", "panelResizer");
+        }
+        catch (JSException)
+        {
+            // JS function not found or execution error - safe to ignore during disposal
+        }
+        catch (JSDisconnectedException)
+        {
+            // JS runtime already disconnected - safe to ignore during disposal
+        }
     }
 
     private async Task Disconnect()

@@ -33,3 +33,75 @@ window.pickFolder = async function () {
         return null;
     }
 };
+
+// Resizable panel functionality
+window.resizablePanels = window.resizablePanels || {};
+
+window.initResizablePanel = function (resizerId, leftPanelId, minWidth, maxWidth) {
+    const resizer = document.getElementById(resizerId);
+    const leftPanel = document.getElementById(leftPanelId);
+    
+    if (!resizer || !leftPanel) {
+        console.warn('Resizer or left panel not found');
+        return;
+    }
+
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    const onMouseDown = function (e) {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = parseInt(window.getComputedStyle(leftPanel).width, 10);
+        
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        
+        e.preventDefault();
+    };
+
+    const onMouseMove = function (e) {
+        if (!isResizing) return;
+        
+        const dx = e.clientX - startX;
+        let newWidth = startWidth + dx;
+        
+        // Apply min/max constraints
+        if (newWidth < minWidth) newWidth = minWidth;
+        if (newWidth > maxWidth) newWidth = maxWidth;
+        
+        leftPanel.style.width = newWidth + 'px';
+        leftPanel.style.flexBasis = newWidth + 'px';
+    };
+
+    const onMouseUp = function () {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    };
+
+    resizer.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    // Store handlers for cleanup
+    window.resizablePanels[resizerId] = {
+        resizer: resizer,
+        onMouseDown: onMouseDown,
+        onMouseMove: onMouseMove,
+        onMouseUp: onMouseUp
+    };
+};
+
+window.disposeResizablePanel = function (resizerId) {
+    const panel = window.resizablePanels[resizerId];
+    if (panel) {
+        panel.resizer.removeEventListener('mousedown', panel.onMouseDown);
+        document.removeEventListener('mousemove', panel.onMouseMove);
+        document.removeEventListener('mouseup', panel.onMouseUp);
+        delete window.resizablePanels[resizerId];
+    }
+};
