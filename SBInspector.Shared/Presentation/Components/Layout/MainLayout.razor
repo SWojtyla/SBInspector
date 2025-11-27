@@ -5,7 +5,6 @@
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
-@inject ConnectionStringEncryptionService EncryptionService
 @inject ThemeService ThemeService
 @implements IDisposable
 @inherits LayoutComponentBase
@@ -78,15 +77,10 @@
                 await Task.Delay(100);
             }
             
-            // Decrypt connection string if encrypted
-            var connectionString = connection.IsEncrypted 
-                ? EncryptionService.Decrypt(connection.ConnectionString)
-                : connection.ConnectionString;
-            
-            var success = await ServiceBusService.ConnectAsync(connectionString);
+            var success = await ServiceBusService.ConnectAsync(connection.ConnectionString);
             if (success)
             {
-                ConnectionState.CurrentConnectionString = connectionString;
+                ConnectionState.CurrentConnectionString = connection.ConnectionString;
                 
                 // Update last used time
                 await StorageService.UpdateLastUsedAsync(connection.Name);

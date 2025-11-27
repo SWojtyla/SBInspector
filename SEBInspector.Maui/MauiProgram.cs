@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
@@ -32,17 +31,10 @@ namespace SEBInspector.Maui
     		builder.Logging.AddDebug();
 #endif
 
-            // Add Data Protection for secure storage
-            builder.Services.AddDataProtection()
-                .SetApplicationName("SBInspector")
-                .PersistKeysToFileSystem(new DirectoryInfo(
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys")));
-
             // Register services following clean architecture
             builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
             builder.Services.AddSingleton<MessageFilterService>();
             builder.Services.AddSingleton<ConnectionStateService>();
-            builder.Services.AddSingleton<ConnectionStringEncryptionService>();
             builder.Services.AddSingleton<ThemeService>();
             builder.Services.AddSingleton<ColumnConfigurationService>();
 
