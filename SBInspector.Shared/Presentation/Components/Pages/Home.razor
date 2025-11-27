@@ -207,9 +207,17 @@
             {
                 await JSRuntime.InvokeVoidAsync("initResizablePanel", "panelResizer", "entityTreePanel", 250, 600);
             }
-            catch (Exception)
+            catch (JSException)
             {
-                // JS interop may not be available in all contexts (e.g., pre-rendering)
+                // JS function not found or execution error - ignore during initialization
+            }
+            catch (JSDisconnectedException)
+            {
+                // JS runtime disconnected (e.g., during pre-rendering or navigation) - safe to ignore
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available in current context (e.g., pre-rendering) - safe to ignore
             }
         }
     }
@@ -336,9 +344,13 @@
         {
             JSRuntime.InvokeVoidAsync("disposeResizablePanel", "panelResizer");
         }
-        catch
+        catch (JSException)
         {
-            // Ignore JS interop errors during disposal
+            // JS function not found or execution error - safe to ignore during disposal
+        }
+        catch (JSDisconnectedException)
+        {
+            // JS runtime already disconnected - safe to ignore during disposal
         }
     }
 
