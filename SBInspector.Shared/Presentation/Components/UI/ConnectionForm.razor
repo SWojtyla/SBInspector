@@ -5,7 +5,6 @@
 @inject IServiceBusService ServiceBusService
 @inject IStorageService StorageService
 @inject ConnectionStateService ConnectionState
-@inject ConnectionStringEncryptionService EncryptionService
 
 <MudCard>
     <MudCardContent>
@@ -87,12 +86,12 @@
                     var savedConnection = new SavedConnection
                     {
                         Name = connectionName.Trim(),
-                        ConnectionString = EncryptionService.Encrypt(ConnectionString),
-                        IsEncrypted = true,
+                        ConnectionString = ConnectionString,
+                        IsEncrypted = false,
                         LastUsedAt = DateTime.UtcNow
                     };
                     await StorageService.SaveConnectionAsync(savedConnection);
-                    successMessage = $"Connection saved as '{connectionName}' (encrypted)";
+                    successMessage = $"Connection saved as '{connectionName}'";
                     // Notify that connections list has changed
                     ConnectionState.NotifyConnectionsChanged();
                 }

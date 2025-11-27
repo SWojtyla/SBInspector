@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.DataProtection;
 using MudBlazor.Services;
 using SBInspector.Components;
 using SBInspector.Shared.Application.Services;
@@ -17,17 +16,10 @@ builder.Services.AddRazorComponents()
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
-// Add Data Protection for secure storage
-builder.Services.AddDataProtection()
-    .SetApplicationName("SBInspector")
-    .PersistKeysToFileSystem(new DirectoryInfo(
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys")));
-
 // Register services following clean architecture
 builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
 builder.Services.AddSingleton<MessageFilterService>();
 builder.Services.AddSingleton<ConnectionStateService>();
-builder.Services.AddSingleton<ConnectionStringEncryptionService>();
 builder.Services.AddSingleton<ThemeService>();
 builder.Services.AddSingleton<ColumnConfigurationService>();
 // Register storage configuration service with LocalStorage as default for web

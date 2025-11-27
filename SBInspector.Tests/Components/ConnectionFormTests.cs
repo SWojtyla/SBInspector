@@ -1,6 +1,5 @@
 using Bunit;
 using FakeItEasy;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using SBInspector.Shared.Application.Services;
 using SBInspector.Shared.Core.Domain;
@@ -14,65 +13,17 @@ public class ConnectionFormTests : TestContext
     private readonly IServiceBusService _mockServiceBusService;
     private readonly IStorageService _mockStorageService;
     private readonly ConnectionStateService _connectionState;
-    private readonly ConnectionStringEncryptionService _encryptionService;
 
     public ConnectionFormTests()
     {
         _mockServiceBusService = A.Fake<IServiceBusService>();
         _mockStorageService = A.Fake<IStorageService>();
         _connectionState = new ConnectionStateService();
-        
-        // Create a stub implementation of IDataProtector for testing
-        var mockDataProtectionProvider = A.Fake<IDataProtectionProvider>();
-        var stubDataProtector = new StubDataProtector();
-        
-        A.CallTo(() => mockDataProtectionProvider.CreateProtector(A<string>._))
-            .Returns(stubDataProtector);
-        
-        _encryptionService = new ConnectionStringEncryptionService(mockDataProtectionProvider);
 
         // Register services
         Services.AddSingleton(_mockServiceBusService);
         Services.AddSingleton(_mockStorageService);
         Services.AddSingleton(_connectionState);
-        Services.AddSingleton(_encryptionService);
-    }
-
-    // Stub implementation of IDataProtector for testing
-    private class StubDataProtector : IDataProtector
-    {
-        public IDataProtector CreateProtector(string purpose) => this;
-
-        public byte[] Protect(byte[] plaintext)
-        {
-            if (plaintext == null)
-            {
-                throw new ArgumentNullException(nameof(plaintext));
-            }
-
-            // Simple encoding for testing - add 10 byte header
-            var encrypted = new byte[plaintext.Length + 10];
-            Array.Copy(plaintext, 0, encrypted, 10, plaintext.Length);
-            return encrypted;
-        }
-
-        public byte[] Unprotect(byte[] protectedData)
-        {
-            if (protectedData == null)
-            {
-                throw new ArgumentNullException(nameof(protectedData));
-            }
-
-            if (protectedData.Length < 10)
-            {
-                throw new System.Security.Cryptography.CryptographicException("Invalid protected data");
-            }
-
-            // Simple decoding for testing - remove 10 byte header
-            var decrypted = new byte[protectedData.Length - 10];
-            Array.Copy(protectedData, 10, decrypted, 0, decrypted.Length);
-            return decrypted;
-        }
     }
 
     [Fact]
@@ -213,7 +164,7 @@ public class ConnectionFormTests : TestContext
         A.CallTo(() => _mockStorageService.SaveConnectionAsync(
             A<SavedConnection>.That.Matches(c =>
                 c.Name == connectionName &&
-                c.IsEncrypted == true)))
+                c.IsEncrypted == false)))
             .MustHaveHappenedOnceExactly();
     }
 

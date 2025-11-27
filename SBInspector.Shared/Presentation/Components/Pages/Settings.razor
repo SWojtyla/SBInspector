@@ -3,7 +3,6 @@
 @using SBInspector.Shared.Core.Interfaces
 @inject StorageConfigurationService ConfigService
 @inject IStorageService StorageService
-@inject ConnectionStringEncryptionService EncryptionService
 
 <PageTitle>Settings - Service Bus Inspector</PageTitle>
 
@@ -128,45 +127,6 @@
                 </div>
             </div>
 
-            <!-- Connection Security -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="bi bi-shield-lock"></i> Connection String Security
-                    </h5>
-                    
-                    <div class="alert alert-info" role="alert">
-                        <i class="bi bi-info-circle"></i>
-                        Connection strings are now stored securely using encryption.
-                    </div>
-
-                    @if (hasUnencryptedConnections)
-                    {
-                        <div class="alert alert-warning" role="alert">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            You have @unencryptedConnectionCount connection(s) stored in plain text.
-                            <button class="btn btn-sm btn-warning ms-2" @onclick="EncryptExistingConnections" disabled="@isEncrypting">
-                                @if (isEncrypting)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                    <text>Encrypting...</text>
-                                }
-                                else
-                                {
-                                    <text><i class="bi bi-shield-lock"></i> Encrypt Now</text>
-                                }
-                            </button>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="text-success">
-                            <i class="bi bi-check-circle"></i> All saved connections are encrypted.
-                        </p>
-                    }
-                </div>
-            </div>
-
             <!-- Save Button -->
             <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
                 <button class="btn btn-primary btn-lg" @onclick="SaveSettings" disabled="@isSaving">
@@ -193,11 +153,7 @@
                     <p class="card-text">
                         Configure how SBInspector stores your data and where exported files are saved.
                     </p>
-                    <hr />
-                    <h6>Security</h6>
-                    <p class="small">
-                        Connection strings are encrypted using the Data Protection API, which uses machine-specific keys to secure your sensitive data.
-                    </p>
+
                 </div>
             </div>
         </div>
@@ -228,13 +184,10 @@
     private string defaultTemplatePath = string.Empty;
     private string defaultConnectionsPath = string.Empty;
     private bool isSaving = false;
-    private bool isEncrypting = false;
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
-    private bool hasUnencryptedConnections = false;
-    private int unencryptedConnectionCount = 0;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         var config = ConfigService.GetConfiguration();
         exportPath = config.ExportPath;
@@ -244,24 +197,6 @@
         defaultExportPath = ConfigService.GetDefaultExportPath();
         defaultTemplatePath = ConfigService.GetDefaultTemplatePath();
         defaultConnectionsPath = ConfigService.GetDefaultConnectionsPath();
-
-        await CheckForUnencryptedConnections();
-    }
-
-    private async Task CheckForUnencryptedConnections()
-    {
-        try
-        {
-            var connections = await StorageService.GetSavedConnectionsAsync();
-            unencryptedConnectionCount = connections.Count(c => !c.IsEncrypted);
-            hasUnencryptedConnections = unencryptedConnectionCount > 0;
-        }
-        catch (Exception ex)
-        {
-            // Log or show error if storage is inaccessible
-            errorMessage = $"Could not check connection security status: {ex.Message}";
-            hasUnencryptedConnections = false;
-        }
     }
 
     private void ResetExportPath()
@@ -305,42 +240,6 @@
         finally
         {
             isSaving = false;
-        }
-    }
-
-    private async Task EncryptExistingConnections()
-    {
-        isEncrypting = true;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        try
-        {
-            var connections = await StorageService.GetSavedConnectionsAsync();
-            var unencrypted = connections.Where(c => !c.IsEncrypted).ToList();
-
-            foreach (var connection in unencrypted)
-            {
-                connection.ConnectionString = EncryptionService.Encrypt(connection.ConnectionString);
-                connection.IsEncrypted = true;
-                await StorageService.SaveConnectionAsync(connection);
-            }
-
-            await CheckForUnencryptedConnections();
-            successMessage = $"Successfully encrypted {unencrypted.Count} connection(s)!";
-            
-            await Task.Delay(3000);
-            successMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error encrypting connections: {ex.Message}";
-            await Task.Delay(5000);
-            errorMessage = string.Empty;
-        }
-        finally
-        {
-            isEncrypting = false;
         }
     }
 }
