@@ -33,3 +33,60 @@ window.pickFolder = async function () {
         return null;
     }
 };
+
+// Resizable panel functionality
+window.initResizablePanel = function (resizerId, leftPanelId, minWidth, maxWidth) {
+    const resizer = document.getElementById(resizerId);
+    const leftPanel = document.getElementById(leftPanelId);
+    
+    if (!resizer || !leftPanel) {
+        console.warn('Resizer or left panel not found');
+        return;
+    }
+
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', function (e) {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = parseInt(window.getComputedStyle(leftPanel).width, 10);
+        
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        if (!isResizing) return;
+        
+        const dx = e.clientX - startX;
+        let newWidth = startWidth + dx;
+        
+        // Apply min/max constraints
+        if (newWidth < minWidth) newWidth = minWidth;
+        if (newWidth > maxWidth) newWidth = maxWidth;
+        
+        leftPanel.style.width = newWidth + 'px';
+        leftPanel.style.flexBasis = newWidth + 'px';
+    });
+
+    document.addEventListener('mouseup', function () {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+};
+
+window.disposeResizablePanel = function (resizerId) {
+    const resizer = document.getElementById(resizerId);
+    if (resizer) {
+        // Remove event listeners by cloning and replacing the element
+        const newResizer = resizer.cloneNode(true);
+        resizer.parentNode.replaceChild(newResizer, resizer);
+    }
+};

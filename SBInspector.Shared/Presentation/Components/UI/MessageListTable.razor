@@ -9,22 +9,22 @@
         <MudSpacer />
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary" OnClick="OpenColumnSettings" Title="Configure Columns" />
     </MudStack>
-    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true">
+    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true" Class="message-table-responsive">
         <HeaderContent>
             @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
             {
-                <MudTh Align="@GetColumnAlignment(column)">
+                <MudTh Align="@GetColumnAlignment(column)" Style="min-width:100px;">
                     <MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(GetColumnSortKey(column)))">
                         @column.DisplayName @GetSortIcon(GetColumnSortKey(column))
                     </MudButton>
                 </MudTh>
             }
-            <MudTh Align="Center">Actions</MudTh>
+            <MudTh Align="Center" Style="min-width:200px;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
             {
-                <MudTd DataLabel="@column.DisplayName" Align="@GetColumnAlignment(column)">
+                <MudTd DataLabel="@column.DisplayName" Align="@GetColumnAlignment(column)" Class="text-wrap-cell">
                     @RenderColumnValue(context, column)
                 </MudTd>
             }
@@ -199,7 +199,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "code");
-                    b.AddAttribute(1, "style", "max-width:200px;overflow-x:auto;display:inline-block;");
+                    b.AddAttribute(1, "style", "word-break: break-all; display: block;");
                     b.AddContent(2, message.MessageId);
                     b.CloseElement();
                 }));
@@ -207,26 +207,44 @@
             },
             ColumnType.Subject => builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddContent(1, string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject);
-                builder.CloseElement();
+                var subject = string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject;
+                builder.OpenComponent<MudTooltip>(0);
+                builder.AddAttribute(1, "Text", subject);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.OpenElement(0, "span");
+                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddContent(2, subject);
+                    b.CloseElement();
+                }));
+                builder.CloseComponent();
             },
             ColumnType.ContentType => builder =>
             {
-                builder.OpenElement(0, "span");
-                builder.AddContent(1, string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType);
-                builder.CloseElement();
+                var contentType = string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType;
+                builder.OpenComponent<MudTooltip>(0);
+                builder.AddAttribute(1, "Text", contentType);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.OpenElement(0, "span");
+                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddContent(2, contentType);
+                    b.CloseElement();
+                }));
+                builder.CloseComponent();
             },
             ColumnType.EnqueuedTime => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddContent(1, message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                builder.AddAttribute(1, "style", "white-space: nowrap;");
+                builder.AddContent(2, message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss"));
                 builder.CloseElement();
             },
             ColumnType.ScheduledEnqueueTime => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddContent(1, message.ScheduledEnqueueTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? NotSetText);
+                builder.AddAttribute(1, "style", "white-space: nowrap;");
+                builder.AddContent(2, message.ScheduledEnqueueTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? NotSetText);
                 builder.CloseElement();
             },
             ColumnType.SequenceNumber => builder =>
@@ -251,7 +269,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "max-width:300px;overflow-x:auto;display:inline-block;");
+                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
                     b.AddContent(2, endpoint);
                     b.CloseElement();
                 }));
@@ -260,10 +278,16 @@
             ColumnType.CustomProperty => builder =>
             {
                 var value = GetPropertyValue(message, column.PropertyKey ?? string.Empty);
-                builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "max-width:200px;overflow-x:auto;display:inline-block;");
-                builder.AddContent(2, value);
-                builder.CloseElement();
+                builder.OpenComponent<MudTooltip>(0);
+                builder.AddAttribute(1, "Text", value);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.OpenElement(0, "span");
+                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddContent(2, value);
+                    b.CloseElement();
+                }));
+                builder.CloseComponent();
             },
             _ => builder =>
             {

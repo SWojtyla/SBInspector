@@ -808,6 +808,90 @@ strong, .fw-semibold {
     color: #212529;
 }
 
+/* Resizable panel styles */
+.resizable-container {
+    display: flex;
+    width: 100%;
+    min-height: 600px;
+    gap: 0;
+}
+
+.resizable-panel-left {
+    flex: 0 0 350px;
+    min-width: 250px;
+    max-width: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.resizable-panel-left.collapsed {
+    flex: 0 0 60px;
+    min-width: 60px;
+    max-width: 60px;
+}
+
+.resizer {
+    width: 6px;
+    background-color: #e0e0e0;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+}
+
+.resizer:hover {
+    background-color: #00836b;
+}
+
+.resizer::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 40px;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 4px,
+        #aaa 4px,
+        #aaa 8px
+    );
+    border-radius: 2px;
+    opacity: 0.5;
+}
+
+.resizable-panel-right {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-left: 0.75rem;
+}
+
+/* Message table improvements for better text handling */
+.message-table-responsive {
+    table-layout: auto;
+    width: 100%;
+}
+
+.message-table-responsive td,
+.message-table-responsive th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 400px;
+}
+
+.text-wrap-cell {
+    white-space: normal !important;
+    word-break: break-word;
+}
+
+.message-table-responsive .mud-table-cell {
+    vertical-align: top;
+    padding: 8px 12px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 992px) {
     .split-panel-container {
@@ -832,6 +916,26 @@ strong, .fw-semibold {
 
     .message-type-cards {
         grid-template-columns: 1fr;
+    }
+
+    .resizable-container {
+        flex-direction: column;
+    }
+
+    .resizable-panel-left {
+        flex: 0 0 auto;
+        max-width: 100%;
+        width: 100%;
+        max-height: 400px;
+    }
+
+    .resizer {
+        display: none;
+    }
+
+    .resizable-panel-right {
+        padding-left: 0;
+        padding-top: 1rem;
     }
 }
 }
