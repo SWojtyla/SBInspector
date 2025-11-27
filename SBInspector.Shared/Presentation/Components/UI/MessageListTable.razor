@@ -199,7 +199,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "code");
-                    b.AddAttribute(1, "style", "word-break: break-all; display: block;");
+                    b.AddAttribute(1, "class", "cell-break-all");
                     b.AddContent(2, message.MessageId);
                     b.CloseElement();
                 }));
@@ -213,7 +213,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddAttribute(1, "class", "cell-break-word");
                     b.AddContent(2, subject);
                     b.CloseElement();
                 }));
@@ -227,7 +227,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddAttribute(1, "class", "cell-break-word");
                     b.AddContent(2, contentType);
                     b.CloseElement();
                 }));
@@ -236,14 +236,14 @@
             ColumnType.EnqueuedTime => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "white-space: nowrap;");
+                builder.AddAttribute(1, "class", "cell-nowrap");
                 builder.AddContent(2, message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss"));
                 builder.CloseElement();
             },
             ColumnType.ScheduledEnqueueTime => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "white-space: nowrap;");
+                builder.AddAttribute(1, "class", "cell-nowrap");
                 builder.AddContent(2, message.ScheduledEnqueueTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? NotSetText);
                 builder.CloseElement();
             },
@@ -269,7 +269,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddAttribute(1, "class", "cell-break-word");
                     b.AddContent(2, endpoint);
                     b.CloseElement();
                 }));
@@ -283,7 +283,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "display: block; word-break: break-word;");
+                    b.AddAttribute(1, "class", "cell-break-word");
                     b.AddContent(2, value);
                     b.CloseElement();
                 }));

@@ -35,6 +35,8 @@ window.pickFolder = async function () {
 };
 
 // Resizable panel functionality
+window.resizablePanels = window.resizablePanels || {};
+
 window.initResizablePanel = function (resizerId, leftPanelId, minWidth, maxWidth) {
     const resizer = document.getElementById(resizerId);
     const leftPanel = document.getElementById(leftPanelId);
@@ -48,7 +50,7 @@ window.initResizablePanel = function (resizerId, leftPanelId, minWidth, maxWidth
     let startX = 0;
     let startWidth = 0;
 
-    resizer.addEventListener('mousedown', function (e) {
+    const onMouseDown = function (e) {
         isResizing = true;
         startX = e.clientX;
         startWidth = parseInt(window.getComputedStyle(leftPanel).width, 10);
@@ -57,9 +59,9 @@ window.initResizablePanel = function (resizerId, leftPanelId, minWidth, maxWidth
         document.body.style.userSelect = 'none';
         
         e.preventDefault();
-    });
+    };
 
-    document.addEventListener('mousemove', function (e) {
+    const onMouseMove = function (e) {
         if (!isResizing) return;
         
         const dx = e.clientX - startX;
@@ -71,22 +73,35 @@ window.initResizablePanel = function (resizerId, leftPanelId, minWidth, maxWidth
         
         leftPanel.style.width = newWidth + 'px';
         leftPanel.style.flexBasis = newWidth + 'px';
-    });
+    };
 
-    document.addEventListener('mouseup', function () {
+    const onMouseUp = function () {
         if (isResizing) {
             isResizing = false;
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
         }
-    });
+    };
+
+    resizer.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    // Store handlers for cleanup
+    window.resizablePanels[resizerId] = {
+        resizer: resizer,
+        onMouseDown: onMouseDown,
+        onMouseMove: onMouseMove,
+        onMouseUp: onMouseUp
+    };
 };
 
 window.disposeResizablePanel = function (resizerId) {
-    const resizer = document.getElementById(resizerId);
-    if (resizer) {
-        // Remove event listeners by cloning and replacing the element
-        const newResizer = resizer.cloneNode(true);
-        resizer.parentNode.replaceChild(newResizer, resizer);
+    const panel = window.resizablePanels[resizerId];
+    if (panel) {
+        panel.resizer.removeEventListener('mousedown', panel.onMouseDown);
+        document.removeEventListener('mousemove', panel.onMouseMove);
+        document.removeEventListener('mouseup', panel.onMouseUp);
+        delete window.resizablePanels[resizerId];
     }
 };
