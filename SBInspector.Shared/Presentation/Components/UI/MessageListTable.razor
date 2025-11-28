@@ -199,7 +199,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "code");
-                    b.AddAttribute(1, "style", "max-width:200px;overflow-x:auto;display:inline-block;");
+                    b.AddAttribute(1, "style", "max-width:200px;word-break:break-all;display:block;");
                     b.AddContent(2, message.MessageId);
                     b.CloseElement();
                 }));
@@ -208,13 +208,15 @@
             ColumnType.Subject => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddContent(1, string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject);
+                builder.AddAttribute(1, "style", "word-break:break-word;");
+                builder.AddContent(2, string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject);
                 builder.CloseElement();
             },
             ColumnType.ContentType => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddContent(1, string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType);
+                builder.AddAttribute(1, "style", "word-break:break-word;");
+                builder.AddContent(2, string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType);
                 builder.CloseElement();
             },
             ColumnType.EnqueuedTime => builder =>
@@ -251,7 +253,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "max-width:300px;overflow-x:auto;display:inline-block;");
+                    b.AddAttribute(1, "style", "max-width:300px;word-break:break-word;display:block;");
                     b.AddContent(2, endpoint);
                     b.CloseElement();
                 }));
@@ -261,7 +263,7 @@
             {
                 var value = GetPropertyValue(message, column.PropertyKey ?? string.Empty);
                 builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "max-width:200px;overflow-x:auto;display:inline-block;");
+                builder.AddAttribute(1, "style", "max-width:200px;word-break:break-word;display:block;");
                 builder.AddContent(2, value);
                 builder.CloseElement();
             },
