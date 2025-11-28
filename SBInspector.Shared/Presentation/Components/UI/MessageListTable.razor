@@ -9,46 +9,57 @@
         <MudSpacer />
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary" OnClick="OpenColumnSettings" Title="Configure Columns" />
     </MudStack>
-    <MudTable Items="@SortedMessages" Dense="true" Hover="true" Bordered="true" Striped="true">
-        <HeaderContent>
+    <MudDataGrid T="MessageInfo" Items="@SortedMessages" Dense="true" Hover="true" 
+                 Bordered="true" Striped="true" 
+                 ColumnResizeMode="ResizeMode.Column"
+                 SortMode="SortMode.None"
+                 Virtualize="true"
+                 FixedHeader="true"
+                 Height="calc(100vh - 300px)">
+        <Columns>
             @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
             {
-                <MudTh Align="@GetColumnAlignment(column)">
-                    <MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(GetColumnSortKey(column)))">
-                        @column.DisplayName @GetSortIcon(GetColumnSortKey(column))
-                    </MudButton>
-                </MudTh>
+                <PropertyColumn T="MessageInfo" TProperty="string" 
+                               Title="@column.DisplayName" 
+                               Sortable="false"
+                               Resizable="true"
+                               HeaderStyle="@GetHeaderStyle(column)"
+                               CellStyle="@GetCellStyle(column)">
+                    <HeaderTemplate>
+                        <MudButton Variant="Variant.Text" OnClick="@(() => HandleSortColumn(GetColumnSortKey(column)))" Style="padding: 0;">
+                            @column.DisplayName @GetSortIcon(GetColumnSortKey(column))
+                        </MudButton>
+                    </HeaderTemplate>
+                    <CellTemplate>
+                        @RenderColumnValue(context.Item, column)
+                    </CellTemplate>
+                </PropertyColumn>
             }
-            <MudTh Align="Center">Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            @foreach (var column in VisibleColumns.OrderBy(c => c.Order))
-            {
-                <MudTd DataLabel="@column.DisplayName" Align="@GetColumnAlignment(column)">
-                    @RenderColumnValue(context, column)
-                </MudTd>
-            }
-            <MudTd DataLabel="Actions" Align="Center">
-                <div style="white-space:nowrap;" @onclick:stopPropagation="true">
-                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context))" Title="View Details" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Default" Size="Size.Small" OnClick="@(() => OnExport.InvokeAsync(context))" Title="Export" />
-                    @if (context.State == "Active")
-                    {
-                        <MudIconButton Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnMoveToDeadLetter.InvokeAsync(context))" Title="Move to Dead-Letter" />
-                    }
-                    @if (context.State == "DeadLetter")
-                    {
-                        <MudIconButton Icon="@Icons.Material.Filled.Replay" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnRequeue.InvokeAsync(context))" Title="Requeue" />
-                    }
-                    @if (context.State == "Scheduled" && context.ScheduledEnqueueTime.HasValue)
-                    {
-                        <MudIconButton Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnReschedule.InvokeAsync(context))" Title="Reschedule" />
-                    }
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete.InvokeAsync(context))" Title="Delete" />
-                </div>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+            <TemplateColumn T="MessageInfo" Title="Actions" Sortable="false" Resizable="false" 
+                           HeaderStyle="text-align: center; width: 250px;" 
+                           CellStyle="text-align: center; white-space: nowrap;">
+                <CellTemplate>
+                    <div @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnViewDetails.InvokeAsync(context.Item))" Title="View Details" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Default" Size="Size.Small" OnClick="@(() => OnExport.InvokeAsync(context.Item))" Title="Export" />
+                        @if (context.Item.State == "Active")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnMoveToDeadLetter.InvokeAsync(context.Item))" Title="Move to Dead-Letter" />
+                        }
+                        @if (context.Item.State == "DeadLetter")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Replay" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnRequeue.InvokeAsync(context.Item))" Title="Requeue" />
+                        }
+                        @if (context.Item.State == "Scheduled" && context.Item.ScheduledEnqueueTime.HasValue)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnReschedule.InvokeAsync(context.Item))" Title="Reschedule" />
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete.InvokeAsync(context.Item))" Title="Delete" />
+                    </div>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
 </MudPaper>
 @if (!Messages.Any())
 {
@@ -183,9 +194,16 @@
         };
     }
 
-    private Align GetColumnAlignment(ColumnDefinition column)
+    private string GetHeaderStyle(ColumnDefinition column)
     {
-        return column.Type == ColumnType.DeliveryCount ? Align.Center : Align.Left;
+        var alignment = column.Type == ColumnType.DeliveryCount ? "center" : "left";
+        return $"text-align: {alignment};";
+    }
+
+    private string GetCellStyle(ColumnDefinition column)
+    {
+        var alignment = column.Type == ColumnType.DeliveryCount ? "center" : "left";
+        return $"text-align: {alignment}; word-wrap: break-word; overflow-wrap: break-word;";
     }
 
     private RenderFragment RenderColumnValue(MessageInfo message, ColumnDefinition column)
@@ -199,7 +217,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "code");
-                    b.AddAttribute(1, "style", "max-width:200px;word-break:break-all;display:block;");
+                    b.AddAttribute(1, "style", "word-break: break-all;");
                     b.AddContent(2, message.MessageId);
                     b.CloseElement();
                 }));
@@ -208,15 +226,13 @@
             ColumnType.Subject => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "word-break:break-word;");
-                builder.AddContent(2, string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject);
+                builder.AddContent(1, string.IsNullOrEmpty(message.Subject) ? NotSetText : message.Subject);
                 builder.CloseElement();
             },
             ColumnType.ContentType => builder =>
             {
                 builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "word-break:break-word;");
-                builder.AddContent(2, string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType);
+                builder.AddContent(1, string.IsNullOrEmpty(message.ContentType) ? NotSetText : message.ContentType);
                 builder.CloseElement();
             },
             ColumnType.EnqueuedTime => builder =>
@@ -253,8 +269,7 @@
                 builder.AddAttribute(2, "ChildContent", (RenderFragment)(b =>
                 {
                     b.OpenElement(0, "span");
-                    b.AddAttribute(1, "style", "max-width:300px;word-break:break-word;display:block;");
-                    b.AddContent(2, endpoint);
+                    b.AddContent(1, endpoint);
                     b.CloseElement();
                 }));
                 builder.CloseComponent();
@@ -263,8 +278,7 @@
             {
                 var value = GetPropertyValue(message, column.PropertyKey ?? string.Empty);
                 builder.OpenElement(0, "span");
-                builder.AddAttribute(1, "style", "max-width:200px;word-break:break-word;display:block;");
-                builder.AddContent(2, value);
+                builder.AddContent(1, value);
                 builder.CloseElement();
             },
             _ => builder =>
@@ -288,11 +302,6 @@
             // Default to descending for EnqueuedTime, ascending for others
             await SortAscendingChanged.InvokeAsync(columnName != nameof(MessageInfo.EnqueuedTime));
         }
-    }
-
-    private Task HandleRowClick(TableRowClickEventArgs<MessageInfo> args)
-    {
-        return OnViewDetails.InvokeAsync(args.Item);
     }
 
     private async Task OpenColumnSettings()
@@ -320,13 +329,5 @@
             LoadColumnConfiguration();
             StateHasChanged();
         }
-    }
-
-    private async Task HandleColumnsSaved(List<ColumnDefinition> columns)
-    {
-        var config = new ColumnConfiguration { Columns = columns };
-        await ColumnConfigService.SaveConfigurationAsync(config);
-        LoadColumnConfiguration();
-        StateHasChanged();
     }
 }
