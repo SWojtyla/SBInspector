@@ -2,10 +2,10 @@ using Bunit;
 using FakeItEasy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
-using SBInspector.Shared.Application.Services;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Core.Interfaces;
-using SBInspector.Shared.Presentation.Components.UI;
+using SEBInspector.Maui.Application.Services;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Core.Interfaces;
+using SEBInspector.Maui.Presentation.Components.UI;
 
 namespace SBInspector.Tests.Components;
 

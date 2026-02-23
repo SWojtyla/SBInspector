@@ -1,0 +1,148 @@
+@using SEBInspector.Maui.Core.Domain
+@using MudBlazor
+
+<MudPaper Class="pa-2 mb-3">
+    <MudStack Direction="Row" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5">Queues (@FilteredQueues.Count())</MudText>
+        @if (Queues.Any())
+        {
+            <MudTextField @bind-Value="searchTerm" Placeholder="Search queues..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" />
+        }
+    </MudStack>
+    
+    @if (Queues.Any())
+    {
+        <MudTable Items="@FilteredQueues" Dense="true" Hover="true" Bordered="true" Striped="true">
+            <HeaderContent>
+                <MudTh><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.Name))">Name @GetSortIcon(nameof(EntityInfo.Name))</MudButton></MudTh>
+                <MudTh Align="Center">Status</MudTh>
+                <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.ActiveMessageCount))">Active @GetSortIcon(nameof(EntityInfo.ActiveMessageCount))</MudButton></MudTh>
+                <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.ScheduledMessageCount))">Scheduled @GetSortIcon(nameof(EntityInfo.ScheduledMessageCount))</MudButton></MudTh>
+                <MudTh Align="Center"><MudButton Variant="Variant.Text" OnClick="() => HandleSortColumn(nameof(EntityInfo.DeadLetterMessageCount))">Dead Letter @GetSortIcon(nameof(EntityInfo.DeadLetterMessageCount))</MudButton></MudTh>
+                <MudTh Align="Center">Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><MudText Typo="Typo.subtitle2">@context.Name</MudText></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.Status == "Active" ? Color.Success : Color.Default)">@context.Status</MudChip></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.ActiveMessageCount >0 ? Color.Primary : Color.Default)">@context.ActiveMessageCount</MudChip></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.ScheduledMessageCount >0 ? Color.Warning : Color.Default)">@context.ScheduledMessageCount</MudChip></MudTd>
+                <MudTd Align="Center"><MudChip T=EntityInfo Color="@(context.DeadLetterMessageCount >0 ? Color.Error : Color.Default)">@context.DeadLetterMessageCount</MudChip></MudTd>
+                <MudTd Align="Center">
+                    @if (context.Status == "Active")
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync(context.Name))" StartIcon="@Icons.Material.Filled.PauseCircle">Disable</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="@(() => OnToggleStatus.InvokeAsync(context.Name))" StartIcon="@Icons.Material.Filled.PlayCircle">Enable</MudButton>
+                    }
+                    @if (context.ActiveMessageCount >0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((context.Name, "Active")))">Active</MudButton>
+                    }
+                    @if (context.ScheduledMessageCount >0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((context.Name, "Scheduled")))">Scheduled</MudButton>
+                    }
+                    @if (context.DeadLetterMessageCount >0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnViewMessages.InvokeAsync((context.Name, "DeadLetter")))">DLQ</MudButton>
+                    }
+                    @if (context.ActiveMessageCount ==0 && context.ScheduledMessageCount ==0 && context.DeadLetterMessageCount ==0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">No messages</MudText>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+        
+        @if (!FilteredQueues.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">No queues match your search criteria.</MudAlert>
+        }
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning"><MudIcon Icon="@Icons.Material.Filled.Info" /> No queues found in this namespace.</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public List<EntityInfo> Queues { get; set; } = new();
+
+    [Parameter]
+    public string SortColumn { get; set; } = nameof(EntityInfo.Name);
+
+    [Parameter]
+    public EventCallback<string> SortColumnChanged { get; set; }
+
+    [Parameter]
+    public bool SortAscending { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> SortAscendingChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<(string QueueName, string MessageType)> OnViewMessages { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnToggleStatus { get; set; }
+
+    private string searchTerm = string.Empty;
+
+    private IEnumerable<EntityInfo> FilteredQueues
+    {
+        get
+        {
+            var filtered = Queues.AsEnumerable();
+            
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                filtered = filtered.Where(q => q.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            }
+            
+            filtered = SortColumn switch
+            {
+                nameof(EntityInfo.Name) => SortAscending 
+                    ? filtered.OrderBy(q => q.Name) 
+                    : filtered.OrderByDescending(q => q.Name),
+                nameof(EntityInfo.ActiveMessageCount) => SortAscending 
+                    ? filtered.OrderBy(q => q.ActiveMessageCount) 
+                    : filtered.OrderByDescending(q => q.ActiveMessageCount),
+                nameof(EntityInfo.ScheduledMessageCount) => SortAscending 
+                    ? filtered.OrderBy(q => q.ScheduledMessageCount) 
+                    : filtered.OrderByDescending(q => q.ScheduledMessageCount),
+                nameof(EntityInfo.DeadLetterMessageCount) => SortAscending 
+                    ? filtered.OrderBy(q => q.DeadLetterMessageCount) 
+                    : filtered.OrderByDescending(q => q.DeadLetterMessageCount),
+                _ => filtered
+            };
+            
+            return filtered;
+        }
+    }
+
+    private string GetSortIcon(string columnName)
+    {
+        if (SortColumn != columnName)
+        {
+            return "⇅";
+        }
+        
+        return SortAscending ? "▲" : "▼";
+    }
+
+    private async Task HandleSortColumn(string columnName)
+    {
+        if (SortColumn == columnName)
+        {
+            await SortAscendingChanged.InvokeAsync(!SortAscending);
+        }
+        else
+        {
+            await SortColumnChanged.InvokeAsync(columnName);
+            await SortAscendingChanged.InvokeAsync(true);
+        }
+    }
+}

@@ -1,8 +1,8 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using FakeItEasy;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Infrastructure.ServiceBus;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Infrastructure.ServiceBus;
 
 namespace SBInspector.Tests;
 

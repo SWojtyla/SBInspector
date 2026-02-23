@@ -1,0 +1,166 @@
+@page "/templates"
+@using SEBInspector.Maui.Core.Interfaces
+@using SEBInspector.Maui.Core.Domain
+@using SEBInspector.Maui.Presentation.Components.UI
+@using MudBlazor
+@inject IStorageService StorageService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Message Templates - SBInspector</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" />
+            <MudText Typo="Typo.h4">Message Templates</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToCreate" StartIcon="@Icons.Material.Filled.Add">
+            New Template
+        </MudButton>
+    </MudStack>
+
+    @if (isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-5">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.body1">Loading templates...</MudText>
+        </MudStack>
+    }
+    else if (!templates.Any())
+    {
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info">
+            No message templates found. Create your first template to get started!
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-3" Elevation="1" >
+            <MudTable Items="@templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt)" Dense="true" Hover="true" Bordered="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Subject</MudTh>
+                    <MudTh>Content Type</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Last Used</MudTh>
+                    <MudTh Style="width: 150px;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">
+                        <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Subject">@(context.Subject ?? "-")</MudTd>
+                    <MudTd DataLabel="Content Type">@(context.ContentType ?? "text/plain")</MudTd>
+                    <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Last Used">@(context.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => NavigateToView(context))" Title="View" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToEdit(context))" Title="Edit" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => ShowDeleteConfirmation(context))" Title="Delete" />
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total templates: @templates.Count</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" Class="mt-3" CloseIconClicked="() => successMessage = string.Empty">@successMessage</MudAlert>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3" CloseIconClicked="() => errorMessage = string.Empty">@errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<MessageTemplate> templates = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplatesAsync();
+    }
+
+    private async Task LoadTemplatesAsync()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            templates = await StorageService.GetMessageTemplatesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading templates: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NavigateToCreate()
+    {
+        NavigationManager.NavigateTo("/templates/new");
+    }
+
+    private void NavigateToView(MessageTemplate template)
+    {
+        NavigationManager.NavigateTo($"/templates/view/{template.Id}");
+    }
+
+    private void NavigateToEdit(MessageTemplate template)
+    {
+        NavigationManager.NavigateTo($"/templates/edit/{template.Id}");
+    }
+
+    private async Task ShowDeleteConfirmation(MessageTemplate template)
+    {
+        var parameters = new DialogParameters<ConfirmationModal>
+        {
+            { x => x.Message, $"Are you sure you want to delete the template '{template.Name}'? This action cannot be undone." },
+            { x => x.ConfirmText, "Delete" },
+            { x => x.ConfirmColor, Color.Error },
+            { x => x.ConfirmIconClass, "bi-trash" }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            "Delete Template",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                await StorageService.DeleteMessageTemplateAsync(template.Id);
+                await LoadTemplatesAsync();
+                successMessage = $"Template '{template.Name}' deleted successfully!";
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error deleting template: {ex.Message}";
+            }
+        }
+    }
+}

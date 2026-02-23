@@ -1,6 +1,6 @@
 using Bunit;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Presentation.Components.UI;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Presentation.Components.UI;
 
 namespace SBInspector.Tests.Components;
 

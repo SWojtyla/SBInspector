@@ -1,5 +1,5 @@
 using Bunit;
-using SBInspector.Shared.Presentation.Components.UI;
+using SEBInspector.Maui.Presentation.Components.UI;
 
 namespace SBInspector.Tests.Components;
 

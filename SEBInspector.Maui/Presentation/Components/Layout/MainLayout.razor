@@ -1,0 +1,112 @@
+@using SEBInspector.Maui.Core.Domain
+@using SEBInspector.Maui.Core.Interfaces
+@using SEBInspector.Maui.Application.Services
+@using MudBlazor
+@inject IServiceBusService ServiceBusService
+@inject IStorageService StorageService
+@inject ConnectionStateService ConnectionState
+@inject ConnectionStringEncryptionService EncryptionService
+@inject ThemeService ThemeService
+@implements IDisposable
+@inherits LayoutComponentBase
+
+@* Required *@
+<MudThemeProvider Theme="@_currentTheme" IsDarkMode="@_isDarkMode" />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu 
+            OnConnectionSelected="@HandleConnectionSelected"
+            OnDisconnectRequested="@HandleDisconnectRequested"
+            @ref="navMenuRef" />
+    </div>
+
+    <main>       
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@* <div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div> *@
+
+@code {
+    private NavMenu? navMenuRef;
+    private MudTheme _currentTheme = new MudTheme();
+    private bool _isDarkMode = false;
+
+    protected override void OnInitialized()
+    {
+        _currentTheme = ThemeService.GetCurrentTheme();
+        _isDarkMode = ThemeService.IsDarkMode();
+        ThemeService.ThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        _currentTheme = ThemeService.GetCurrentTheme();
+        _isDarkMode = ThemeService.IsDarkMode();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.ThemeChanged -= OnThemeChanged;
+    }
+
+    private async Task HandleConnectionSelected(SavedConnection connection)
+    {
+        try
+        {
+            // First disconnect from current connection if connected
+            if (ServiceBusService.IsConnected)
+            {
+                await ServiceBusService.DisconnectAsync();
+                // Small delay for smoother transition
+                await Task.Delay(100);
+            }
+            
+            // Decrypt connection string if encrypted
+            var connectionString = connection.IsEncrypted 
+                ? EncryptionService.Decrypt(connection.ConnectionString)
+                : connection.ConnectionString;
+            
+            var success = await ServiceBusService.ConnectAsync(connectionString);
+            if (success)
+            {
+                ConnectionState.CurrentConnectionString = connectionString;
+                
+                // Update last used time
+                await StorageService.UpdateLastUsedAsync(connection.Name);
+                
+                // Refresh the connections list to show updated timestamps
+                if (navMenuRef != null)
+                {
+                    await navMenuRef.RefreshConnectionsAsync();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Error handling can be improved with notifications if needed
+        }
+    }
+
+    private async Task HandleDisconnectRequested()
+    {
+        await ServiceBusService.DisconnectAsync();
+        ConnectionState.CurrentConnectionString = null;
+    }
+}

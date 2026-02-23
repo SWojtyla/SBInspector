@@ -1,4 +1,4 @@
-using SBInspector.Shared.Core.Interfaces;
+using SEBInspector.Maui.Core.Interfaces;
 
 namespace SEBInspector.Maui.Services;
 
