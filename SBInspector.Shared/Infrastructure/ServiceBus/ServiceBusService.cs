@@ -131,7 +131,7 @@ public class ServiceBusService : IServiceBusService
         return topics;
     }
 
-    public async Task<List<MessageInfo>> GetMessagesAsync(string entityName, string messageType, int maxMessages = 100, long? fromSequenceNumber = null)
+    public async Task<List<MessageInfo>> GetMessagesAsync(string entityName, string messageType, int maxMessages = 10, long? fromSequenceNumber = null)
     {
         if (_client == null) return new List<MessageInfo>();
 
@@ -157,52 +157,60 @@ public class ServiceBusService : IServiceBusService
 
             // Azure Service Bus PeekMessagesAsync has a maximum limit of 256 messages per call
             // To fetch more than 256 messages, we need to make multiple calls
-            const int maxMessagesPerPeek = 256;
+            const int maxMessagesPerPeek = 10;
+            // const int maxMessagesPerPeek = 256;
             int remainingMessages = maxMessages;
             long? currentSequenceNumber = fromSequenceNumber;
             
             while (remainingMessages > 0)
             {
                 int messagesToFetch = Math.Min(remainingMessages, maxMessagesPerPeek);
-                var receivedMessages = await receiver.PeekMessagesAsync(messagesToFetch, currentSequenceNumber);
-                
-                if (receivedMessages.Count == 0)
-                {
-                    break; // No more messages available
-                }
-                
-                foreach (var message in receivedMessages)
-                {
-                    var body = message.Body.ToString();
+
+                int timeout = 1000;
+                var task = receiver.PeekMessagesAsync(messagesToFetch, currentSequenceNumber);
+                if (await Task.WhenAny(task, Task.Delay(timeout)) == task) {
+                    var receivedMessages = task.Result;
                     
-                    var messageInfo = new MessageInfo
+                    if (receivedMessages.Count == 0)
                     {
-                        MessageId = message.MessageId ?? string.Empty,
-                        Subject = message.Subject ?? string.Empty,
-                        ContentType = message.ContentType ?? string.Empty,
-                        Body = body,
-                        EnqueuedTime = message.EnqueuedTime.DateTime,
-                        ScheduledEnqueueTime = message.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : message.ScheduledEnqueueTime.DateTime,
-                        SequenceNumber = message.SequenceNumber,
-                        DeliveryCount = message.DeliveryCount,
-                        State = messageType,
-                        Properties = new Dictionary<string, object>()
-                    };
-
-                    foreach (var prop in message.ApplicationProperties)
-                    {
-                        messageInfo.Properties[prop.Key] = prop.Value;
+                        break; // No more messages available
                     }
+                    
+                    foreach (var message in receivedMessages)
+                    {
+                        var body = message.Body.ToString();
+                        
+                        var messageInfo = new MessageInfo
+                        {
+                            MessageId = message.MessageId ?? string.Empty,
+                            Subject = message.Subject ?? string.Empty,
+                            ContentType = message.ContentType ?? string.Empty,
+                            Body = body,
+                            EnqueuedTime = message.EnqueuedTime.DateTime,
+                            ScheduledEnqueueTime = message.ScheduledEnqueueTime == DateTimeOffset.MinValue ? null : message.ScheduledEnqueueTime.DateTime,
+                            SequenceNumber = message.SequenceNumber,
+                            DeliveryCount = message.DeliveryCount,
+                            State = messageType,
+                            Properties = new Dictionary<string, object>()
+                        };
 
-                    messages.Add(messageInfo);
-                }
-                
-                remainingMessages -= receivedMessages.Count;
-                
-                // Set the next sequence number to continue from
-                if (receivedMessages.Count > 0)
-                {
-                    currentSequenceNumber = receivedMessages.Last().SequenceNumber + 1;
+                        foreach (var prop in message.ApplicationProperties)
+                        {
+                            messageInfo.Properties[prop.Key] = prop.Value;
+                        }
+
+                        messages.Add(messageInfo);
+                    }
+                    
+                    remainingMessages -= receivedMessages.Count;
+                    
+                    // Set the next sequence number to continue from
+                    if (receivedMessages.Count > 0)
+                    {
+                        currentSequenceNumber = receivedMessages.Last().SequenceNumber + 1;
+                    }
+                } else { 
+                    // timeout logic
                 }
             }
         }

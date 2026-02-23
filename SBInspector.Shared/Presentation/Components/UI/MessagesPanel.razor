@@ -19,6 +19,7 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Warning" OnClick="HandleDeleteFiltered" Size="Size.Small" Title="Delete Filtered" />
                     <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Error" OnClick="HandlePurge" Size="Size.Small" Title="Purge All" />
                     <MudSelect T="int" Value="@PageSize" ValueChanged="@OnPageSizeChanged" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="width:80px;" Label="Page">
+                        <MudSelectItem Value="10">10</MudSelectItem>
                         <MudSelectItem Value="50">50</MudSelectItem>
                         <MudSelectItem Value="100">100</MudSelectItem>
                         <MudSelectItem Value="200">200</MudSelectItem>
