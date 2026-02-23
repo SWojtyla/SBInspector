@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SEBInspector.Maui.Core.Domain;
 using MudBlazor;
+using MudColors = MudBlazor.Colors;
 
 namespace SEBInspector.Maui.Application.Services;
 
@@ -9,19 +10,19 @@ public class ThemeService
     private readonly string _themeFilePath;
     private ThemePreset _currentPreset = ThemePreset.Custom;
     private ThemeConfiguration _customTheme;
-    
+
     public event EventHandler? ThemeChanged;
 
     public ThemeService()
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var configDirectory = Path.Combine(appDataPath, "SBInspector");
-        
+
         if (!Directory.Exists(configDirectory))
         {
             Directory.CreateDirectory(configDirectory);
         }
-        
+
         _themeFilePath = Path.Combine(configDirectory, "theme-config.json");
         _customTheme = LoadThemeConfiguration();
         LoadCurrentPreset();
@@ -88,12 +89,12 @@ public class ThemeService
         {
             PaletteLight = new PaletteLight()
             {
-                Primary = Colors.Blue.Default,
-                Secondary = Colors.Gray.Default,
+                Primary = MudColors.Blue.Default,
+                Secondary = MudColors.Gray.Default,
                 Background = "#f5f5f5",  // Softer gray instead of very light gray
                 Surface = "#fafafa",      // Slightly darker white for less eye strain
-                AppbarBackground = Colors.Blue.Default,
-                AppbarText = Colors.Shades.White,
+                AppbarBackground = MudColors.Blue.Default,
+                AppbarText = MudColors.Shades.White,
                 DrawerBackground = "#e8e8e8",  // Softer gray for drawer
                 DrawerText = "#212121",        // Darker text for better contrast
             },
@@ -110,14 +111,14 @@ public class ThemeService
         {
             PaletteDark = new PaletteDark()
             {
-                Primary = Colors.Blue.Lighten1,
-                Secondary = Colors.Gray.Default,
+                Primary = MudColors.Blue.Lighten1,
+                Secondary = MudColors.Gray.Default,
                 Background = "#1e1e1e",
                 Surface = "#2d2d30",
                 AppbarBackground = "#2d2d30",
-                AppbarText = Colors.Shades.White,
+                AppbarText = MudColors.Shades.White,
                 DrawerBackground = "#252526",
-                DrawerText = Colors.Shades.White,
+                DrawerText = MudColors.Shades.White,
             },
             LayoutProperties = new LayoutProperties()
             {
@@ -186,7 +187,7 @@ public class ThemeService
         {
             // If there's any error reading the config, return default
         }
-        
+
         return GetDefaultThemeConfiguration();
     }
 

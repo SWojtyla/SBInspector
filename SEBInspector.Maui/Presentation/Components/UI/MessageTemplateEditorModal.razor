@@ -2,34 +2,41 @@
 @using MudBlazor
 
 <MudDialog>
-<DialogContent>
-<MudTextField @bind-Value="templateName" Label="Template Name *" Required="true" Margin="Margin.Normal" />
-<MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Margin="Margin.Normal" Lines="8" />
-<MudGrid Class="mb-3">
-<MudItem xs="6">
-<MudTextField @bind-Value="subject" Label="Subject" Margin="Margin.Normal" />
-</MudItem>
-<MudItem xs="6">
-<MudTextField @bind-Value="contentType" Label="Content Type" Margin="Margin.Normal" Placeholder="e.g., application/json" />
-</MudItem>
-</MudGrid>
-<MudText Typo="Typo.subtitle2">Application Properties</MudText>
-<MudText Typo="Typo.caption" Color="Color.Secondary">Add key-value pairs (one per line, format: key=value)</MudText>
-<MudTextField @bind-Value="propertiesText" Label="Application Properties" Margin="Margin.Normal" Lines="4" />
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-<MudAlert Severity="Severity.Error" Dense="true"><MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage</MudAlert>
-}
-</DialogContent>
-<DialogActions>
-<MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave" StartIcon="@Icons.Material.Filled.Check">Save</MudButton>
-</DialogActions>
+    <DialogContent>
+        <MudTextField @bind-Value="templateName" Label="Template Name *" Required="true" Margin="Margin.Normal" />
+        <MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Margin="Margin.Normal"
+                      Lines="8" />
+        <MudGrid Class="mb-3">
+            <MudItem xs="6">
+                <MudTextField @bind-Value="subject" Label="Subject" Margin="Margin.Normal" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="contentType" Label="Content Type" Margin="Margin.Normal"
+                              Placeholder="e.g., application/json" />
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.subtitle2">Application Properties</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Add key-value pairs (one per line, format: key=value)
+        </MudText>
+        <MudTextField @bind-Value="propertiesText" Label="Application Properties" Margin="Margin.Normal" Lines="4" />
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true">
+                <MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel"
+                   StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave"
+                   StartIcon="@Icons.Material.Filled.Check">Save</MudButton>
+    </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = null!;
+    private MudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public bool IsEditMode { get; set; }

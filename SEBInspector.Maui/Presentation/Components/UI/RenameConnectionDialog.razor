@@ -2,18 +2,20 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="newName" Label="New connection name" Variant="Variant.Outlined" Immediate="true" 
+        <MudTextField @bind-Value="newName" Label="New connection name" Variant="Variant.Outlined" Immediate="true"
                       Error="@(!string.IsNullOrWhiteSpace(errorMessage))" ErrorText="@errorMessage" />
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(!IsValid())" StartIcon="@Icons.Material.Filled.Check">Rename</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel"
+                   StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(!IsValid())"
+                   StartIcon="@Icons.Material.Filled.Check">Rename</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = null!;
+    private MudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public string CurrentName { get; set; } = string.Empty;
@@ -45,7 +47,8 @@
             return false;
         }
 
-        if (ExistingNames.Any(n => n.Equals(newName, StringComparison.OrdinalIgnoreCase) && !n.Equals(CurrentName, StringComparison.OrdinalIgnoreCase)))
+        if (ExistingNames.Any(n => n.Equals(newName, StringComparison.OrdinalIgnoreCase) && !n.Equals(CurrentName,
+StringComparison.OrdinalIgnoreCase)))
         {
             errorMessage = "A connection with this name already exists";
             return false;

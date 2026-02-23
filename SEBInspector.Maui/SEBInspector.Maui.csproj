@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!--<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>-->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
 
@@ -51,6 +51,7 @@
     <!-- App Icon -->
     <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
+
     <!-- Splash Screen -->
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
@@ -63,8 +64,6 @@
 
     <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-    <Content Remove="wwwroot\images\appicon.svg" />
-    <Content Remove="wwwroot\images\appiconfg.svg" />
   </ItemGroup>
 
   <ItemGroup>
@@ -154,21 +153,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\images\appicon.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Color>#512BD4</Color>
-      <ForegroundFile>Resources\AppIcon\appiconfg.svg</ForegroundFile>
-    </None>
-    <None Include="wwwroot\images\appiconfg.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.8" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.2" />
+    <PackageReference Include="MudBlazor" Version="7.3.0" />
   </ItemGroup>
 
 </Project>

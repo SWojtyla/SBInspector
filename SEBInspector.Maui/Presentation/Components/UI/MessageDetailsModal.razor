@@ -6,10 +6,10 @@
 @if (Message != null)
 {
     <MudDialog MaxWidth="MaxWidth.Large" FullWidth="true" Open="true">
-        <MudDialogTitle>
-            <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" /> Message Details
-        </MudDialogTitle>
-        <MudDialogContent>
+        <DialogContent>
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Class="me-2" /> Message Details
+            </MudText>
             <MudGrid>
                 <MudItem xs="6">
                     <MudPaper Class="pa-2">
@@ -18,105 +18,122 @@
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="6">
-                    <MudPaper Class="pa-2" >
+                    <MudPaper Class="pa-2">
                         <MudText Typo="Typo.subtitle2"><b>Subject:</b></MudText>
                         <MudText>@(string.IsNullOrEmpty(Message.Subject) ? "(no subject)" : Message.Subject)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="6">
-                    <MudPaper Class="pa-2" >
+                    <MudPaper Class="pa-2">
                         <MudText Typo="Typo.subtitle2"><b>Content Type:</b></MudText>
-                        <MudText>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)</MudText>
-                    </MudPaper>
-                </MudItem>
-                <MudItem xs="6">
-                    <MudPaper Class="pa-2" >
-                        <MudText Typo="Typo.subtitle2"><b>Delivery Count:</b></MudText>
-                        <MudChip T="object" Color="@(Message.DeliveryCount > 0 ? Color.Warning : Color.Success)">@Message.DeliveryCount</MudChip>
+                        <MudText>@(string.IsNullOrEmpty(Message.ContentType) ? "(not specified)" : Message.ContentType)
+                        </MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="6">
                     <MudPaper Class="pa-2">
-                        <MudText Typo="Typo.subtitle2"><b>Enqueued Time:</b></MudText>
-                        <MudText>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
-                    </MudPaper>
-                </MudItem>
-                @if (Message.ScheduledEnqueueTime.HasValue)
-                {
-                    <MudItem xs="6">
-                        <MudPaper Class="pa-2" >
-                            <MudText Typo="Typo.subtitle2"><b>Scheduled Enqueue Time:</b></MudText>
-                            <MudText>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Delivery Count:</b></MudText>
+                        <MudChip T="object" Color="@(Message.DeliveryCount > 0 ? Color.Warning : Color.Success)">
+                            @Message.DeliveryCount</MudChip>
                         </MudPaper>
                     </MudItem>
+                    <MudItem xs="6">
+                        <MudPaper Class="pa-2">
+                            <MudText Typo="Typo.subtitle2"><b>Enqueued Time:</b></MudText>
+                            <MudText>@Message.EnqueuedTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    @if (Message.ScheduledEnqueueTime.HasValue)
+                    {
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-2">
+                                <MudText Typo="Typo.subtitle2"><b>Scheduled Enqueue Time:</b></MudText>
+                                <MudText>@Message.ScheduledEnqueueTime.Value.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    <MudItem xs="12">
+                        <MudPaper Class="pa-2">
+                            <MudText Typo="Typo.subtitle2"><b>Sequence Number:</b></MudText>
+                            <MudText>@Message.SequenceNumber</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+                @if (Message.Properties.Any())
+                {
+                    <MudExpansionPanels Class="mt-3">
+                        <MudExpansionPanel Text="@($"Application Properties ({Message.Properties.Count})")"
+                                           IsInitiallyExpanded="true">
+                            <TitleContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2">Application Properties (@Message.Properties.Count)</MudText>
+                                </MudStack>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudTable Items="@Message.Properties" Dense="true">
+                                    <HeaderContent>
+                                        <MudTh>Key</MudTh>
+                                        <MudTh>Value</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd><code>@context.Key</code></MudTd>
+                                        <MudTd>@context.Value</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
                 }
-                <MudItem xs="12">
-                    <MudPaper Class="pa-2" >
-                        <MudText Typo="Typo.subtitle2"><b>Sequence Number:</b></MudText>
-                        <MudText>@Message.SequenceNumber</MudText>
-                    </MudPaper>
-                </MudItem>
-            </MudGrid>
-            @if (Message.Properties.Any())
-            {
-                <MudExpansionPanels Class="mt-3">
-                    <MudExpansionPanel Text="@($"Application Properties ({Message.Properties.Count})")" IsInitiallyExpanded="true">
-                        <TitleContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" />
-                                <MudText Typo="Typo.subtitle2">Application Properties (@Message.Properties.Count)</MudText>
-                            </MudStack>
-                        </TitleContent>
-                        <ChildContent>
-                            <MudTable Items="@Message.Properties" Dense="true">
-                                <HeaderContent>
-                                    <MudTh>Key</MudTh>
-                                    <MudTh>Value</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd><code>@context.Key</code></MudTd>
-                                    <MudTd>@context.Value</MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                        </ChildContent>
-                    </MudExpansionPanel>
-                </MudExpansionPanels>
-            }
-            <MudText Typo="Typo.subtitle2" Class="mt-3"><MudIcon Icon="@Icons.Material.Filled.Description" /> Message Body</MudText>
-            <MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
-    <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@Message.Body</pre>
-            </MudPaper>
-            @if (showSaveTemplateForm)
-            {
-                <MudCard Class="mt-3">
-                    <MudCardContent>
-                        <MudText Typo="Typo.subtitle2"><MudIcon Icon="@Icons.Material.Filled.BookmarkAdd" /> Save as Template</MudText>
-                        <MudTextField @bind-Value="templateName" Label="Template Name" Required="true" Margin="Margin.Dense" />
-                        @if (!string.IsNullOrEmpty(saveMessage))
-                        {
-                            <MudAlert Severity="Severity.Success" Dense="true">@saveMessage</MudAlert>
-                        }
-                        @if (!string.IsNullOrEmpty(saveError))
-                        {
-                            <MudAlert Severity="Severity.Error" Dense="true">@saveError</MudAlert>
-                        }
-                        <MudStack Direction="Row" Spacing="2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsTemplate" Disabled="@string.IsNullOrWhiteSpace(templateName)"><MudIcon Icon="@Icons.Material.Filled.Save" /> Save</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => { showSaveTemplateForm = false; templateName = string.Empty; saveMessage = string.Empty; saveError = string.Empty; })">Cancel</MudButton>
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            }
-        </MudDialogContent>
-        <MudDialogActions>
-            @if (!showSaveTemplateForm)
-            {
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => showSaveTemplateForm = true)"><MudIcon Icon="@Icons.Material.Filled.BookmarkAdd" /> Save as Template</MudButton>
-            }
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleClose"><MudIcon Icon="@Icons.Material.Filled.Close" /> Close</MudButton>
-        </MudDialogActions>
-    </MudDialog>
-}
+                <MudText Typo="Typo.subtitle2" Class="mt-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" /> Message Body
+                </MudText>
+                <MudPaper Class="pa-2" Style="max-height:300px;overflow-y:auto;overflow-x:auto;font-size:0.85rem;">
+                    <pre
+                    style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%;">@Message.Body</pre>
+                </MudPaper>
+                @if (showSaveTemplateForm)
+                {
+                    <MudCard Class="mt-3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.subtitle2">
+                                <MudIcon Icon="@Icons.Material.Filled.BookmarkAdd" /> Save as Template
+                            </MudText>
+                            <MudTextField @bind-Value="templateName" Label="Template Name" Required="true" Margin="Margin.Dense" />
+                            @if (!string.IsNullOrEmpty(saveMessage))
+                            {
+                                <MudAlert Severity="Severity.Success" Dense="true">@saveMessage</MudAlert>
+                            }
+                            @if (!string.IsNullOrEmpty(saveError))
+                            {
+                                <MudAlert Severity="Severity.Error" Dense="true">@saveError</MudAlert>
+                            }
+                            <MudStack Direction="Row" Spacing="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsTemplate"
+                                           Disabled="@string.IsNullOrWhiteSpace(templateName)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Save" /> Save
+                                </MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                                           OnClick="@(() => { showSaveTemplateForm = false; templateName = string.Empty; saveMessage = string.Empty; saveError = string.Empty; })">
+                                    Cancel</MudButton>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </DialogContent>
+                <DialogActions>
+                    @if (!showSaveTemplateForm)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => showSaveTemplateForm = true)">
+                            <MudIcon Icon="@Icons.Material.Filled.BookmarkAdd" /> Save as Template
+                        </MudButton>
+                    }
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="HandleClose">
+                        <MudIcon Icon="@Icons.Material.Filled.Close" /> Close
+                    </MudButton>
+                </DialogActions>
+            </MudDialog>
+        }
 
 @code {
     [Parameter]

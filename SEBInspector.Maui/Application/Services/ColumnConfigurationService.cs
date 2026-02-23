@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SEBInspector.Maui.Core.Domain;
+using ColumnDefinition = SEBInspector.Maui.Core.Domain.ColumnDefinition;
 
 namespace SEBInspector.Maui.Application.Services;
 
@@ -12,12 +13,12 @@ public class ColumnConfigurationService
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var configDirectory = Path.Combine(appDataPath, "SBInspector");
-        
+
         if (!Directory.Exists(configDirectory))
         {
             Directory.CreateDirectory(configDirectory);
         }
-        
+
         _configFilePath = Path.Combine(configDirectory, "column-config.json");
         _configuration = LoadConfiguration();
     }
@@ -150,7 +151,7 @@ public class ColumnConfigurationService
         {
             // If there's any error reading the config, return default
         }
-        
+
         // Return default configuration
         return new ColumnConfiguration { Columns = GetDefaultColumns() };
     }

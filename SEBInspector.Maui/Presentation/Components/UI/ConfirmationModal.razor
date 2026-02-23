@@ -5,7 +5,8 @@
         @Message
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel" StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel"
+                   StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
         @if (!string.IsNullOrWhiteSpace(ConfirmIconClass))
         {
             <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit">
@@ -14,14 +15,15 @@
         }
         else
         {
-            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit" StartIcon="@ConfirmIcon">@ConfirmText</MudButton>
+            <MudButton Variant="Variant.Filled" Color="@ConfirmColor" OnClick="Submit" StartIcon="@ConfirmIcon">@ConfirmText
+            </MudButton>
         }
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = null!;
+    private MudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public string Message { get; set; } = "Are you sure?";

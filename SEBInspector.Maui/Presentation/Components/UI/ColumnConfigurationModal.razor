@@ -6,8 +6,9 @@
 <MudDialog>
     <DialogContent>
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.ViewColumn" /> Configure Table Columns</MudText>
-            
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.ViewColumn" /> Configure Table Columns
+            </MudText>
             <MudText Typo="Typo.subtitle2" Class="mb-2">Default Columns</MudText>
             <MudList T="string" Dense="true">
                 @foreach (var column in Columns.Where(c => c.IsSystemColumn).OrderBy(c => c.Order))
@@ -32,7 +33,8 @@
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.NoWrap">
                                 <MudCheckBox T="bool" @bind-Value="@column.IsVisible" Color="Color.Primary" />
                                 <MudText Style="flex-grow:1;">@column.DisplayName</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveCustomColumn(column))" Title="Remove" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => RemoveCustomColumn(column))" Title="Remove" />
                             </MudStack>
                         </MudListItem>
                     }
@@ -42,25 +44,31 @@
             <MudDivider Class="my-3" />
             <MudText Typo="Typo.subtitle2" Class="mb-2">Add Custom Column</MudText>
             <MudStack Spacing="2">
-                <MudTextField @bind-Value="newPropertyKey" Label="Property Key" Placeholder="e.g., NServiceBus.MessageIntent" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudTextField @bind-Value="newDisplayName" Label="Display Name" Placeholder="e.g., Message Intent" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCustomColumn" Disabled="@(string.IsNullOrWhiteSpace(newPropertyKey) || string.IsNullOrWhiteSpace(newDisplayName))" StartIcon="@Icons.Material.Filled.Add">
+                <MudTextField @bind-Value="newPropertyKey" Label="Property Key"
+                              Placeholder="e.g., NServiceBus.MessageIntent" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="newDisplayName" Label="Display Name" Placeholder="e.g., Message Intent"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCustomColumn"
+                           Disabled="@(string.IsNullOrWhiteSpace(newPropertyKey) || string.IsNullOrWhiteSpace(newDisplayName))"
+                           StartIcon="@Icons.Material.Filled.Add">
                     Add Custom Column
                 </MudButton>
             </MudStack>
         </MudPaper>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="ResetToDefault" Color="Color.Warning" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.RestartAlt">Reset to Default</MudButton>
+        <MudButton OnClick="ResetToDefault" Color="Color.Warning" Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.RestartAlt">Reset to Default</MudButton>
         <MudSpacer />
         <MudButton OnClick="Cancel" Color="Color.Default" Variant="Variant.Text">Cancel</MudButton>
-        <MudButton OnClick="Save" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+        <MudButton OnClick="Save" Color="Color.Primary" Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = null!;
+    private MudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
     public List<ColumnDefinition> Columns { get; set; } = new();
@@ -130,7 +138,7 @@
         // Save to the service
         var config = new ColumnConfiguration { Columns = Columns };
         await ColumnConfigService.SaveConfigurationAsync(config);
-        
+
         await OnSave.InvokeAsync(Columns);
         MudDialog?.Close(DialogResult.Ok(true));
     }

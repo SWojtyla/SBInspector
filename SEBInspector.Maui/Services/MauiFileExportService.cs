@@ -10,11 +10,13 @@ public class MauiFileExportService : IFileExportService
         {
             // Use the file saver to save to Downloads/Documents folder
             var filePath = await FileSaver.Default.SaveAsync(filename, content);
-            
+
             if (filePath != null)
             {
                 // Show alert with file location on main thread
-                var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+                var page = Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0
+                    ? Microsoft.Maui.Controls.Application.Current.Windows[0].Page
+                    : null;
                 if (page is not null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
@@ -25,13 +27,15 @@ public class MauiFileExportService : IFileExportService
                 }
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)
         {
             // Show error on main thread
-            var page = Application.Current?.Windows.Count >0 ? Application.Current.Windows[0].Page : null;
+            var page = Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0
+                ? Microsoft.Maui.Controls.Application.Current.Windows[0].Page
+                : null;
             if (page is not null)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -64,9 +68,9 @@ public class DefaultFileSaver : IFileSaver
         {
             // Get the Downloads folder or Documents folder
             var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            
+
             // For desktop platforms, try to get Downloads folder
-            if (DeviceInfo.Platform == DevicePlatform.WinUI || 
+            if (DeviceInfo.Platform == DevicePlatform.WinUI ||
                 DeviceInfo.Platform == DevicePlatform.MacCatalyst)
             {
                 var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -79,22 +83,22 @@ public class DefaultFileSaver : IFileSaver
 
             // Create full file path
             var filePath = Path.Combine(downloadsPath, filename);
-            
+
             // If file exists, add a number to make it unique
-            int counter =1;
+            int counter = 1;
             var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filename);
             var extension = Path.GetExtension(filename);
-            
+
             while (File.Exists(filePath))
             {
                 var newFilename = $"{fileNameWithoutExt}_{counter}{extension}";
                 filePath = Path.Combine(downloadsPath, newFilename);
                 counter++;
             }
-            
+
             // Write the file
             await File.WriteAllTextAsync(filePath, content);
-            
+
             return filePath;
         }
         catch
