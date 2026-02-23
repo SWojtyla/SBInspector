@@ -32,10 +32,6 @@ public class MauiFolderPickerService : IFolderPickerService
 
             var folder = await folderPicker.PickSingleFolderAsync();
             return folder?.Path;
-#else
-            // For other platforms, return null (not supported)
-            await Task.CompletedTask;
-            return null;
 #endif
         }
         catch (Exception)

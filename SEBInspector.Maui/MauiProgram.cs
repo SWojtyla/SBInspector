@@ -26,10 +26,9 @@ namespace SEBInspector.Maui
 
             builder.Services.AddMudServices();
 
-
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             // Add Data Protection for secure storage
