@@ -1,11 +1,20 @@
 using Bunit;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Presentation.Components.UI;
+using MudBlazor;
+using MudBlazor.Services;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Presentation.Components.UI;
+using System.Linq;
 
 namespace SBInspector.Tests.Components;
 
 public class TopicListTableTests : TestContext
 {
+    public TopicListTableTests()
+    {
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
     [Fact]
     public void TopicListTable_WithNoTopics_ShowsWarningMessage()
     {
@@ -14,8 +23,9 @@ public class TopicListTableTests : TestContext
             .Add(p => p.Topics, new List<EntityInfo>()));
 
         // Assert
+        var alert = cut.FindComponent<MudAlert>();
+        Assert.Equal(Severity.Warning, alert.Instance.Severity);
         Assert.Contains("No topics found in this namespace", cut.Markup);
-        Assert.Contains("alert-warning", cut.Markup);
     }
 
     [Fact]
@@ -53,7 +63,6 @@ public class TopicListTableTests : TestContext
 
         // Assert
         Assert.Contains("Disable", cut.Markup);
-        Assert.Contains("bi-pause-circle", cut.Markup);
     }
 
     [Fact]
@@ -71,7 +80,6 @@ public class TopicListTableTests : TestContext
 
         // Assert
         Assert.Contains("Enable", cut.Markup);
-        Assert.Contains("bi-play-circle", cut.Markup);
     }
 
     [Fact]
@@ -89,7 +97,6 @@ public class TopicListTableTests : TestContext
 
         // Assert
         Assert.Contains("View Subscriptions", cut.Markup);
-        Assert.Contains("bi-list", cut.Markup);
     }
 
     [Fact]
@@ -107,7 +114,8 @@ public class TopicListTableTests : TestContext
             .Add(p => p.OnToggleStatus, (string name) => { capturedTopicName = name; }));
 
         // Act
-        var toggleButton = cut.Find("button.btn-secondary");
+        var toggleButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Disable"));
         toggleButton.Click();
 
         // Assert
@@ -129,7 +137,8 @@ public class TopicListTableTests : TestContext
             .Add(p => p.OnViewSubscriptions, (string name) => { capturedTopicName = name; }));
 
         // Act
-        var viewButton = cut.Find("button.btn-info");
+        var viewButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("View Subscriptions"));
         viewButton.Click();
 
         // Assert
@@ -151,14 +160,17 @@ public class TopicListTableTests : TestContext
             .Add(p => p.Topics, topics));
 
         // Act
-        var searchInput = cut.Find("input[placeholder*='Search']");
-        searchInput.Input("production");
+        var searchInput = cut.Find("input[placeholder='Search topics...']");
+        searchInput.Change("production");
 
         // Assert
-        Assert.Contains("production-topic", cut.Markup);
-        Assert.DoesNotContain("development-topic", cut.Markup);
-        Assert.DoesNotContain("test-topic", cut.Markup);
-        Assert.Contains("Topics (1)", cut.Markup);
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("production-topic", cut.Markup);
+            Assert.DoesNotContain("development-topic", cut.Markup);
+            Assert.DoesNotContain("test-topic", cut.Markup);
+            Assert.Contains("Topics (1)", cut.Markup);
+        });
     }
 
     [Fact]
@@ -174,12 +186,13 @@ public class TopicListTableTests : TestContext
             .Add(p => p.Topics, topics));
 
         // Act
-        var searchInput = cut.Find("input[placeholder*='Search']");
-        searchInput.Input("nonexistent");
+        var searchInput = cut.Find("input[placeholder='Search topics...']");
+        searchInput.Change("nonexistent");
 
         // Assert
+        var alert = cut.FindComponent<MudAlert>();
+        Assert.Equal(Severity.Info, alert.Instance.Severity);
         Assert.Contains("No topics match your search criteria", cut.Markup);
-        Assert.Contains("alert-info", cut.Markup);
     }
 
     [Fact]
@@ -200,8 +213,9 @@ public class TopicListTableTests : TestContext
         Assert.Contains("▲", cut.Markup);
 
         // Act - click to change sort order
-        var sortHeader = cut.Find("th.sortable-header");
-        sortHeader.Click();
+        var sortButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Name"));
+        sortButton.Click();
 
         // Assert - should now show descending order (▼)
         Assert.Contains("▼", cut.Markup);
@@ -222,8 +236,10 @@ public class TopicListTableTests : TestContext
             .Add(p => p.Topics, topics));
 
         // Assert
-        Assert.Contains("bg-success", cut.Markup); // Active status
-        Assert.Contains("bg-secondary", cut.Markup); // Disabled status
+        var chips = cut.FindAll(".mud-chip");
+        Assert.Equal(2, chips.Count);
+        Assert.Contains("Active", cut.Markup);
+        Assert.Contains("Disabled", cut.Markup);
     }
 
     [Fact]
@@ -240,7 +256,7 @@ public class TopicListTableTests : TestContext
             .Add(p => p.Topics, topics));
 
         // Assert
-        var searchInput = cut.Find("input[placeholder*='Search']");
+        var searchInput = cut.Find("input[placeholder='Search topics...']");
         Assert.NotNull(searchInput);
     }
 }

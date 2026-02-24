@@ -1,4 +1,4 @@
-using SBInspector.Shared.Core.Interfaces;
+using SEBInspector.Maui.Core.Interfaces;
 
 namespace SEBInspector.Maui.Services;
 
@@ -14,11 +14,11 @@ public class MauiFolderPickerService : IFolderPickerService
 #if WINDOWS
             // Use Windows.Storage.Pickers for Windows platform
             var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-            
+
             // Get the window handle for the current window
-            if (Application.Current?.Windows.Count > 0)
+            if (Microsoft.Maui.Controls.Application.Current?.Windows.Count > 0)
             {
-                var mauiWindow = Application.Current.Windows[0];
+                var mauiWindow = Microsoft.Maui.Controls.Application.Current.Windows[0];
                 var handler = mauiWindow.Handler as Microsoft.Maui.Handlers.WindowHandler;
                 if (handler?.PlatformView is Microsoft.UI.Xaml.Window uiWindow)
                 {

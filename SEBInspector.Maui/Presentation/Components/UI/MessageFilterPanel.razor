@@ -1,0 +1,169 @@
+@using SEBInspector.Maui.Core.Domain
+@using MudBlazor
+
+<MudPaper Class="pa-2 mb-2 mud-elevation-1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle2">Filters</MudText>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@FilteredCount of @TotalCount</MudChip>
+        </MudStack>
+        <MudStack Row="true" Spacing="1">
+            @if (Filters.Any(f => !string.IsNullOrWhiteSpace(f.AttributeName) || !string.IsNullOrWhiteSpace(f.AttributeValue)))
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="ClearAllFilters" StartIcon="@Icons.Material.Filled.Clear" Size="Size.Small">Clear</MudButton>
+            }
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="AddNewFilter" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small">Add</MudButton>
+        </MudStack>
+    </MudStack>
+    @for (int i =0; i < Filters.Count; i++)
+    {
+        var index = i;
+        var filter = Filters[index];
+        <MudPaper Class="pa-2 mb-1" Elevation="0" Style="border:1px solid var(--mud-palette-divider)">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <MudCheckBox T="bool" Checked="@filter.IsEnabled" CheckedChanged="@((bool val) => { filter.IsEnabled = val; _ = NotifyFiltersChanged(); })" Color="Color.Primary" Dense="true" Size="Size.Small" />
+                <MudSelect T="FilterField" Value="@filter.Field" ValueChanged="@((FilterField val) => { filter.Field = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:140px;">
+                    <MudSelectItem Value="FilterField.ApplicationProperty">App Property</MudSelectItem>
+                    <MudSelectItem Value="FilterField.EnqueuedTime">Enqueued</MudSelectItem>
+                    <MudSelectItem Value="FilterField.DeliveryCount">Delivery#</MudSelectItem>
+                    <MudSelectItem Value="FilterField.SequenceNumber">Sequence#</MudSelectItem>
+                </MudSelect>
+                @if (filter.Field == FilterField.ApplicationProperty)
+                {
+                    <MudTextField Value="@filter.AttributeName" ValueChanged="@((string val) => { filter.AttributeName = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="Property name" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:120px;" />
+                }
+                <MudSelect T="Core.Domain.FilterOperator" Value="@filter.Operator" ValueChanged="@((Core.Domain.FilterOperator val) => { filter.Operator = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:100px;">
+                    @foreach (var op in GetAvailableOperators(filter.Field))
+                    {
+                        <MudSelectItem Value="@op">@GetOperatorDisplayName(op)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField Value="@filter.AttributeValue" ValueChanged="@((string val) => { filter.AttributeValue = val; _ = NotifyFiltersChanged(); })" Dense="true" Disabled="@(!filter.IsEnabled)" Placeholder="@GetPlaceholder(filter.Field, filter.Operator)" Margin="Margin.Dense" Type="@GetInputType(filter.Field)" Variant="Variant.Outlined" Style="min-width:120px;flex-grow:1;" />
+                @if (Filters.Count >1)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => RemoveFilterAtIndex(index)" Size="Size.Small" />
+                }
+            </MudStack>
+        </MudPaper>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public List<MessageFilter> Filters { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<MessageFilter>> FiltersChanged { get; set; }
+
+    [Parameter]
+    public int FilteredCount { get; set; }
+
+    [Parameter]
+    public int TotalCount { get; set; }
+
+    private async Task NotifyFiltersChanged()
+    {
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private async Task AddNewFilter()
+    {
+        Filters.Add(new MessageFilter());
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private async Task RemoveFilterAtIndex(int index)
+    {
+        if (Filters.Count >1)
+        {
+            Filters.RemoveAt(index);
+            await FiltersChanged.InvokeAsync(Filters);
+        }
+    }
+
+    private async Task ClearAllFilters()
+    {
+        Filters.Clear();
+        Filters.Add(new MessageFilter());
+        await FiltersChanged.InvokeAsync(Filters);
+    }
+
+    private List<Core.Domain.FilterOperator> GetAvailableOperators(FilterField field)
+    {
+        return field switch
+        {
+            FilterField.ApplicationProperty => new List<Core.Domain.FilterOperator>
+            {
+                Core.Domain.FilterOperator.Contains,
+                Core.Domain.FilterOperator.NotContains,
+                Core.Domain.FilterOperator.Equals,
+                Core.Domain.FilterOperator.NotEquals,
+                Core.Domain.FilterOperator.Regex,
+                Core.Domain.FilterOperator.GreaterThan,
+                Core.Domain.FilterOperator.LessThan,
+                Core.Domain.FilterOperator.GreaterThanOrEqual,
+                Core.Domain.FilterOperator.LessThanOrEqual
+            },
+            FilterField.EnqueuedTime => new List<Core.Domain.FilterOperator>
+            {
+                Core.Domain.FilterOperator.Equals,
+                Core.Domain.FilterOperator.NotEquals,
+                Core.Domain.FilterOperator.GreaterThan,
+                Core.Domain.FilterOperator.LessThan,
+                Core.Domain.FilterOperator.GreaterThanOrEqual,
+                Core.Domain.FilterOperator.LessThanOrEqual
+            },
+            FilterField.DeliveryCount or FilterField.SequenceNumber => new List<Core.Domain.FilterOperator>
+            {
+                Core.Domain.FilterOperator.Equals,
+                Core.Domain.FilterOperator.NotEquals,
+                Core.Domain.FilterOperator.GreaterThan,
+                Core.Domain.FilterOperator.LessThan,
+                Core.Domain.FilterOperator.GreaterThanOrEqual,
+                Core.Domain.FilterOperator.LessThanOrEqual
+            },
+            _ => new List<Core.Domain.FilterOperator> { Core.Domain.FilterOperator.Contains }
+        };
+    }
+
+    private string GetOperatorDisplayName(Core.Domain.FilterOperator op)
+    {
+        return op switch
+        {
+            Core.Domain.FilterOperator.Contains => "Contains",
+            Core.Domain.FilterOperator.NotContains => "Not Contains",
+            Core.Domain.FilterOperator.Equals => "Equals",
+            Core.Domain.FilterOperator.NotEquals => "Not Equals",
+            Core.Domain.FilterOperator.GreaterThan => "Greater Than",
+            Core.Domain.FilterOperator.LessThan => "Less Than",
+            Core.Domain.FilterOperator.GreaterThanOrEqual => "Greater Than or Equal",
+            Core.Domain.FilterOperator.LessThanOrEqual => "Less Than or Equal",
+            Core.Domain.FilterOperator.Regex => "Regex",
+            _ => op.ToString()
+        };
+    }
+
+    private InputType GetInputType(FilterField field)
+    {
+        return field switch
+        {
+            FilterField.EnqueuedTime => InputType.DateTimeLocal,
+            FilterField.DeliveryCount or FilterField.SequenceNumber => InputType.Number,
+            _ => InputType.Text
+        };
+    }
+
+    private string GetPlaceholder(FilterField field, Core.Domain.FilterOperator op)
+    {
+        return field switch
+        {
+            FilterField.EnqueuedTime => "Select date and time",
+            FilterField.DeliveryCount => "e.g.,5",
+            FilterField.SequenceNumber => "e.g.,12345",
+            FilterField.ApplicationProperty when op == Core.Domain.FilterOperator.Regex => "e.g., ^ABC.*",
+            FilterField.ApplicationProperty => "e.g.,12345, ABC",
+            _ => ""
+        };
+    }
+}

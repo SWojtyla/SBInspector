@@ -1,5 +1,5 @@
-using SBInspector.Shared.Application.Services;
-using SBInspector.Shared.Core.Domain;
+using SEBInspector.Maui.Application.Services;
+using SEBInspector.Maui.Core.Domain;
 
 namespace SBInspector.Tests.Services;
 

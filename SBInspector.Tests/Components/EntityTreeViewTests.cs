@@ -1,11 +1,18 @@
 using Bunit;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Presentation.Components.UI;
+using MudBlazor.Services;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Presentation.Components.UI;
 
 namespace SBInspector.Tests.Components;
 
 public class EntityTreeViewTests : TestContext
 {
+    public EntityTreeViewTests()
+    {
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
     [Fact]
     public void EntityTreeView_WhenLoading_ShowsSpinner()
     {

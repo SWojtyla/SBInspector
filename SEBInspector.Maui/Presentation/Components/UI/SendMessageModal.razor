@@ -1,0 +1,340 @@
+@using SEBInspector.Maui.Core.Interfaces
+@using SEBInspector.Maui.Core.Domain
+@using MudBlazor
+@inject IStorageService StorageService
+
+<MudDialog>
+    <DialogContent>
+        @if (!IsReschedule && messageTemplates.Any())
+        {
+            <MudPaper Class="pa-3 mb-4" Elevation="1">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
+                        <strong>Load from Template</strong>
+                    </MudText>
+                    <MudSelect T="string" @bind-Value="selectedTemplateId" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="string.Empty">-- Select a template --</MudSelectItem>
+                        @foreach (var template in messageTemplates)
+                        {
+                            <MudSelectItem Value="@template.Id">
+                                <MudStack Row="false" Spacing="0">
+                                    <MudText Typo="Typo.body2"><strong>@template.Name</strong></MudText>
+                                    @if (template.LastUsedAt.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Last used:
+                                            @template.LastUsedAt.Value.ToLocalTime().ToString("g")</MudText>
+                                        }
+                                    </MudStack>
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSelectedTemplate"
+                                       Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Download"
+                                       FullWidth="true">Load Template</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedTemplate"
+                                       Disabled="@string.IsNullOrEmpty(selectedTemplateId)" StartIcon="@Icons.Material.Filled.Delete"
+                                       FullWidth="true">Delete</MudButton>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+            <MudText Typo="Typo.subtitle1" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Class="mr-1" />
+                <strong>Message Content</strong>
+            </MudText>
+            <MudTextField @bind-Value="messageBody" Label="Message Body *" Required="true" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Lines="6" />
+            <MudGrid Spacing="2" Class="mt-2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="subject" Label="Subject" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="contentType" Label="Content Type" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Placeholder="e.g., application/json" />
+                </MudItem>
+            </MudGrid>
+            @if (IsReschedule)
+            {
+                <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" InputType="InputType.DateTimeLocal" Class="mt-3" />
+            }
+            else
+            {
+                <MudStack Spacing="2" Class="mt-3">
+                    <MudCheckBox T="bool" @bind-Value="isScheduled" Label="Schedule message for later delivery"
+                                 Disabled="@sendToDeadLetter" />
+                    @if (isScheduled)
+                    {
+                        <MudTextField @bind-Value="scheduledTime" Label="Scheduled Enqueue Time *" Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" InputType="InputType.DateTimeLocal" />
+                    }
+                    <MudCheckBox T="bool" @bind-Value="sendToDeadLetter" Label="Send directly to dead-letter queue" />
+                </MudStack>
+            }
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle1" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Class="mr-1" />
+                <strong>Application Properties</strong>
+            </MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Add key-value pairs (one per line, format:
+                key=value)</MudText>
+                <MudTextField @bind-Value="propertiesText" Label="Application Properties" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Lines="4" />
+                @if (!IsReschedule)
+                {
+                    <MudDivider Class="my-4" />
+                    <MudStack Spacing="2">
+                        <MudCheckBox T="bool" @bind-Value="shouldSaveTemplate" Label="Save as template for later use" />
+                        @if (shouldSaveTemplate)
+                        {
+                            <MudTextField @bind-Value="templateName" Label="Template Name" Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" Placeholder="Enter a name for this template" />
+                        }
+                    </MudStack>
+                }
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
+                        <MudIcon Icon="@Icons.Material.Filled.Error" /> @errorMessage
+                    </MudAlert>
+                }
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3"
+                              CloseIconClicked="@(() => successMessage = string.Empty)" ShowCloseIcon="true">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage
+                    </MudAlert>
+                }
+            </DialogContent>
+            <DialogActions>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel"
+                           StartIcon="@Icons.Material.Filled.Close">Cancel</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSend" Disabled="@isSending"
+                           StartIcon="@Icons.Material.Filled.Send">
+                    @if (isSending)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        <span>Sending...</span>
+                    }
+                    else
+                    {
+                        <span>@(IsReschedule ? "Reschedule" : "Send")</span>
+                    }
+                </MudButton>
+            </DialogActions>
+        </MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public bool IsReschedule { get; set; }
+
+    [Parameter]
+    public MessageInfo? ExistingMessage { get; set; }
+
+    private string messageBody = string.Empty;
+    private string subject = string.Empty;
+    private string contentType = "text/plain";
+    private string propertiesText = string.Empty;
+    private bool isScheduled = false;
+    private bool sendToDeadLetter = false;
+    private DateTime scheduledTime = DateTime.Now.AddHours(1);
+    private string errorMessage = string.Empty;
+    private bool isSending = false;
+
+    private List<MessageTemplate> messageTemplates = new();
+    private string selectedTemplateId = string.Empty;
+    private bool shouldSaveTemplate = false;
+    private string templateName = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsReschedule)
+        {
+            isScheduled = true;
+        }
+
+        // Load templates when modal becomes visible
+        if (!IsReschedule)
+        {
+            await LoadMessageTemplatesAsync();
+        }
+
+        // Pre-populate from existing message if provided
+        if (ExistingMessage != null)
+        {
+            messageBody = ExistingMessage.Body;
+            subject = ExistingMessage.Subject ?? string.Empty;
+            contentType = ExistingMessage.ContentType ?? "text/plain";
+
+            if (ExistingMessage.Properties?.Any() == true)
+            {
+                propertiesText = string.Join("\n",
+                    ExistingMessage.Properties.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+            }
+        }
+    }
+
+    private async Task LoadMessageTemplatesAsync()
+    {
+        messageTemplates = await StorageService.GetMessageTemplatesAsync();
+    }
+
+    private async Task LoadSelectedTemplate()
+    {
+        var template = messageTemplates.FirstOrDefault(t => t.Id == selectedTemplateId);
+        if (template != null)
+        {
+            messageBody = template.MessageBody;
+            subject = template.Subject ?? string.Empty;
+            contentType = template.ContentType ?? "text/plain";
+
+            if (template.Properties?.Any() == true)
+            {
+                propertiesText = string.Join("\n",
+                    template.Properties.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+            }
+
+            templateName = template.Name;
+            await StorageService.UpdateTemplateLastUsedAsync(template.Id);
+            await LoadMessageTemplatesAsync();
+            successMessage = $"Loaded template '{template.Name}'";
+        }
+    }
+
+    private async Task DeleteSelectedTemplate()
+    {
+        if (!string.IsNullOrEmpty(selectedTemplateId))
+        {
+            await StorageService.DeleteMessageTemplateAsync(selectedTemplateId);
+            await LoadMessageTemplatesAsync();
+            selectedTemplateId = string.Empty;
+            successMessage = "Template deleted successfully";
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task HandleSend()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        // Validate
+        if (string.IsNullOrWhiteSpace(messageBody))
+        {
+            errorMessage = "Message body is required.";
+            return;
+        }
+
+        if ((isScheduled || IsReschedule) && scheduledTime <= DateTime.Now)
+        {
+            errorMessage = "Scheduled time must be in the future.";
+            return;
+        }
+
+        if (sendToDeadLetter && isScheduled)
+        {
+            errorMessage = "Cannot schedule messages when sending to dead-letter queue.";
+            return;
+        }
+
+        isSending = true;
+
+        try
+        {
+            // Parse properties
+            var properties = new Dictionary<string, object>();
+            var invalidLines = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(propertiesText))
+            {
+                var lines = propertiesText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmedLine))
+                        continue;
+
+                    var parts = trimmedLine.Split('=', 2);
+                    if (parts.Length == 2)
+                    {
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+
+                        if (!string.IsNullOrWhiteSpace(key))
+                        {
+                            properties[key] = value;
+                        }
+                        else
+                        {
+                            invalidLines.Add(trimmedLine);
+                        }
+                    }
+                    else
+                    {
+                        invalidLines.Add(trimmedLine);
+                    }
+                }
+            }
+
+            // Warn about invalid lines
+            if (invalidLines.Any())
+            {
+                errorMessage = $"Warning: {invalidLines.Count} property line(s) have invalid format. Expected format: key=value";
+                isSending = false;
+                return;
+            }
+
+            // Save as template if requested
+            if (!IsReschedule && shouldSaveTemplate && !string.IsNullOrWhiteSpace(templateName))
+            {
+                var template = new MessageTemplate
+                {
+                    Name = templateName.Trim(),
+                    MessageBody = messageBody,
+                    Subject = subject,
+                    ContentType = contentType,
+                    Properties = properties.Count > 0 ? properties : null
+                };
+                await StorageService.SaveMessageTemplateAsync(template);
+                await LoadMessageTemplatesAsync();
+            }
+
+            var data = new MessageData
+            {
+                Body = messageBody,
+                Subject = subject,
+                ContentType = contentType,
+                Properties = properties,
+                ScheduledTime = (isScheduled || IsReschedule) ? scheduledTime : null,
+                SendToDeadLetter = sendToDeadLetter
+            };
+
+            MudDialog.Close(DialogResult.Ok(data));
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+            isSending = false;
+        }
+    }
+
+    public class MessageData
+    {
+        public string Body { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public Dictionary<string, object> Properties { get; set; } = new();
+        public DateTime? ScheduledTime { get; set; }
+        public bool SendToDeadLetter { get; set; }
+    }
+}

@@ -1,0 +1,203 @@
+@using SEBInspector.Maui.Core.Domain
+@using SEBInspector.Maui.Core.Interfaces
+@using SEBInspector.Maui.Application.Services
+@using MudBlazor
+@inject IStorageService StorageService
+@inject IServiceBusService ServiceBusService
+@inject ConnectionStateService ConnectionState
+@inject ConnectionStringEncryptionService EncryptionService
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudPaper Class="pa-2 mud-elevation-1">
+    <MudText Typo="Typo.subtitle1" Class="mb-2"><MudIcon Icon="@Icons.Material.Filled.ElectricalServices" Size="Size.Small" /> Connections</MudText>
+    @if (isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-1">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
+        </MudStack>
+    }
+    else if (savedConnections.Any())
+    {
+        <MudList T=SavedConnection Dense="true" Class="py-0">
+            @foreach (var connection in savedConnections)
+            {
+                <MudListItem Class="@((IsConnected(connection) ? "mud-selected" : ""))" Style="padding:4px 8px;">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="cursor:pointer;flex-grow:1;" @onclick="() => HandleConnectionClick(connection)" Title="@(IsConnected(connection) ? "Click to disconnect" : "Click to connect")">
+                            <MudIcon Icon="@(IsConnected(connection) ? Icons.Material.Filled.ElectricalServices : Icons.Material.Outlined.ElectricalServices)" Color="@(IsConnected(connection) ? Color.Success : Color.Default)" Size="Size.Small" />
+                            <MudText Typo="Typo.body2">@connection.Name</MudText>
+                            @if (IsConnected(connection))
+                            {
+                                <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Connected</MudChip>
+                            }
+                        </MudStack>
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default" OnClick="@(() => ShowRenameDialog(connection))" Title="Rename connection" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => ShowDeleteConfirmation(connection))" Title="Delete connection" />
+                        </MudStack>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">No saved connections</MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public EventCallback<SavedConnection> OnConnect { get; set; }
+
+    [Parameter]
+    public EventCallback OnDisconnect { get; set; }
+
+    private List<SavedConnection> savedConnections = new();
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConnectionsAsync();
+        ConnectionState.OnChange += HandleConnectionStateChanged;
+        ConnectionState.OnConnectionsChanged += HandleConnectionsListChanged;
+    }
+
+    private async Task LoadConnectionsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            savedConnections = await StorageService.GetSavedConnectionsAsync();
+            savedConnections = savedConnections
+            .OrderByDescending(c => c.LastUsedAt ?? DateTime.MinValue)
+            .ThenBy(c => c.Name)
+            .ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public async Task RefreshConnectionsAsync()
+    {
+        await LoadConnectionsAsync();
+        StateHasChanged();
+    }
+
+    private void HandleConnectionStateChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async void HandleConnectionsListChanged()
+    {
+        await RefreshConnectionsAsync();
+    }
+
+    private bool IsConnected(SavedConnection connection)
+    {
+        if (!ServiceBusService.IsConnected || string.IsNullOrEmpty(ConnectionState.CurrentConnectionString))
+        {
+            return false;
+        }
+        var connectionString = connection.IsEncrypted
+        ? EncryptionService.Decrypt(connection.ConnectionString)
+        : connection.ConnectionString;
+        return connectionString == ConnectionState.CurrentConnectionString;
+    }
+
+    private async Task HandleConnectionClick(SavedConnection connection)
+    {
+        if (IsConnected(connection))
+        {
+            await OnDisconnect.InvokeAsync();
+        }
+        else
+        {
+            await OnConnect.InvokeAsync(connection);
+        }
+    }
+
+    private async Task ShowDeleteConfirmation(SavedConnection connection)
+    {
+        var parameters = new DialogParameters<ConfirmationModal>
+        {
+            { x => x.Message, $"Are you sure you want to delete the connection '{connection.Name}'? This action cannot be undone." },
+            { x => x.ConfirmText, "Delete" },
+            { x => x.ConfirmColor, Color.Error },
+            { x => x.ConfirmIconClass, "bi-trash" }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationModal>(
+            "Delete Connection",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                await StorageService.DeleteConnectionAsync(connection.Name);
+                await RefreshConnectionsAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle error silently or notify user
+            }
+        }
+    }
+
+    private async Task ShowRenameDialog(SavedConnection connection)
+    {
+        var parameters = new DialogParameters<RenameConnectionDialog>
+        {
+            { x => x.CurrentName, connection.Name },
+            { x => x.ExistingNames, savedConnections.Select(c => c.Name).ToList() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<RenameConnectionDialog>(
+            "Rename Connection",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string newName)
+        {
+            try
+            {
+                await StorageService.RenameConnectionAsync(connection.Name, newName);
+                await RefreshConnectionsAsync();
+            }
+            catch (Exception ex)
+            {
+                // Handle error silently or notify user
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        ConnectionState.OnChange -= HandleConnectionStateChanged;
+        ConnectionState.OnConnectionsChanged -= HandleConnectionsListChanged;
+    }
+}

@@ -1,10 +1,19 @@
 using Bunit;
-using SBInspector.Shared.Presentation.Components.UI;
+using MudBlazor;
+using MudBlazor.Services;
+using SEBInspector.Maui.Presentation.Components.UI;
+using System.Linq;
 
 namespace SBInspector.Tests.Components;
 
 public class BackgroundOperationPanelTests : TestContext
 {
+    public BackgroundOperationPanelTests()
+    {
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
     [Fact]
     public void BackgroundOperationPanel_WhenNotVisible_DoesNotRenderPanel()
     {
@@ -12,9 +21,8 @@ public class BackgroundOperationPanelTests : TestContext
         var cut = RenderComponent<BackgroundOperationPanel>(parameters => parameters
             .Add(p => p.IsVisible, false));
 
-        // Assert - The panel div should not be rendered (CSS is always rendered)
-        var panelDivs = cut.FindAll("div.background-operation-panel");
-        Assert.Empty(panelDivs);
+        // Assert
+        Assert.Empty(cut.Markup);
     }
 
     [Fact]
@@ -26,7 +34,7 @@ public class BackgroundOperationPanelTests : TestContext
 
         // Assert
         Assert.Contains("Processing...", cut.Markup);
-        Assert.Contains("bi-arrow-repeat", cut.Markup);
+        Assert.Contains("mud-animate-spin", cut.Markup);
     }
 
     [Fact]
@@ -68,8 +76,8 @@ public class BackgroundOperationPanelTests : TestContext
             .Add(p => p.Message, string.Empty));
 
         // Assert
-        var messageParagraphs = cut.FindAll("p.text-muted");
-        Assert.Empty(messageParagraphs);
+        var textBlocks = cut.FindComponents<MudText>();
+        Assert.Single(textBlocks);
     }
 
     [Fact]
@@ -84,7 +92,7 @@ public class BackgroundOperationPanelTests : TestContext
             .Add(p => p.Progress, progress));
 
         // Assert
-        Assert.Contains("progress-bar", cut.Markup);
+        Assert.NotNull(cut.FindComponent<MudProgressLinear>());
         Assert.Contains("42 deleted", cut.Markup);
     }
 
@@ -97,7 +105,7 @@ public class BackgroundOperationPanelTests : TestContext
             .Add(p => p.Progress, 0));
 
         // Assert
-        var progressBars = cut.FindAll(".progress");
+        var progressBars = cut.FindComponents<MudProgressLinear>();
         Assert.Empty(progressBars);
     }
 
@@ -111,7 +119,8 @@ public class BackgroundOperationPanelTests : TestContext
             .Add(p => p.OnCancel, () => { cancelCalled = true; }));
 
         // Act
-        var cancelButton = cut.Find("button.btn-outline-danger");
+        var cancelButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Cancel"));
         cancelButton.Click();
 
         // Assert
@@ -126,8 +135,8 @@ public class BackgroundOperationPanelTests : TestContext
             .Add(p => p.IsVisible, true));
 
         // Assert
-        Assert.Contains("background-operation-panel", cut.Markup);
-        Assert.Contains("background-operation-card", cut.Markup);
+        Assert.NotNull(cut.FindComponent<MudPaper>());
+        Assert.NotNull(cut.FindComponent<MudCard>());
     }
 
     [Fact]
@@ -138,9 +147,8 @@ public class BackgroundOperationPanelTests : TestContext
             .Add(p => p.IsVisible, true));
 
         // Assert
-        var cancelButton = cut.Find("button.btn-outline-danger");
-        Assert.NotNull(cancelButton);
-        Assert.Contains("Cancel", cancelButton.TextContent);
-        Assert.Contains("bi-x-circle", cut.Markup);
+        var cancelButton = cut.FindAll("button")
+            .First(button => button.TextContent.Contains("Cancel"));
+        Assert.Equal("Cancel operation", cancelButton.GetAttribute("title"));
     }
 }

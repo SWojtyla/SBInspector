@@ -2,10 +2,13 @@ using Bunit;
 using FakeItEasy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
-using SBInspector.Shared.Application.Services;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Core.Interfaces;
-using SBInspector.Shared.Presentation.Components.UI;
+using MudBlazor;
+using MudBlazor.Services;
+using SEBInspector.Maui.Application.Services;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Core.Interfaces;
+using SEBInspector.Maui.Presentation.Components.UI;
+using System.Linq;
 
 namespace SBInspector.Tests.Components;
 
@@ -18,17 +21,20 @@ public class ConnectionFormTests : TestContext
 
     public ConnectionFormTests()
     {
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
         _mockServiceBusService = A.Fake<IServiceBusService>();
         _mockStorageService = A.Fake<IStorageService>();
         _connectionState = new ConnectionStateService();
-        
+
         // Create a stub implementation of IDataProtector for testing
         var mockDataProtectionProvider = A.Fake<IDataProtectionProvider>();
         var stubDataProtector = new StubDataProtector();
-        
+
         A.CallTo(() => mockDataProtectionProvider.CreateProtector(A<string>._))
             .Returns(stubDataProtector);
-        
+
         _encryptionService = new ConnectionStringEncryptionService(mockDataProtectionProvider);
 
         // Register services
@@ -112,7 +118,8 @@ public class ConnectionFormTests : TestContext
             .Add(p => p.ErrorMessage, errorMessage));
 
         // Assert
-        Assert.Contains("alert-danger", cut.Markup);
+        var alert = cut.FindComponent<MudAlert>();
+        Assert.Equal(Severity.Error, alert.Instance.Severity);
         Assert.Contains(errorMessage, cut.Markup);
     }
 
@@ -131,7 +138,7 @@ public class ConnectionFormTests : TestContext
             .Add(p => p.OnConnected, () => { onConnectedCalled = true; }));
 
         // Act
-        var connectButton = cut.Find("button.btn-primary");
+        var connectButton = cut.Find("button");
         await cut.InvokeAsync(() => connectButton.Click());
 
         // Assert
@@ -155,7 +162,7 @@ public class ConnectionFormTests : TestContext
             .Add(p => p.ErrorMessageChanged, (string msg) => { capturedErrorMessage = msg; }));
 
         // Act
-        var connectButton = cut.Find("button.btn-primary");
+        var connectButton = cut.Find("button");
         await cut.InvokeAsync(() => connectButton.Click());
 
         // Assert
@@ -170,14 +177,15 @@ public class ConnectionFormTests : TestContext
         var cut = RenderComponent<ConnectionForm>();
 
         // Act
-        var checkbox = cut.Find("input[type='checkbox']#saveConnection");
+        var checkbox = cut.Find("input[type='checkbox']");
         checkbox.Change(true);
 
         // Assert
         cut.WaitForAssertion(() =>
         {
-            var nameInput = cut.Find("input[type='text'][placeholder*='name']");
-            Assert.NotNull(nameInput);
+            var nameField = cut.FindComponents<MudTextField<string>>()
+                .FirstOrDefault(field => field.Instance.Label == "Enter a name for this connection");
+            Assert.NotNull(nameField);
         });
     }
 
@@ -195,18 +203,20 @@ public class ConnectionFormTests : TestContext
             .Add(p => p.ConnectionString, connectionString));
 
         // Enable save connection checkbox
-        var checkbox = cut.Find("input[type='checkbox']#saveConnection");
+        var checkbox = cut.Find("input[type='checkbox']");
         checkbox.Change(true);
 
         // Enter connection name
         cut.WaitForAssertion(() =>
         {
-            var nameInput = cut.Find("input[type='text'][placeholder*='name']");
-            nameInput.Change(connectionName);
+            var nameField = cut.FindComponents<MudTextField<string>>()
+                .FirstOrDefault(field => field.Instance.Label == "Enter a name for this connection");
+            Assert.NotNull(nameField);
+            nameField!.Find("input").Change(connectionName);
         });
 
         // Act
-        var connectButton = cut.Find("button.btn-primary");
+        var connectButton = cut.Find("button");
         await cut.InvokeAsync(() => connectButton.Click());
 
         // Assert
@@ -225,7 +235,7 @@ public class ConnectionFormTests : TestContext
             .Add(p => p.IsConnecting, true));
 
         // Assert
-        var connectButton = cut.Find("button.btn-primary");
+        var connectButton = cut.Find("button");
         Assert.True(connectButton.HasAttribute("disabled"));
         Assert.Contains("Connecting...", cut.Markup);
     }

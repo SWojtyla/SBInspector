@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
-using SBInspector.Shared.Application.Services;
-using SBInspector.Shared.Core.Domain;
-using SBInspector.Shared.Core.Interfaces;
-using SBInspector.Shared.Infrastructure.ServiceBus;
-using SBInspector.Shared.Infrastructure.Storage;
+using SEBInspector.Maui.Application.Services;
+using SEBInspector.Maui.Core.Domain;
+using SEBInspector.Maui.Core.Interfaces;
+using SEBInspector.Maui.Infrastructure.ServiceBus;
+using SEBInspector.Maui.Infrastructure.Storage;
 using SEBInspector.Maui.Services;
 
 namespace SEBInspector.Maui

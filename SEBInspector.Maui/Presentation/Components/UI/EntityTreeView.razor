@@ -1,0 +1,209 @@
+@using SEBInspector.Maui.Core.Domain
+@using MudBlazor
+
+<MudPaper Class="@GetPaperClass()">
+    <MudStack Spacing="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+            @if (!isCollapsed)
+            {
+                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" /> Entities</MudText>
+            }
+            <MudStack Row="true" Spacing="0">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="HandleRefresh" Disabled="@IsLoading" Size="Size.Small" Title="Refresh" />
+                <MudIconButton Icon="@(isCollapsed ? Icons.Material.Filled.ChevronRight : Icons.Material.Filled.ChevronLeft)" Color="Color.Default" OnClick="ToggleCollapse" Size="Size.Small" Title="@(isCollapsed ? "Expand" : "Collapse")" />
+            </MudStack>
+        </MudStack>
+        @if (!isCollapsed)
+        {
+        @if (IsLoading)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-1">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+            </MudStack>
+        }
+        @if (!IsLoading && (Queues.Any() || Topics.Any()))
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudTextField @bind-Value="searchTerm" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Margin="Margin.Dense" Variant="Variant.Outlined" Class="flex-grow-1" />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Color="Color.Default" OnClick="ClearSearch" Size="Size.Small" Title="Clear search" />
+                }                   
+            </MudStack>
+        }
+        <MudStack Spacing="1">
+            @if (FilteredQueues.Any())
+            {
+                <MudExpansionPanels Dense="true">
+                    <MudExpansionPanel Text=@($"Queues ({FilteredQueues.Count()})") >
+                        <MudList T="EntityInfo" Dense="true" Class="py-0">
+                            @foreach (var queue in FilteredQueues)
+                            {
+                                <MudListItem Class="@((IsSelected("queue", queue.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => SelectQueue(queue.Name)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
+                                        <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2" Class="flex-shrink-1" Style="min-width:0;overflow:hidden;text-overflow:ellipsis;">@queue.Name</MudText>
+                                        <MudStack Row="true" Spacing="0" Class="flex-shrink-0">
+                                            <MudChip T="string" Color="@(GetStatusColor(queue.Status))" Size="Size.Small" Variant="Variant.Text">@queue.Status</MudChip>
+                                            @if (queue.ActiveMessageCount > 0)
+                                            {
+                                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">A:@queue.ActiveMessageCount</MudChip>
+                                            }
+                                            @if (queue.ScheduledMessageCount > 0)
+                                            {
+                                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Text">S:@queue.ScheduledMessageCount</MudChip>
+                                            }
+                                            @if (queue.DeadLetterMessageCount > 0)
+                                            {
+                                                <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">DL:@queue.DeadLetterMessageCount</MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudStack>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+            @if (FilteredTopics.Any())
+            {
+                <MudExpansionPanels Dense="true">
+                    <MudExpansionPanel Text=@($"Topics ({FilteredTopics.Count()})") >
+                        <MudList T="EntityInfo" Dense="true" Class="py-0">
+                            @foreach (var topic in FilteredTopics)
+                            {
+                                <MudListItem Class="@((IsSelected("topic", topic.Name) ? "mud-selected" : string.Empty))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => SelectTopic(topic.Name)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
+                                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2" Class="flex-shrink-1" Style="min-width:0;overflow:hidden;text-overflow:ellipsis;">@topic.Name</MudText>
+                                        <MudChip T="string" Color="@(GetStatusColor(topic.Status))" Size="Size.Small" Variant="Variant.Text" Class="flex-shrink-0">@topic.Status</MudChip>
+                                        <MudIconButton Icon="@(expandedTopics.Contains(topic.Name) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Default" OnClick="@(() => ToggleTopic(topic.Name))" Size="Size.Small" Class="flex-shrink-0" />
+                                    </MudStack>
+                                </MudListItem>
+
+                                @if (expandedTopics.Contains(topic.Name) && TopicSubscriptions.ContainsKey(topic.Name))
+                                {
+                                    <MudList Dense="true" Class="pl-4 py-0">
+                                        @if (LoadingTopics.Contains(topic.Name))
+                                        {
+                                            <MudProgressCircular Color="Color.Primary" Size="Size.Small" />
+                                        }
+                                        else
+                                        {
+                                            @foreach (var subscription in FilteredSubscriptions(topic.Name))
+                                            {
+                                                <MudListItem Class="@((IsSelected("subscription", $"{topic.Name}/{subscription.Name}") ? "mud-selected" : string.Empty))" Style="cursor:pointer;padding:4px 8px;" @onclick="() => SelectSubscription(topic.Name, subscription.Name)">
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
+                                                        <MudText Typo="Typo.body2" Class="flex-shrink-1" Style="min-width:0;overflow:hidden;text-overflow:ellipsis;">@subscription.Name</MudText>
+                                                        <MudStack Row="true" Spacing="0" Class="flex-shrink-0">
+                                                            <MudChip T="string" Color="@(GetStatusColor(subscription.Status))" Size="Size.Small" Variant="Variant.Text">@subscription.Status</MudChip>
+                                                            @if (subscription.ActiveMessageCount > 0)
+                                                            {
+                                                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">A:@subscription.ActiveMessageCount</MudChip>
+                                                            }
+                                                            @if (subscription.DeadLetterMessageCount > 0)
+                                                            {
+                                                                <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">DL:@subscription.DeadLetterMessageCount</MudChip>
+                                                            }
+                                                        </MudStack>
+                                                    </MudStack>
+                                                </MudListItem>
+                                            }
+                                        }
+                                    </MudList>
+                                }
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+
+            @if (!FilteredQueues.Any() && !FilteredTopics.Any() && (Queues.Any() || Topics.Any()))
+            {
+                <MudAlert Severity="Severity.Info">No entities match your search criteria.</MudAlert>
+            }
+            @if (!IsLoading && !Queues.Any() && !Topics.Any())
+            {
+                <MudAlert Severity="Severity.Info">No entities found</MudAlert>
+            }
+        </MudStack>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public List<EntityInfo> Queues { get; set; } = new();
+    [Parameter] public List<EntityInfo> Topics { get; set; } = new();
+    [Parameter] public Dictionary<string, List<SubscriptionInfo>> TopicSubscriptions { get; set; } = new();
+    [Parameter] public HashSet<string> LoadingTopics { get; set; } = new();
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? SelectedEntityType { get; set; }
+    [Parameter] public string? SelectedEntityName { get; set; }
+    [Parameter] public EventCallback<string> OnQueueSelected { get; set; }
+    [Parameter] public EventCallback<string> OnTopicSelected { get; set; }
+    [Parameter] public EventCallback<(string TopicName, string SubscriptionName)> OnSubscriptionSelected { get; set; }
+    [Parameter] public EventCallback<string> OnLoadSubscriptions { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
+
+    private HashSet<string> expandedTopics = new();
+    private string searchTerm = string.Empty;
+    private bool isCollapsed = false;
+
+    private async Task ToggleCollapse()
+    {
+        isCollapsed = !isCollapsed;
+        await OnCollapsedChanged.InvokeAsync(isCollapsed);
+    }
+
+    private string GetPaperClass()
+    {
+        return $"pa-2 mud-elevation-1 entity-tree-view {(isCollapsed ? "collapsed" : "")}";
+    }
+
+    private IEnumerable<EntityInfo> FilteredQueues => string.IsNullOrWhiteSpace(searchTerm)
+    ? Queues
+    : Queues.Where(q => q.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<EntityInfo> FilteredTopics => string.IsNullOrWhiteSpace(searchTerm)
+    ? Topics
+    : Topics.Where(t => t.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<SubscriptionInfo> FilteredSubscriptions(string topicName)
+    {
+        if (!TopicSubscriptions.ContainsKey(topicName)) return Enumerable.Empty<SubscriptionInfo>();
+        var subs = TopicSubscriptions[topicName];
+        return string.IsNullOrWhiteSpace(searchTerm)
+        ? subs
+        : subs.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ClearSearch() => searchTerm = string.Empty;
+
+    private async Task HandleRefresh() => await OnRefresh.InvokeAsync();
+
+    private async Task SelectQueue(string queueName) => await OnQueueSelected.InvokeAsync(queueName);
+    private async Task SelectTopic(string topicName) => await OnTopicSelected.InvokeAsync(topicName);
+    private async Task SelectSubscription(string topicName, string subscriptionName) => await OnSubscriptionSelected.InvokeAsync((topicName, subscriptionName));
+
+    private void ToggleTopic(string topicName)
+    {
+        if (expandedTopics.Contains(topicName))
+        {
+            expandedTopics.Remove(topicName);
+        }
+        else
+        {
+            expandedTopics.Add(topicName);
+            if (!TopicSubscriptions.ContainsKey(topicName))
+            {
+                _ = OnLoadSubscriptions.InvokeAsync(topicName); // fire and forget
+            }
+        }
+    }
+
+    private bool IsSelected(string entityType, string entityName) => SelectedEntityType == entityType && SelectedEntityName == entityName;
+
+    private Color GetStatusColor(string status) => status == "Active" ? Color.Success : Color.Default;
+}
