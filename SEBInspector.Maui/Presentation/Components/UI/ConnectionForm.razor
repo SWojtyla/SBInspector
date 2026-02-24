@@ -26,7 +26,7 @@
 
         @if (!string.IsNullOrEmpty(successMessage))
         {
-            <MudAlert Severity="Severity.Success" Elevation="0" Dense="true" OnClose="@(() => successMessage = string.Empty)">
+            <MudAlert Severity="Severity.Success" Elevation="0" Dense="true" Closable="true" CloseIconClicked="() => successMessage = string.Empty">
                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle" /> @successMessage
             </MudAlert>
         }

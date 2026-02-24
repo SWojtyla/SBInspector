@@ -15,7 +15,8 @@
             <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" />
             <MudText Typo="Typo.h4">Message Templates</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToCreate" StartIcon="@Icons.Material.Filled.Add">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToCreate"
+                   StartIcon="@Icons.Material.Filled.Add">
             New Template
         </MudButton>
     </MudStack>
@@ -35,8 +36,9 @@
     }
     else
     {
-        <MudPaper Class="pa-3" Elevation="1" >
-            <MudTable Items="@templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt)" Dense="true" Hover="true" Bordered="true" Striped="true">
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudTable Items="@templates.OrderByDescending(t => t.LastUsedAt).ThenByDescending(t => t.CreatedAt)"
+                      Dense="true" Hover="true" Bordered="true" Striped="true">
                 <HeaderContent>
                     <MudTh>Name</MudTh>
                     <MudTh>Subject</MudTh>
@@ -55,9 +57,12 @@
                     <MudTd DataLabel="Last Used">@(context.LastUsedAt?.ToLocalTime().ToString("g") ?? "Never")</MudTd>
                     <MudTd DataLabel="Actions">
                         <MudStack Row="true" Spacing="1">
-                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => NavigateToView(context))" Title="View" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigateToEdit(context))" Title="Edit" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => ShowDeleteConfirmation(context))" Title="Delete" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small"
+                                           OnClick="@(() => NavigateToView(context))" title="View" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="@(() => NavigateToEdit(context))" title="Edit" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => ShowDeleteConfirmation(context))" title="Delete" />
                         </MudStack>
                     </MudTd>
                 </RowTemplate>
@@ -71,12 +76,14 @@
 
     @if (!string.IsNullOrEmpty(successMessage))
     {
-        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" Class="mt-3" CloseIconClicked="() => successMessage = string.Empty">@successMessage</MudAlert>
+        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle"
+                  Class="mt-3" CloseIconClicked="() => successMessage = string.Empty">@successMessage</MudAlert>
     }
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3" CloseIconClicked="() => errorMessage = string.Empty">@errorMessage</MudAlert>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3"
+                  CloseIconClicked="() => errorMessage = string.Empty">@errorMessage</MudAlert>
     }
 </MudContainer>
 
@@ -149,7 +156,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             try
             {

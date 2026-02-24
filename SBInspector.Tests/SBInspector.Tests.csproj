@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SEBInspector.Maui\SEBInspector.Maui.csproj" />
+    <ProjectReference Include="..\SEBInspector.Maui\SEBInspector.Maui.csproj" Properties="WindowsAppSdkAutoInitialize=false;WindowsAppSdkBootstrapInitialize=false;WindowsAppSdkDeploymentManagerInitialize=false;WindowsAppSdkUndockedRegFreeWinRTInitialize=false;WindowsAppSdkCompatibilityInitialize=false" />
   </ItemGroup>
 
 </Project>

@@ -263,7 +263,6 @@
         successMessage = string.Empty;
         operationErrorMessage = string.Empty;
         isOperationInProgress = false;
-        isDeleteFiltered = false;
         
         // Cancel and clean up active purge operations
         foreach (var operation in activeOperations.Values)
@@ -343,7 +342,6 @@
         successMessage = string.Empty;
         operationErrorMessage = string.Empty;
         isOperationInProgress = false;
-        isDeleteFiltered = false;
         
         // Cancel any ongoing purge operations
         try
@@ -701,8 +699,6 @@
     private string operationLoadingMessage = string.Empty;
     
     // Purge operation state - support for multiple concurrent purge operations
-    private bool isDeleteFiltered = false; // Flag to differentiate between normal purge and filtered delete
-    
     private class PurgeOperation
     {
         public string OperationId { get; set; } = string.Empty;
@@ -740,7 +736,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             operationErrorMessage = string.Empty;
             successMessage = string.Empty;
@@ -815,7 +811,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             operationErrorMessage = string.Empty;
             successMessage = string.Empty;
@@ -890,7 +886,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             operationErrorMessage = string.Empty;
             successMessage = string.Empty;
@@ -963,7 +959,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is SendMessageModal.MessageData data)
+        if (result?.Canceled is false && result.Data is SendMessageModal.MessageData data)
         {
             operationErrorMessage = string.Empty;
             successMessage = string.Empty;
@@ -1034,7 +1030,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is SendMessageModal.MessageData data)
+        if (result?.Canceled is false && result.Data is SendMessageModal.MessageData data)
         {
             operationErrorMessage = string.Empty;
             successMessage = string.Empty;
@@ -1141,7 +1137,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             await ExecutePurgeOperation(false);
         }
@@ -1404,7 +1400,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             await ExecutePurgeOperation(true);
         }

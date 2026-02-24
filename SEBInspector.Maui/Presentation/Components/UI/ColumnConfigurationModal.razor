@@ -34,7 +34,7 @@
                                 <MudCheckBox T="bool" @bind-Value="@column.IsVisible" Color="Color.Primary" />
                                 <MudText Style="flex-grow:1;">@column.DisplayName</MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                               OnClick="@(() => RemoveCustomColumn(column))" Title="Remove" />
+                                               OnClick="@(() => RemoveCustomColumn(column))" title="Remove" />
                             </MudStack>
                         </MudListItem>
                     }

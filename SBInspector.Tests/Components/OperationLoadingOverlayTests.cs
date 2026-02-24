@@ -1,10 +1,18 @@
 using Bunit;
+using MudBlazor;
+using MudBlazor.Services;
 using SEBInspector.Maui.Presentation.Components.UI;
 
 namespace SBInspector.Tests.Components;
 
 public class OperationLoadingOverlayTests : TestContext
 {
+    public OperationLoadingOverlayTests()
+    {
+        Services.AddMudServices();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
     [Fact]
     public void OperationLoadingOverlay_WhenNotVisible_DoesNotRender()
     {
@@ -25,7 +33,7 @@ public class OperationLoadingOverlayTests : TestContext
 
         // Assert
         Assert.Contains("Processing...", cut.Markup);
-        Assert.Contains("spinner-border", cut.Markup);
+        Assert.NotNull(cut.FindComponent<MudProgressCircular>());
     }
 
     [Fact]
@@ -67,8 +75,8 @@ public class OperationLoadingOverlayTests : TestContext
             .Add(p => p.Message, string.Empty));
 
         // Assert
-        var paragraphs = cut.FindAll("p");
-        Assert.Empty(paragraphs);
+        var textBlocks = cut.FindComponents<MudText>();
+        Assert.Single(textBlocks);
     }
 
     [Fact]
@@ -79,7 +87,7 @@ public class OperationLoadingOverlayTests : TestContext
             .Add(p => p.IsVisible, true));
 
         // Assert
-        Assert.Contains("operation-overlay", cut.Markup);
-        Assert.Contains("operation-loading-card", cut.Markup);
+        Assert.NotNull(cut.FindComponent<MudOverlay>());
+        Assert.NotNull(cut.FindComponent<MudPaper>());
     }
 }

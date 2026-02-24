@@ -2,10 +2,11 @@
 
 @if (IsVisible)
 {
-    <MudPaper Class="mud-elevation-24" Style="position:fixed;bottom:20px;right:20px;z-index:1300;max-width:400px;min-width:300px;">
+    <MudPaper Class="mud-elevation-24"
+              Style="position:fixed;bottom:20px;right:20px;z-index:1300;max-width:400px;min-width:300px;">
         <MudCard>
             <MudCardContent>
-                <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Start" JustifyContent="JustifyContent.SpaceBetween">
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween">
                     <MudStack Spacing="1" Style="flex:1;">
                         <MudText Typo="Typo.h6">
                             <MudIcon Icon="@Icons.Material.Filled.Autorenew" Class="mud-animate-spin" /> @Title
@@ -16,14 +17,15 @@
                         }
                         @if (Progress > 0)
                         {
-                            <MudProgressLinear Value="@Progress" Color="Color.Primary" Height="20" Class="my-2">
+                            <MudProgressLinear Value="@Progress" Color="Color.Primary" Class="my-2" Style="height:20px;">
                                 <ChildContent>
                                     <MudText Typo="Typo.caption">@Progress deleted</MudText>
                                 </ChildContent>
                             </MudProgressLinear>
                         }
                     </MudStack>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="HandleCancel" Title="Cancel operation">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="HandleCancel"
+                               title="Cancel operation">
                         <MudIcon Icon="@Icons.Material.Filled.Cancel" /> Cancel
                     </MudButton>
                 </MudStack>

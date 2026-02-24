@@ -22,7 +22,8 @@
         <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error">
             Template not found.
         </MudAlert>
-        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-3">
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack"
+                   StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-3">
             Back to Templates
         </MudButton>
     }
@@ -34,10 +35,12 @@
                 <MudText Typo="Typo.h4">View Template</MudText>
             </MudStack>
             <MudStack Row="true" Spacing="2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEdit" StartIcon="@Icons.Material.Filled.Edit">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEdit"
+                           StartIcon="@Icons.Material.Filled.Edit">
                     Edit Template
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack"
+                           StartIcon="@Icons.Material.Filled.ArrowBack">
                     Back to Templates
                 </MudButton>
             </MudStack>
@@ -121,14 +124,17 @@
         </MudPaper>
 
         <MudStack Row="true" Spacing="2" Class="mt-4" Justify="Justify.SpaceBetween">
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack" StartIcon="@Icons.Material.Filled.ArrowBack">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="NavigateBack"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
                 Back to Templates
             </MudButton>
             <MudStack Row="true" Spacing="2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEdit" StartIcon="@Icons.Material.Filled.Edit">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToEdit"
+                           StartIcon="@Icons.Material.Filled.Edit">
                     Edit Template
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ShowDeleteConfirmation" StartIcon="@Icons.Material.Filled.Delete">
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ShowDeleteConfirmation"
+                           StartIcon="@Icons.Material.Filled.Delete">
                     Delete
                 </MudButton>
             </MudStack>
@@ -136,12 +142,15 @@
 
         @if (!string.IsNullOrEmpty(successMessage))
         {
-            <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle" Class="mt-3" CloseIconClicked="() => successMessage = string.Empty" ShowCloseIcon="true">@successMessage</MudAlert>
+            <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle"
+                      Class="mt-3" CloseIconClicked="() => successMessage = string.Empty" ShowCloseIcon="true">@successMessage
+            </MudAlert>
         }
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3" CloseIconClicked="() => errorMessage = string.Empty" ShowCloseIcon="true">@errorMessage</MudAlert>
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Error" Class="mt-3"
+                      CloseIconClicked="() => errorMessage = string.Empty" ShowCloseIcon="true">@errorMessage</MudAlert>
         }
     }
 </MudContainer>
@@ -232,7 +241,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled is false)
         {
             try
             {
