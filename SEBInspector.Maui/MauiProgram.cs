@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using SEBInspector.Maui.Application.Services;
@@ -12,6 +14,20 @@ namespace SEBInspector.Maui
 {
     public static class MauiProgram
     {
+        private sealed class SimpleHostEnvironment : IHostEnvironment
+        {
+            public SimpleHostEnvironment(string contentRootPath)
+            {
+                ContentRootPath = contentRootPath;
+                ContentRootFileProvider = new NullFileProvider();
+            }
+
+            public string ApplicationName { get; set; } = "SBInspector";
+            public string EnvironmentName { get; set; } = Environments.Production;
+            public string ContentRootPath { get; set; }
+            public IFileProvider ContentRootFileProvider { get; set; }
+        }
+
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
@@ -29,14 +45,20 @@ namespace SEBInspector.Maui
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
-            // Add Data Protection for secure storage
-            builder.Services.AddDataProtection()
-                .SetApplicationName("SBInspector")
-                .PersistKeysToFileSystem(new DirectoryInfo(
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SBInspector", "Keys")));
+            // Add Data Protection without relying on MAUI's host environment implementation.
+            var dataProtectionKeyPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SBInspector",
+                "Keys");
+            Directory.CreateDirectory(dataProtectionKeyPath);
+            builder.Services.AddSingleton<IHostEnvironment>(new SimpleHostEnvironment(AppContext.BaseDirectory));
+            builder.Services
+                .AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath))
+                .SetApplicationName("SBInspector");
 
             // Register services following clean architecture
             builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();
@@ -47,7 +69,7 @@ namespace SEBInspector.Maui
             builder.Services.AddSingleton<ColumnConfigurationService>();
 
             // Register storage configuration service with FileSystem as default for MAUI
-            builder.Services.AddSingleton<StorageConfigurationService>(sp => 
+            builder.Services.AddSingleton<StorageConfigurationService>(sp =>
                 new StorageConfigurationService(StorageType.FileSystem));
 
             // Register storage service with factory pattern
