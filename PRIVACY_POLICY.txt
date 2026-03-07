@@ -1,16 +1,16 @@
-PRIVACY POLICY FOR SBINSPECTOR
+PRIVACY POLICY FOR SEBInspector
 
 Last Updated: November 7, 2025
 
 SUMMARY
-SBInspector does not collect, use, or share any user data. All data (Azure Service Bus connection strings and message templates) is stored locally on the user's device in encrypted form. The application connects directly to the user's Azure Service Bus namespace and does not transmit any data to third parties or our servers. No analytics, tracking, or advertising services are used.
+SEBInspector does not collect, use, or share any user data. All data (Azure Service Bus connection strings and message templates) is stored locally on the user's device in encrypted form. The application connects directly to the user's Azure Service Bus namespace and does not transmit any data to third parties or our servers. No analytics, tracking, or advertising services are used.
 
 INTRODUCTION
-SBInspector is an Azure Service Bus Inspector application available as both a Blazor web application and a .NET MAUI desktop application. This Privacy Policy describes how the App handles your information.
+SEBInspector is an Azure Service Bus Inspector application available as both a Blazor web application and a .NET MAUI desktop application. This Privacy Policy describes how the App handles your information.
 
 DEVELOPER INFORMATION
 Developer: SWojtyla
-Contact: https://github.com/SWojtyla/SBInspector
+Contact: https://github.com/SWojtyla/SEBInspector
 
 DATA COLLECTION AND USAGE
 The App accesses the following information solely for inspecting and managing your Azure Service Bus resources:
@@ -22,9 +22,9 @@ The App accesses the following information solely for inspecting and managing yo
 HOW DATA IS STORED
 
 Desktop Application (.NET MAUI):
-- Connection strings: Encrypted and stored in Desktop/SBInspector/connections.json
-- Message templates: Stored in Documents/SBInspector/Templates/templates.json
-- Exported messages: Saved to Documents/SBInspector/Exports/ when you export
+- Connection strings: Encrypted and stored in Desktop/SEBInspector/connections.json
+- Message templates: Stored in Documents/SEBInspector/Templates/templates.json
+- Exported messages: Saved to Documents/SEBInspector/Exports/ when you export
 
 Web Application (Blazor Server):
 - Connection strings: Encrypted and stored in browser local storage
@@ -66,12 +66,12 @@ Required for:
 - Exporting messages when you choose
 
 OPEN SOURCE
-SBInspector is open source software. Review the source code at:
-https://github.com/SWojtyla/SBInspector
+SEBInspector is open source software. Review the source code at:
+https://github.com/SWojtyla/SEBInspector
 
 CONTACT
 For questions about this Privacy Policy:
-GitHub Issues: https://github.com/SWojtyla/SBInspector/issues
+GitHub Issues: https://github.com/SWojtyla/SEBInspector/issues
 
 LEGAL COMPLIANCE
 This Privacy Policy complies with:

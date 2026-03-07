@@ -1,7 +1,7 @@
 using SEBInspector.Maui.Application.Services;
 using SEBInspector.Maui.Core.Domain;
 
-namespace SBInspector.Tests.Services;
+namespace SEBInspector.Tests.Services;
 
 public class NServiceBusMessageHelperTests
 {

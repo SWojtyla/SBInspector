@@ -6,7 +6,7 @@ Owner: plan-expert
 
 ## Overview
 
-Migrate SBInspector projects to .NET 10 while keeping behavior unchanged. This includes MAUI and test projects currently targeting net9.0-windows10.0.19041.0.
+Migrate SEBInspector projects to .NET 10 while keeping behavior unchanged. This includes MAUI and test projects currently targeting net9.0-windows10.0.19041.0.
 
 ## Goals
 

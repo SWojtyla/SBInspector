@@ -1,20 +1,23 @@
 # Privacy Policy Files - Quick Reference
 
 ## Overview
-This directory contains comprehensive privacy policy documentation for SBInspector, ready for Microsoft Store submission.
+
+This directory contains comprehensive privacy policy documentation for SEBInspector, ready for Microsoft Store submission.
 
 ## Files Included
 
 ### 1. PRIVACY_POLICY.md
+
 - **Format**: Markdown
 - **Lines**: 129
-- **Use for**: 
+- **Use for**:
   - GitHub repository display
   - Website hosting
   - Detailed legal reference
 - **Content**: Complete privacy policy with all sections
 
 ### 2. PRIVACY_POLICY_SHORT.md
+
 - **Format**: Markdown
 - **Lines**: 40
 - **Use for**:
@@ -24,6 +27,7 @@ This directory contains comprehensive privacy policy documentation for SBInspect
 - **Special**: Contains specific "Privacy Statement for Microsoft Store" at bottom
 
 ### 3. PRIVACY_POLICY.txt
+
 - **Format**: Plain text
 - **Lines**: 83
 - **Use for**:
@@ -33,6 +37,7 @@ This directory contains comprehensive privacy policy documentation for SBInspect
 - **Content**: Same as full policy but formatted as plain text
 
 ### 4. MICROSOFT_STORE_SUBMISSION_GUIDE.md
+
 - **Format**: Markdown
 - **Lines**: 118
 - **Use for**:
@@ -46,12 +51,13 @@ This directory contains comprehensive privacy policy documentation for SBInspect
 **Privacy Statement (use this in the Microsoft Store submission form):**
 
 ```
-SBInspector does not collect, use, or share any user data. All data (Azure Service Bus connection strings and message templates) is stored locally on the user's device in encrypted form. The application connects directly to the user's Azure Service Bus namespace and does not transmit any data to third parties or our servers. No analytics, tracking, or advertising services are used.
+SEBInspector does not collect, use, or share any user data. All data (Azure Service Bus connection strings and message templates) is stored locally on the user's device in encrypted form. The application connects directly to the user's Azure Service Bus namespace and does not transmit any data to third parties or our servers. No analytics, tracking, or advertising services are used.
 ```
 
 **Privacy Policy URL Options:**
-1. GitHub Raw: `https://raw.githubusercontent.com/SWojtyla/SBInspector/main/PRIVACY_POLICY.md`
-2. GitHub Pages (if enabled): `https://swojtyla.github.io/SBInspector/PRIVACY_POLICY.html`
+
+1. GitHub Raw: `https://raw.githubusercontent.com/SWojtyla/SEBInspector/main/PRIVACY_POLICY.md`
+2. GitHub Pages (if enabled): `https://swojtyla.github.io/SEBInspector/PRIVACY_POLICY.html`
 3. Your own website (copy content from PRIVACY_POLICY.md)
 
 ## Key Points
@@ -61,7 +67,7 @@ SBInspector does not collect, use, or share any user data. All data (Azure Servi
 ✅ **Encryption** - Connection strings encrypted with Microsoft Data Protection API  
 ✅ **No third parties** - No data shared with anyone  
 ✅ **No tracking** - No analytics, telemetry, or advertising  
-✅ **Open source** - Full code available for review  
+✅ **Open source** - Full code available for review
 
 ## Data Declarations for Store
 
@@ -73,19 +79,21 @@ When filling out Microsoft Store forms:
 **Usage Data**: ❌ No  
 **Diagnostics**: ❌ No  
 **Location**: ❌ No  
-**Financial Info**: ❌ No  
+**Financial Info**: ❌ No
 
 **Share with third parties**: ❌ No  
 **Use analytics**: ❌ No  
-**Use advertising**: ❌ No  
+**Use advertising**: ❌ No
 
 ## Permissions Required
 
 **Desktop App:**
+
 - File System Access (to save encrypted connection strings locally)
 - Network Access (to connect to Azure Service Bus)
 
 **Web App:**
+
 - Local Storage (to save encrypted connection strings in browser)
 - Network Access (to connect to Azure Service Bus)
 
@@ -99,7 +107,7 @@ When filling out Microsoft Store forms:
 
 ## Questions?
 
-Open an issue: https://github.com/SWojtyla/SBInspector/issues
+Open an issue: https://github.com/SWojtyla/SEBInspector/issues
 
 ## Legal Note
 
@@ -109,4 +117,4 @@ This privacy policy is designed to comply with GDPR, CCPA, and Microsoft Store r
 
 **Created**: November 7, 2025  
 **For**: Microsoft Store Submission  
-**Repository**: https://github.com/SWojtyla/SBInspector
+**Repository**: https://github.com/SWojtyla/SEBInspector

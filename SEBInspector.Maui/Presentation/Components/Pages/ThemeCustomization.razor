@@ -19,7 +19,7 @@
                     <h5 class="card-title">
                         <i class="bi bi-sun"></i> Theme Preset
                     </h5>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Select Theme</label>
                         <select class="form-select" @bind="selectedPreset" @bind:after="OnPresetChanged">
@@ -53,15 +53,17 @@
                         <h5 class="card-title">
                             <i class="bi bi-paint-bucket"></i> Custom Theme Configuration
                         </h5>
-                        
+
                         <div class="mb-3">
                             <label class="form-label">Theme Name</label>
-                            <input type="text" class="form-control" @bind="customTheme.Name" placeholder="My Custom Theme" />
+                            <input type="text" class="form-control" @bind="customTheme.Name"
+                                   placeholder="My Custom Theme" />
                         </div>
 
                         <div class="mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="darkModeCheck" @bind="customTheme.IsDarkMode" />
+                                <input class="form-check-input" type="checkbox" id="darkModeCheck"
+                                       @bind="customTheme.IsDarkMode" />
                                 <label class="form-check-label" for="darkModeCheck">
                                     Use Dark Mode
                                 </label>
@@ -77,12 +79,14 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Primary Color</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.Primary" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.Primary" />
                                 <small class="form-text text-muted">Main brand color for buttons and accents</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Secondary Color</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.Secondary" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.Secondary" />
                                 <small class="form-text text-muted">Secondary accent color</small>
                             </div>
                         </div>
@@ -91,12 +95,14 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">AppBar Background</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.AppbarBackground" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.AppbarBackground" />
                                 <small class="form-text text-muted">Top navigation bar background</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">AppBar Text</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.AppbarText" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.AppbarText" />
                                 <small class="form-text text-muted">Top navigation bar text color</small>
                             </div>
                         </div>
@@ -105,12 +111,14 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Background Color</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.Background" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.Background" />
                                 <small class="form-text text-muted">Main background color</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Surface Color</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.Surface" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.Surface" />
                                 <small class="form-text text-muted">Card and panel background</small>
                             </div>
                         </div>
@@ -119,12 +127,14 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Drawer Background</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.DrawerBackground" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.DrawerBackground" />
                                 <small class="form-text text-muted">Side navigation background</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Drawer Text</label>
-                                <input type="color" class="form-control form-control-color w-100" @bind="customTheme.DrawerText" />
+                                <input type="color" class="form-control form-control-color w-100"
+                                       @bind="customTheme.DrawerText" />
                                 <small class="form-text text-muted">Side navigation text color</small>
                             </div>
                         </div>
@@ -133,7 +143,8 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Border Radius</label>
-                                <input type="text" class="form-control" @bind="customTheme.DefaultBorderRadius" placeholder="4px" />
+                                <input type="text" class="form-control" @bind="customTheme.DefaultBorderRadius"
+                                       placeholder="4px" />
                                 <small class="form-text text-muted">Default border radius (e.g., 4px, 8px)</small>
                             </div>
                         </div>
@@ -149,31 +160,39 @@
                         <p class="text-muted small">Load a pre-configured color scheme to customize further</p>
                         <h6 class="mb-2">Light Themes</h6>
                         <div class="btn-group mb-3" role="group">
-                            <button type="button" class="btn btn-outline-primary" @onclick="@(() => LoadQuickPreset("Ocean"))">
+                            <button type="button" class="btn btn-outline-primary"
+                                    @onclick="@(() => LoadQuickPreset("Ocean"))">
                                 Ocean Blue
                             </button>
-                            <button type="button" class="btn btn-outline-success" @onclick="@(() => LoadQuickPreset("Forest"))">
+                            <button type="button" class="btn btn-outline-success"
+                                    @onclick="@(() => LoadQuickPreset("Forest"))">
                                 Forest Green
                             </button>
-                            <button type="button" class="btn btn-outline-danger" @onclick="@(() => LoadQuickPreset("Sunset"))">
+                            <button type="button" class="btn btn-outline-danger"
+                                    @onclick="@(() => LoadQuickPreset("Sunset"))">
                                 Sunset Orange
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => LoadQuickPreset("Monochrome"))">
+                            <button type="button" class="btn btn-outline-secondary"
+                                    @onclick="@(() => LoadQuickPreset("Monochrome"))">
                                 Monochrome
                             </button>
                         </div>
                         <h6 class="mb-2">Dark Themes</h6>
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary" @onclick="@(() => LoadQuickPreset("OceanDark"))">
+                            <button type="button" class="btn btn-outline-primary"
+                                    @onclick="@(() => LoadQuickPreset("OceanDark"))">
                                 Ocean Dark
                             </button>
-                            <button type="button" class="btn btn-outline-success" @onclick="@(() => LoadQuickPreset("ForestDark"))">
+                            <button type="button" class="btn btn-outline-success"
+                                    @onclick="@(() => LoadQuickPreset("ForestDark"))">
                                 Forest Dark
                             </button>
-                            <button type="button" class="btn btn-outline-danger" @onclick="@(() => LoadQuickPreset("SunsetDark"))">
+                            <button type="button" class="btn btn-outline-danger"
+                                    @onclick="@(() => LoadQuickPreset("SunsetDark"))">
                                 Sunset Dark
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => LoadQuickPreset("MonochromeDark"))">
+                            <button type="button" class="btn btn-outline-secondary"
+                                    @onclick="@(() => LoadQuickPreset("MonochromeDark"))">
                                 Monochrome Dark
                             </button>
                         </div>
@@ -209,7 +228,7 @@
                         <i class="bi bi-info-circle"></i> About Theme Customization
                     </h5>
                     <p class="card-text">
-                        Customize the look and feel of SBInspector to match your preferences.
+                        Customize the look and feel of SEBInspector to match your preferences.
                     </p>
                     <hr />
                     <h6>Theme Presets</h6>
@@ -242,7 +261,8 @@
 
     @if (!string.IsNullOrEmpty(successMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+        <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3"
+             style="z-index: 9999; min-width: 300px;" role="alert">
             <i class="bi bi-check-circle"></i> @successMessage
             <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
         </div>
@@ -250,7 +270,8 @@
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3"
+             style="z-index: 9999; min-width: 300px;" role="alert">
             <i class="bi bi-exclamation-triangle"></i> @errorMessage
             <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
         </div>
@@ -300,7 +321,7 @@
             await ThemeService.SetPresetAsync(selectedPreset);
 
             successMessage = "Theme saved successfully!";
-            
+
             await Task.Delay(3000);
             successMessage = string.Empty;
         }

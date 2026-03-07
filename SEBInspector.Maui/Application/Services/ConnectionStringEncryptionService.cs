@@ -8,7 +8,7 @@ namespace SEBInspector.Maui.Application.Services;
 public class ConnectionStringEncryptionService
 {
     private readonly IDataProtector _protector;
-    private const string Purpose = "SBInspector.ConnectionStrings.v1";
+    private const string Purpose = "SEBInspector.ConnectionStrings.v1";
 
     public ConnectionStringEncryptionService(IDataProtectionProvider provider)
     {

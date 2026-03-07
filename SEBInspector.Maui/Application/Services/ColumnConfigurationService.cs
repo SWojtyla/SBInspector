@@ -12,7 +12,7 @@ public class ColumnConfigurationService
     public ColumnConfigurationService()
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var configDirectory = Path.Combine(appDataPath, "SBInspector");
+        var configDirectory = Path.Combine(appDataPath, "SEBInspector");
 
         if (!Directory.Exists(configDirectory))
         {

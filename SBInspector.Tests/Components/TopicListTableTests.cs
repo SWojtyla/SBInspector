@@ -5,7 +5,7 @@ using SEBInspector.Maui.Core.Domain;
 using SEBInspector.Maui.Presentation.Components.UI;
 using System.Linq;
 
-namespace SBInspector.Tests.Components;
+namespace SEBInspector.Tests.Components;
 
 public class TopicListTableTests : TestContext
 {

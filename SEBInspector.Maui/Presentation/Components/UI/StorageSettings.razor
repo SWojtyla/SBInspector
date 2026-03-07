@@ -8,12 +8,13 @@
         <MudText Typo="Typo.h5">
             <MudIcon Icon="@Icons.Material.Filled.Settings" /> Storage Settings
         </MudText>
-        
-        <MudSelect T="StorageType" @bind-Value="selectedStorageType" Label="Storage Location" Margin="Margin.Normal" OnBlur="OnStorageTypeChanged">
+
+        <MudSelect T="StorageType" @bind-Value="selectedStorageType" Label="Storage Location" Margin="Margin.Normal"
+                   OnBlur="OnStorageTypeChanged">
             <MudSelectItem Value="StorageType.LocalStorage">Browser Local Storage (Web)</MudSelectItem>
             <MudSelectItem Value="StorageType.FileSystem">File System (Desktop - Recommended for Tauri)</MudSelectItem>
         </MudSelect>
-        
+
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             @if (selectedStorageType == StorageType.LocalStorage)
             {
@@ -21,10 +22,10 @@
             }
             else
             {
-                <text>Data is saved to files on your Desktop in 'SBInspector' folder. Best for Tauri desktop app.</text>
+                <text>Data is saved to files on your Desktop in 'SEBInspector' folder. Best for Tauri desktop app.</text>
             }
         </MudText>
-        
+
         @if (!string.IsNullOrEmpty(successMessage))
         {
             <MudAlert Severity="Severity.Success" Dense="true" OnClose="@(() => successMessage = string.Empty)">

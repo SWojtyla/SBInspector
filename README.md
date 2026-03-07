@@ -1,4 +1,4 @@
-# SBInspector
+# SEBInspector
 
 Azure Service Bus Inspector - **.NET MAUI desktop app (Windows)** for inspecting Azure Service Bus queues, topics, and messages using a BlazorWebView UI.
 
@@ -101,7 +101,7 @@ Azure Service Bus Inspector - **.NET MAUI desktop app (Windows)** for inspecting
    dotnet run -f net9.0-windows10.0.19041.0
    ```
 
-Alternatively, open `SBInspector.sln` in Visual Studio 2022 and run the `SEBInspector.Maui` project.
+Alternatively, open `SEBInspector.sln` in Visual Studio 2022 and run the `SEBInspector.Maui` project.
 
 For more details on the MAUI implementation, see [MAUI_IMPLEMENTATION.md](Features/MAUI_IMPLEMENTATION.md).
 
@@ -142,7 +142,7 @@ The solution consists of two projects following Clean Architecture principles:
 - `Infrastructure/` - Azure Service Bus and storage implementations
 - `Presentation/Components/` - Blazor UI components
 
-### SBInspector.Tests (Test Project)
+### SEBInspector.Tests (Test Project)
 
 - `Services/` - Service tests
 - `Components/` - Blazor component tests (bUnit)
@@ -162,7 +162,7 @@ The application supports advanced filtering of messages by application propertie
 
 ## Privacy
 
-SBInspector respects your privacy. All data (connection strings and templates) is stored locally on your device in encrypted form. No data is collected, tracked, or transmitted to third parties. For complete details, see [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
+SEBInspector respects your privacy. All data (connection strings and templates) is stored locally on your device in encrypted form. No data is collected, tracked, or transmitted to third parties. For complete details, see [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
 
 ## License
 

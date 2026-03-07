@@ -13,13 +13,13 @@ public class StorageConfigurationService
     {
         _defaultStorageType = defaultStorageType;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var configDirectory = Path.Combine(appDataPath, "SBInspector");
-        
+        var configDirectory = Path.Combine(appDataPath, "SEBInspector");
+
         if (!Directory.Exists(configDirectory))
         {
             Directory.CreateDirectory(configDirectory);
         }
-        
+
         _configFilePath = Path.Combine(configDirectory, "storage-config.json");
         _configuration = LoadConfiguration();
     }
@@ -55,17 +55,17 @@ public class StorageConfigurationService
 
     public string GetDefaultExportPath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Exports");
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SEBInspector", "Exports");
     }
 
     public string GetDefaultTemplatePath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Templates");
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SEBInspector", "Templates");
     }
 
     public string GetDefaultConnectionsPath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "SBInspector");
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "SEBInspector");
     }
 
     private StorageConfiguration LoadConfiguration()
@@ -82,7 +82,7 @@ public class StorageConfigurationService
         {
             // If there's any error reading the config, return default
         }
-        
+
         return new StorageConfiguration { StorageType = _defaultStorageType };
     }
 

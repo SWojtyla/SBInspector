@@ -16,7 +16,7 @@ public class ThemeService
     public ThemeService()
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var configDirectory = Path.Combine(appDataPath, "SBInspector");
+        var configDirectory = Path.Combine(appDataPath, "SEBInspector");
 
         if (!Directory.Exists(configDirectory))
         {

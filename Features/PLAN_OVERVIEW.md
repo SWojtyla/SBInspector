@@ -1,4 +1,4 @@
-# SBInspector Plan Overview
+# SEBInspector Plan Overview
 
 Status: Draft
 Date: 2026-02-24

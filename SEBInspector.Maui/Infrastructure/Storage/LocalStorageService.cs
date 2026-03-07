@@ -8,9 +8,9 @@ namespace SEBInspector.Maui.Infrastructure.Storage;
 public class LocalStorageService : IStorageService
 {
     private readonly IJSRuntime _jsRuntime;
-    private const string ConnectionsKey = "sbinspector_connections";
-    private const string TemplatesKey = "sbinspector_templates";
-    private const string PreferencesKey = "sbinspector_preferences";
+    private const string ConnectionsKey = "SEBInspector_connections";
+    private const string TemplatesKey = "SEBInspector_templates";
+    private const string PreferencesKey = "SEBInspector_preferences";
 
     public LocalStorageService(IJSRuntime jsRuntime)
     {
@@ -38,14 +38,14 @@ public class LocalStorageService : IStorageService
     public async Task SaveConnectionAsync(SavedConnection connection)
     {
         var connections = await GetSavedConnectionsAsync();
-        
+
         // Remove existing connection with same name
         connections.RemoveAll(c => c.Name.Equals(connection.Name, StringComparison.OrdinalIgnoreCase));
-        
+
         // Add new connection
         connection.CreatedAt = DateTime.UtcNow;
         connections.Add(connection);
-        
+
         var json = JsonSerializer.Serialize(connections);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", ConnectionsKey, json);
     }
@@ -54,7 +54,7 @@ public class LocalStorageService : IStorageService
     {
         var connections = await GetSavedConnectionsAsync();
         connections.RemoveAll(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        
+
         var json = JsonSerializer.Serialize(connections);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", ConnectionsKey, json);
     }
@@ -63,7 +63,7 @@ public class LocalStorageService : IStorageService
     {
         var connections = await GetSavedConnectionsAsync();
         var connection = connections.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        
+
         if (connection != null)
         {
             connection.LastUsedAt = DateTime.UtcNow;
@@ -76,7 +76,7 @@ public class LocalStorageService : IStorageService
     {
         var connections = await GetSavedConnectionsAsync();
         var connection = connections.FirstOrDefault(c => c.Name.Equals(oldName, StringComparison.OrdinalIgnoreCase));
-        
+
         if (connection != null)
         {
             connection.Name = newName;
@@ -106,14 +106,14 @@ public class LocalStorageService : IStorageService
     public async Task SaveMessageTemplateAsync(MessageTemplate template)
     {
         var templates = await GetMessageTemplatesAsync();
-        
+
         // Remove existing template with same id
         templates.RemoveAll(t => t.Id == template.Id);
-        
+
         // Add new template
         template.CreatedAt = DateTime.UtcNow;
         templates.Add(template);
-        
+
         var json = JsonSerializer.Serialize(templates);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TemplatesKey, json);
     }
@@ -122,7 +122,7 @@ public class LocalStorageService : IStorageService
     {
         var templates = await GetMessageTemplatesAsync();
         templates.RemoveAll(t => t.Id == id);
-        
+
         var json = JsonSerializer.Serialize(templates);
         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TemplatesKey, json);
     }
@@ -131,7 +131,7 @@ public class LocalStorageService : IStorageService
     {
         var templates = await GetMessageTemplatesAsync();
         var template = templates.FirstOrDefault(t => t.Id == id);
-        
+
         if (template != null)
         {
             template.LastUsedAt = DateTime.UtcNow;

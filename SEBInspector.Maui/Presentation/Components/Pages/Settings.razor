@@ -21,11 +21,12 @@
                     <h5 class="card-title">
                         <i class="bi bi-download"></i> Export Path
                     </h5>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Exported Messages Location</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" @bind="exportPath" placeholder="@defaultExportPath" />
+                            <input type="text" class="form-control" @bind="exportPath"
+                                   placeholder="@defaultExportPath" />
                             <button class="btn btn-outline-secondary" type="button" @onclick="BrowseExportPath">
                                 <i class="bi bi-folder2-open"></i> Browse
                             </button>
@@ -62,11 +63,12 @@
                     <h5 class="card-title">
                         <i class="bi bi-file-earmark-text"></i> Template Storage Path
                     </h5>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Message Templates Location</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" @bind="templatePath" placeholder="@defaultTemplatePath" />
+                            <input type="text" class="form-control" @bind="templatePath"
+                                   placeholder="@defaultTemplatePath" />
                             <button class="btn btn-outline-secondary" type="button" @onclick="BrowseTemplatePath">
                                 <i class="bi bi-folder2-open"></i> Browse
                             </button>
@@ -103,11 +105,12 @@
                     <h5 class="card-title">
                         <i class="bi bi-link-45deg"></i> Connections Storage Path
                     </h5>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Saved Connection Strings Location</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" @bind="connectionsPath" placeholder="@defaultConnectionsPath" />
+                            <input type="text" class="form-control" @bind="connectionsPath"
+                                   placeholder="@defaultConnectionsPath" />
                             <button class="btn btn-outline-secondary" type="button" @onclick="BrowseConnectionsPath">
                                 <i class="bi bi-folder2-open"></i> Browse
                             </button>
@@ -144,7 +147,7 @@
                     <h5 class="card-title">
                         <i class="bi bi-shield-lock"></i> Connection String Security
                     </h5>
-                    
+
                     <div class="alert alert-info" role="alert">
                         <i class="bi bi-info-circle"></i>
                         Connection strings are now stored securely using encryption.
@@ -155,7 +158,8 @@
                         <div class="alert alert-warning" role="alert">
                             <i class="bi bi-exclamation-triangle"></i>
                             You have @unencryptedConnectionCount connection(s) stored in plain text.
-                            <button class="btn btn-sm btn-warning ms-2" @onclick="EncryptExistingConnections" disabled="@isEncrypting">
+                            <button class="btn btn-sm btn-warning ms-2" @onclick="EncryptExistingConnections"
+                                    disabled="@isEncrypting">
                                 @if (isEncrypting)
                                 {
                                     <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -201,12 +205,13 @@
                         <i class="bi bi-info-circle"></i> About Settings
                     </h5>
                     <p class="card-text">
-                        Configure how SBInspector stores your data and where exported files are saved.
+                        Configure how SEBInspector stores your data and where exported files are saved.
                     </p>
                     <hr />
                     <h6>Security</h6>
                     <p class="small">
-                        Connection strings are encrypted using the Data Protection API, which uses machine-specific keys to secure your sensitive data.
+                        Connection strings are encrypted using the Data Protection API, which uses machine-specific keys
+                        to secure your sensitive data.
                     </p>
                 </div>
             </div>
@@ -215,7 +220,8 @@
 
     @if (!string.IsNullOrEmpty(successMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+        <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3"
+             style="z-index: 9999; min-width: 300px;" role="alert">
             <i class="bi bi-check-circle"></i> @successMessage
             <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
         </div>
@@ -223,7 +229,8 @@
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999; min-width: 300px;" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3"
+             style="z-index: 9999; min-width: 300px;" role="alert">
             <i class="bi bi-exclamation-triangle"></i> @errorMessage
             <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
         </div>
@@ -250,7 +257,7 @@
         exportPath = config.ExportPath;
         templatePath = config.TemplatePath;
         connectionsPath = config.ConnectionsPath;
-        
+
         defaultExportPath = ConfigService.GetDefaultExportPath();
         defaultTemplatePath = ConfigService.GetDefaultTemplatePath();
         defaultConnectionsPath = ConfigService.GetDefaultConnectionsPath();
@@ -329,7 +336,7 @@
             await ConfigService.SetConnectionsPathAsync(connectionsPath);
 
             successMessage = "Settings saved successfully!";
-            
+
             await Task.Delay(3000);
             successMessage = string.Empty;
         }
@@ -365,7 +372,7 @@
 
             await CheckForUnencryptedConnections();
             successMessage = $"Successfully encrypted {unencrypted.Count} connection(s)!";
-            
+
             await Task.Delay(3000);
             successMessage = string.Empty;
         }

@@ -10,7 +10,7 @@ using SEBInspector.Maui.Core.Interfaces;
 using SEBInspector.Maui.Presentation.Components.UI;
 using System.Linq;
 
-namespace SBInspector.Tests.Components;
+namespace SEBInspector.Tests.Components;
 
 public class ConnectionFormTests : TestContext
 {

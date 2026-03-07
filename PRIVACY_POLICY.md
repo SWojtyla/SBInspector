@@ -1,15 +1,15 @@
-# Privacy Policy for SBInspector
+# Privacy Policy for SEBInspector
 
 **Last Updated:** November 7, 2025
 
 ## Introduction
 
-SBInspector ("the App") is an Azure Service Bus Inspector application available as both a Blazor web application and a .NET MAUI desktop application. This Privacy Policy describes how the App handles your information.
+SEBInspector ("the App") is an Azure Service Bus Inspector application available as both a Blazor web application and a .NET MAUI desktop application. This Privacy Policy describes how the App handles your information.
 
 ## Developer Information
 
 **Developer:** SWojtyla  
-**Contact:** [GitHub Repository](https://github.com/SWojtyla/SBInspector)
+**Contact:** [GitHub Repository](https://github.com/SWojtyla/SEBInspector)
 
 ## Data Collection and Usage
 
@@ -25,12 +25,14 @@ The App accesses the following information solely for the purpose of inspecting 
 ### How is Data Stored?
 
 #### Desktop Application (.NET MAUI)
+
 - **Connection Strings**: Stored encrypted in local files on your device using .NET Data Protection API
-  - Location: `Desktop/SBInspector/connections.json` (encrypted)
-- **Message Templates**: Stored in `Documents/SBInspector/Templates/templates.json`
-- **Exported Messages**: Saved to `Documents/SBInspector/Exports/` when you choose to export
+  - Location: `Desktop/SEBInspector/connections.json` (encrypted)
+- **Message Templates**: Stored in `Documents/SEBInspector/Templates/templates.json`
+- **Exported Messages**: Saved to `Documents/SEBInspector/Exports/` when you choose to export
 
 #### Web Application (Blazor Server)
+
 - **Connection Strings**: Stored encrypted in your browser's local storage using .NET Data Protection API
 - **Message Templates**: Stored in your browser's local storage
 - All data remains in your browser and is not transmitted to any server except your own Azure Service Bus
@@ -51,9 +53,10 @@ The App does NOT share any data with third parties. The only external connection
 - **Web Application**: Data remains in your browser's local storage until you clear it or manually delete saved connections
 
 You can delete:
+
 - Individual saved connections through the App's interface
 - Message templates through the App's interface
-- All data by clearing browser storage (web) or deleting the SBInspector folders (desktop)
+- All data by clearing browser storage (web) or deleting the SEBInspector folders (desktop)
 
 ## Your Rights and Control
 
@@ -79,6 +82,7 @@ The App acts as a client to your Azure Service Bus namespace:
 ## Analytics and Tracking
 
 The App does NOT:
+
 - Collect usage analytics
 - Track your behavior
 - Use cookies (except those required for basic web functionality in the Blazor web version)
@@ -88,6 +92,7 @@ The App does NOT:
 ## File System Access (Desktop Application)
 
 The desktop application requires access to your file system for:
+
 - Storing encrypted connection strings
 - Saving message templates
 - Exporting messages when you choose to export
@@ -100,8 +105,8 @@ We may update this Privacy Policy from time to time. Any changes will be reflect
 
 ## Open Source
 
-SBInspector is open source software. You can review the source code and verify our privacy practices at:  
-https://github.com/SWojtyla/SBInspector
+SEBInspector is open source software. You can review the source code and verify our privacy practices at:  
+https://github.com/SWojtyla/SEBInspector
 
 ## Consent
 
@@ -110,11 +115,13 @@ By using the App, you consent to this Privacy Policy.
 ## Contact Us
 
 If you have any questions about this Privacy Policy or the App's privacy practices, please contact us through:
-- GitHub Issues: https://github.com/SWojtyla/SBInspector/issues
+
+- GitHub Issues: https://github.com/SWojtyla/SEBInspector/issues
 
 ## Legal Compliance
 
 This Privacy Policy is designed to comply with:
+
 - General Data Protection Regulation (GDPR)
 - California Consumer Privacy Act (CCPA)
 - Microsoft Store Privacy Requirements
@@ -122,6 +129,7 @@ This Privacy Policy is designed to comply with:
 ## Summary
 
 **In Plain English:**
+
 - The App only stores your Azure Service Bus connection strings and message templates locally on your device
 - All sensitive data is encrypted
 - We don't collect, track, or share any of your data

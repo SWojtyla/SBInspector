@@ -3,7 +3,7 @@ using MudBlazor.Services;
 using SEBInspector.Maui.Core.Domain;
 using SEBInspector.Maui.Presentation.Components.UI;
 
-namespace SBInspector.Tests.Components;
+namespace SEBInspector.Tests.Components;
 
 public class EntityTreeViewTests : TestContext
 {

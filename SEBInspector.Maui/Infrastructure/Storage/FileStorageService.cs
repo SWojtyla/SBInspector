@@ -17,12 +17,12 @@ public class FileStorageService : IStorageService
     {
         // Use custom directory or default to Desktop
         var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        _storageDirectory = customStorageDir ?? Path.Combine(desktopPath, "SBInspector");
-        
+        _storageDirectory = customStorageDir ?? Path.Combine(desktopPath, "SEBInspector");
+
         // Set export and template directories
-        _exportDirectory = customExportDir ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Exports");
-        _templateDirectory = customTemplateDir ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SBInspector", "Templates");
-        
+        _exportDirectory = customExportDir ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SEBInspector", "Exports");
+        _templateDirectory = customTemplateDir ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SEBInspector", "Templates");
+
         // Ensure directories exist
         EnsureDirectoryExists(_storageDirectory);
         EnsureDirectoryExists(_exportDirectory);
@@ -63,14 +63,14 @@ public class FileStorageService : IStorageService
     public async Task SaveConnectionAsync(SavedConnection connection)
     {
         var connections = await GetSavedConnectionsAsync();
-        
+
         // Remove existing connection with same name
         connections.RemoveAll(c => c.Name.Equals(connection.Name, StringComparison.OrdinalIgnoreCase));
-        
+
         // Add new connection
         connection.CreatedAt = DateTime.UtcNow;
         connections.Add(connection);
-        
+
         var filePath = Path.Combine(_storageDirectory, ConnectionsFileName);
         var json = JsonSerializer.Serialize(connections, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
@@ -80,7 +80,7 @@ public class FileStorageService : IStorageService
     {
         var connections = await GetSavedConnectionsAsync();
         connections.RemoveAll(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        
+
         var filePath = Path.Combine(_storageDirectory, ConnectionsFileName);
         var json = JsonSerializer.Serialize(connections, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
@@ -90,7 +90,7 @@ public class FileStorageService : IStorageService
     {
         var connections = await GetSavedConnectionsAsync();
         var connection = connections.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        
+
         if (connection != null)
         {
             connection.LastUsedAt = DateTime.UtcNow;
@@ -104,7 +104,7 @@ public class FileStorageService : IStorageService
     {
         var connections = await GetSavedConnectionsAsync();
         var connection = connections.FirstOrDefault(c => c.Name.Equals(oldName, StringComparison.OrdinalIgnoreCase));
-        
+
         if (connection != null)
         {
             connection.Name = newName;
@@ -137,14 +137,14 @@ public class FileStorageService : IStorageService
     public async Task SaveMessageTemplateAsync(MessageTemplate template)
     {
         var templates = await GetMessageTemplatesAsync();
-        
+
         // Remove existing template with same id
         templates.RemoveAll(t => t.Id == template.Id);
-        
+
         // Add new template
         template.CreatedAt = DateTime.UtcNow;
         templates.Add(template);
-        
+
         var filePath = Path.Combine(_templateDirectory, TemplatesFileName);
         var json = JsonSerializer.Serialize(templates, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
@@ -154,7 +154,7 @@ public class FileStorageService : IStorageService
     {
         var templates = await GetMessageTemplatesAsync();
         templates.RemoveAll(t => t.Id == id);
-        
+
         var filePath = Path.Combine(_templateDirectory, TemplatesFileName);
         var json = JsonSerializer.Serialize(templates, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(filePath, json);
@@ -164,7 +164,7 @@ public class FileStorageService : IStorageService
     {
         var templates = await GetMessageTemplatesAsync();
         var template = templates.FirstOrDefault(t => t.Id == id);
-        
+
         if (template != null)
         {
             template.LastUsedAt = DateTime.UtcNow;

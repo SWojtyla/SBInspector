@@ -22,7 +22,7 @@ namespace SEBInspector.Maui
                 ContentRootFileProvider = new NullFileProvider();
             }
 
-            public string ApplicationName { get; set; } = "SBInspector";
+            public string ApplicationName { get; set; } = "SEBInspector";
             public string EnvironmentName { get; set; } = Environments.Production;
             public string ContentRootPath { get; set; }
             public IFileProvider ContentRootFileProvider { get; set; }
@@ -51,14 +51,14 @@ namespace SEBInspector.Maui
             // Add Data Protection without relying on MAUI's host environment implementation.
             var dataProtectionKeyPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SBInspector",
+                "SEBInspector",
                 "Keys");
             Directory.CreateDirectory(dataProtectionKeyPath);
             builder.Services.AddSingleton<IHostEnvironment>(new SimpleHostEnvironment(AppContext.BaseDirectory));
             builder.Services
                 .AddDataProtection()
                 .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath))
-                .SetApplicationName("SBInspector");
+                .SetApplicationName("SEBInspector");
 
             // Register services following clean architecture
             builder.Services.AddSingleton<IServiceBusService, ServiceBusService>();

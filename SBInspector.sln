@@ -5,7 +5,7 @@ VisualStudioVersion = 18.0.11121.172
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SEBInspector.Maui", "SEBInspector.Maui\SEBInspector.Maui.csproj", "{4A4BE847-98C2-4582-B25F-59803AA0F459}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SBInspector.Tests", "SBInspector.Tests\SBInspector.Tests.csproj", "{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SEBInspector.Tests", "SEBInspector.Tests\SEBInspector.Tests.csproj", "{1FA4EE57-4DBA-411B-8445-4A4DFDA9822B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -3,6 +3,7 @@
 ## Problem Description
 
 The column customization modal had a bug where:
+
 1. Checkboxes did not reflect the current visibility state of columns when the modal was opened (all appeared unchecked)
 2. Clicking checkboxes did not visually update the checkbox state (even though the underlying data was being modified)
 3. Visible columns should have had their checkboxes checked by default
@@ -14,9 +15,9 @@ The column customization modal had a bug where:
 In the `ColumnConfigurationModal.razor` component, the checkboxes used one-way binding with separate `Checked` and `CheckedChanged` properties:
 
 ```razor
-<MudCheckBox T="bool" 
-    Checked="@column.IsVisible" 
-    CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))" 
+<MudCheckBox T="bool"
+    Checked="@column.IsVisible"
+    CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))"
     Color="Color.Primary" />
 ```
 
@@ -39,6 +40,7 @@ Replaced one-way binding with two-way binding using `@bind-Checked`:
 ```
 
 Benefits:
+
 - Blazor automatically reads and updates the property
 - No need for manual event handlers or `StateHasChanged()` calls for checkbox changes
 - Simpler, more maintainable code
@@ -68,6 +70,7 @@ Removed the `ToggleColumnVisibility` method since it's no longer needed with two
 ### Change 4: Kept StateHasChanged for List Operations
 
 Kept `StateHasChanged()` calls for operations that modify the list structure:
+
 - **RemoveCustomColumn** - Forces re-render after removing a custom column from the list
 - **AddCustomColumn** - Forces re-render after adding a new custom column
 - **ResetToDefault** - Forces re-render after resetting columns to defaults
@@ -75,11 +78,12 @@ Kept `StateHasChanged()` calls for operations that modify the list structure:
 ## Technical Details
 
 ### Before
+
 ```csharp
 // One-way binding with manual event handler
-<MudCheckBox T="bool" 
-    Checked="@column.IsVisible" 
-    CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))" 
+<MudCheckBox T="bool"
+    Checked="@column.IsVisible"
+    CheckedChanged="@((bool value) => ToggleColumnVisibility(column, value))"
     Color="Color.Primary" />
 
 private void ToggleColumnVisibility(ColumnDefinition column, bool isVisible)
@@ -90,6 +94,7 @@ private void ToggleColumnVisibility(ColumnDefinition column, bool isVisible)
 ```
 
 ### After
+
 ```csharp
 // Two-way binding - automatic synchronization
 <MudCheckBox T="bool" @bind-Checked="@column.IsVisible" Color="Color.Primary" />
@@ -111,12 +116,14 @@ protected override void OnParametersSet()
 ## Why This Works
 
 **Two-way binding** (`@bind-Checked`) tells Blazor to:
+
 1. Read the property value and display it in the checkbox (initial render)
 2. When the checkbox changes, automatically update the property
 3. Automatically re-render the component to reflect the new state
 4. Keep the checkbox and property synchronized without manual intervention
 
 **Parameter fallback** ensures:
+
 1. If the dialog parameter is set correctly, use it
 2. If the parameter is empty/null, load from the service
 3. The modal always has the correct data to display
@@ -128,6 +135,7 @@ The initial fix attempt added `StateHasChanged()` calls to the event handlers, w
 ## Testing
 
 To test this fix:
+
 1. Open the application and navigate to a message list
 2. Click the "Configure Columns" button (gear icon)
 3. Verify that checkboxes correctly show which columns are currently visible
@@ -139,7 +147,7 @@ To test this fix:
 
 ## Files Changed
 
-- `SBInspector.Shared/Presentation/Components/UI/ColumnConfigurationModal.razor`
+- `SEBInspector.Shared/Presentation/Components/UI/ColumnConfigurationModal.razor`
   - Replaced one-way binding with two-way binding (`@bind-Checked`)
   - Added `OnParametersSet` lifecycle method with fallback to service configuration
   - Removed `ToggleColumnVisibility` method (no longer needed)
